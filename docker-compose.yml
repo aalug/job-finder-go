@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - dev-db-data:/var/lib/postgresql/data
+    container_name: go_gin_job_search_db
+    environment:
+      - POSTGRES_DB=go_gin_job_search_db
+      - POSTGRES_USER=devuser
+      - POSTGRES_PASSWORD=admin
+    ports:
+      - "5432:5432"
+
+volumes:
+  dev-db-data:

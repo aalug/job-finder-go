@@ -1,0 +1,36 @@
+# ignore git files
+.git
+
+# ignore go binary
+*.exe
+*.exe~
+*.test
+*.test~
+*.prof
+*.prof~
+*.out
+*.out~
+
+# ignore go modules cache
+*/go/pkg
+*/go/bin
+*/booking-go/vendor
+
+.editorconfig
+AUTHORS.md
+CONTRIBUTING.md
+LICENSE
+Makefile
+NOTICE
+README.md
+arm/
+powerpc/
+mips/
+
+# ignore local development files
+/dev/*
+!/dev/postgres
+/dev/postgres/*
+!/dev/postgres/data
+/dev/postgres/data/*
+!/dev/postgres/data/postgresql.conf
