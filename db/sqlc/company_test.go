@@ -4,19 +4,34 @@ import (
 	"context"
 	"database/sql"
 	"github.com/aalug/go-gin-job-search/utils"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-// createRandomCompany creates and return a random company
-func createRandomCompany(t *testing.T) Company {
+// createRandomCompany get or creates and return a random company
+func createRandomCompany(t *testing.T, name string) Company {
 	params := CreateCompanyParams{
-		Name:     utils.RandomString(5),
 		Industry: utils.RandomString(4),
 		Location: utils.RandomString(6),
 	}
+	if name != "" {
+		params.Name = name
+	} else {
+		params.Name = utils.RandomString(6)
+	}
 
 	company, err := testQueries.CreateCompany(context.Background(), params)
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Code.Name() {
+			case "unique_violation":
+				c, err := testQueries.GetCompanyByName(context.Background(), params.Name)
+				require.NoError(t, err)
+				return c
+			}
+		}
+	}
 
 	require.NoError(t, err)
 	require.NotEmpty(t, company)
@@ -29,11 +44,11 @@ func createRandomCompany(t *testing.T) Company {
 }
 
 func TestQueries_CreateCompany(t *testing.T) {
-	createRandomCompany(t)
+	createRandomCompany(t, "")
 }
 
 func TestQueries_GetCompanyByID(t *testing.T) {
-	company := createRandomCompany(t)
+	company := createRandomCompany(t, "")
 	company2, err := testQueries.GetCompanyByID(context.Background(), company.ID)
 
 	require.NoError(t, err)
@@ -45,7 +60,7 @@ func TestQueries_GetCompanyByID(t *testing.T) {
 }
 
 func TestQueries_GetCompanyByName(t *testing.T) {
-	company := createRandomCompany(t)
+	company := createRandomCompany(t, "")
 	company2, err := testQueries.GetCompanyByName(context.Background(), company.Name)
 
 	require.NoError(t, err)
@@ -57,7 +72,7 @@ func TestQueries_GetCompanyByName(t *testing.T) {
 }
 
 func TestQueries_UpdateCompany(t *testing.T) {
-	company := createRandomCompany(t)
+	company := createRandomCompany(t, "")
 	params := UpdateCompanyParams{
 		ID:       company.ID,
 		Name:     utils.RandomString(3),
@@ -76,7 +91,7 @@ func TestQueries_UpdateCompany(t *testing.T) {
 }
 
 func TestQueries_DeleteCompany(t *testing.T) {
-	company := createRandomCompany(t)
+	company := createRandomCompany(t, "")
 	err := testQueries.DeleteCompany(context.Background(), company.ID)
 
 	require.NoError(t, err)
