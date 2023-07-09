@@ -36,6 +36,7 @@ CREATE TABLE users
     id                 SERIAL PRIMARY KEY,
     full_name          TEXT        NOT NULL,
     email              TEXT        NOT NULL,
+    hashed_password    TEXT        NOT NULL,
     location           TEXT        NOT NULL,
     desired_job_title  TEXT        NOT NULL,
     desired_industry   TEXT        NOT NULL,

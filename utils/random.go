@@ -32,5 +32,5 @@ func RandomString(n int) string {
 
 // RandomEmail returns a random email
 func RandomEmail() string {
-	return RandomString(6) + "@example.com"
+	return RandomString(10) + "@example.com"
 }

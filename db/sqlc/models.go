@@ -37,6 +37,7 @@ type User struct {
 	ID               int32     `json:"id"`
 	FullName         string    `json:"full_name"`
 	Email            string    `json:"email"`
+	HashedPassword   string    `json:"hashed_password"`
 	Location         string    `json:"location"`
 	DesiredJobTitle  string    `json:"desired_job_title"`
 	DesiredIndustry  string    `json:"desired_industry"`
