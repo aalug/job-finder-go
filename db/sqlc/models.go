@@ -29,6 +29,7 @@ type Job struct {
 }
 
 type JobSkill struct {
+	ID    int32  `json:"id"`
 	JobID int32  `json:"job_id"`
 	Skill string `json:"skill"`
 }
@@ -49,6 +50,7 @@ type User struct {
 }
 
 type UserSkill struct {
+	ID         int32  `json:"id"`
 	UserID     int32  `json:"user_id"`
 	Skill      string `json:"skill"`
 	Experience int32  `json:"experience"`

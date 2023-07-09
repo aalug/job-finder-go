@@ -52,6 +52,7 @@ CREATE INDEX idx_users_email ON users (email);
 
 CREATE TABLE job_skills
 (
+    id     SERIAL PRIMARY KEY,
     job_id INTEGER NOT NULL,
     skill  TEXT    NOT NULL,
     FOREIGN KEY (job_id) REFERENCES jobs (id)
@@ -59,6 +60,7 @@ CREATE TABLE job_skills
 
 CREATE TABLE user_skills
 (
+    id         SERIAL PRIMARY KEY,
     user_id    INTEGER NOT NULL,
     skill      TEXT    NOT NULL,
     experience INTEGER NOT NULL,
