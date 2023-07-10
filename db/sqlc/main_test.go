@@ -2,16 +2,12 @@ package db
 
 import (
 	"database/sql"
+	"github.com/aalug/go-gin-job-search/utils"
 	"log"
 	"os"
 	"testing"
 
 	_ "github.com/lib/pq"
-)
-
-const (
-	DBSource = "postgresql://devuser:admin@localhost:5432/go_gin_job_search_db?sslmode=disable"
-	DBDriver = "postgres"
 )
 
 var testQueries *Queries
@@ -20,7 +16,13 @@ var testDB *sql.DB
 
 func TestMain(m *testing.M) {
 	var err error
-	testDB, err = sql.Open(DBDriver, DBSource)
+
+	config, err := utils.LoadConfig("../../.")
+	if err != nil {
+		log.Fatal("cannot load env file: ", err)
+	}
+
+	testDB, err = sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatal("cannot connect to db: ", err)
 	}
