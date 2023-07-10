@@ -17,8 +17,14 @@ func TestSQLStore_CreateMultipleUserSkills(t *testing.T) {
 		})
 	}
 
-	err := testStore.CreateMultipleUserSkills(context.Background(), params, user.ID)
+	userSkills, err := testStore.CreateMultipleUserSkills(context.Background(), params, user.ID)
 	require.NoError(t, err)
+	require.Len(t, userSkills, 5)
+	for _, userSkill := range userSkills {
+		require.NotEmpty(t, userSkill)
+		require.Equal(t, user.ID, userSkill.UserID)
+		require.NotZero(t, userSkill.ID)
+	}
 }
 
 func TestSQLStore_CreateMultipleJobSkills(t *testing.T) {

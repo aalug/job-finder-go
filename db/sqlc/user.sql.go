@@ -7,28 +7,26 @@ package db
 
 import (
 	"context"
-	"time"
 )
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min,
-                   desired_salary_max, skills, experience, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                   desired_salary_max, skills, experience)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING id, full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min, desired_salary_max, skills, experience, created_at
 `
 
 type CreateUserParams struct {
-	FullName         string    `json:"full_name"`
-	Email            string    `json:"email"`
-	HashedPassword   string    `json:"hashed_password"`
-	Location         string    `json:"location"`
-	DesiredJobTitle  string    `json:"desired_job_title"`
-	DesiredIndustry  string    `json:"desired_industry"`
-	DesiredSalaryMin int32     `json:"desired_salary_min"`
-	DesiredSalaryMax int32     `json:"desired_salary_max"`
-	Skills           string    `json:"skills"`
-	Experience       string    `json:"experience"`
-	CreatedAt        time.Time `json:"created_at"`
+	FullName         string `json:"full_name"`
+	Email            string `json:"email"`
+	HashedPassword   string `json:"hashed_password"`
+	Location         string `json:"location"`
+	DesiredJobTitle  string `json:"desired_job_title"`
+	DesiredIndustry  string `json:"desired_industry"`
+	DesiredSalaryMin int32  `json:"desired_salary_min"`
+	DesiredSalaryMax int32  `json:"desired_salary_max"`
+	Skills           string `json:"skills"`
+	Experience       string `json:"experience"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -43,7 +41,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.DesiredSalaryMax,
 		arg.Skills,
 		arg.Experience,
-		arg.CreatedAt,
 	)
 	var i User
 	err := row.Scan(

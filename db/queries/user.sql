@@ -1,7 +1,7 @@
 -- name: CreateUser :one
 INSERT INTO users (full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min,
-                   desired_salary_max, skills, experience, created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                   desired_salary_max, skills, experience)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING *;
 
 -- name: GetUserByID :one
