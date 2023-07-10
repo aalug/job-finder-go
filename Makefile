@@ -26,4 +26,7 @@ test:
 test_coverage:
 	go test $(p) -coverprofile=coverage.out && go tool cover -html=coverage.out
 
-.PHONY: generate_migrations, migrate_up, migrate_down, sqlc, mock, test, test_coverage
+runserver:
+	go run main.go
+
+.PHONY: generate_migrations, migrate_up, migrate_down, sqlc, mock, test, test_coverage, runserver
