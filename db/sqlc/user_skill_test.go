@@ -105,3 +105,13 @@ func TestQueries_UpdateUserSkill(t *testing.T) {
 	require.Equal(t, userSkill.UserID, updatedUserSkill.UserID)
 	require.Equal(t, userSkill.Skill, updatedUserSkill.Skill)
 }
+
+func TestQueries_DeleteMultipleUserSkills(t *testing.T) {
+	var userSkillIDs []int32
+	for i := 0; i < 5; i++ {
+		userSkill := createRandomUserSkill(t, 0, "")
+		userSkillIDs = append(userSkillIDs, userSkill.ID)
+	}
+	err := testQueries.DeleteMultipleUserSkills(context.Background(), userSkillIDs)
+	require.NoError(t, err)
+}

@@ -103,3 +103,33 @@ func TestQueries_UpdateJobSkill(t *testing.T) {
 	require.Equal(t, jobSkill.ID, params.ID)
 	require.Equal(t, jobSkill.Skill, params.Skill)
 }
+
+func TestQueries_DeleteMultipleJobSkills(t *testing.T) {
+	var jobSkillIDs []int32
+	for i := 0; i < 5; i++ {
+		jobSkill := createRandomJobSkill(t, nil, "")
+		jobSkillIDs = append(jobSkillIDs, jobSkill.ID)
+	}
+	err := testQueries.DeleteMultipleUserSkills(context.Background(), jobSkillIDs)
+	require.NoError(t, err)
+}
+
+func TestQueries_DeleteJobSkillsByJobID(t *testing.T) {
+	job := createRandomJob(t, nil, jobDetails{})
+	for i := 0; i < 5; i++ {
+		createRandomJobSkill(t, &job, "")
+	}
+
+	err := testQueries.DeleteJobSkillsByJobID(context.Background(), job.ID)
+	require.NoError(t, err)
+
+	params := ListJobSkillsByJobIDParams{
+		JobID:  job.ID,
+		Limit:  5,
+		Offset: 0,
+	}
+	jobSkills, err := testQueries.ListJobSkillsByJobID(context.Background(), params)
+	require.NoError(t, err)
+	require.Len(t, jobSkills, 0)
+	require.Empty(t, jobSkills)
+}
