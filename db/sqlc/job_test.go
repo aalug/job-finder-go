@@ -332,3 +332,30 @@ func TestQueries_ListJobsBySalaryRange(t *testing.T) {
 		require.True(t, job.SalaryMax <= params.SalaryMax)
 	}
 }
+
+func TestQueries_ListJobsMatchingUserSkills(t *testing.T) {
+	skillName := utils.RandomString(10)
+	user := createRandomUser(t)
+	createRandomUserSkill(t, user.ID, skillName)
+
+	var jobIDs []int32
+	for i := 0; i < 5; i++ {
+		job := createRandomJob(t, nil, jobDetails{})
+		jobIDs = append(jobIDs, job.ID)
+		createRandomJobSkill(t, &job, skillName)
+	}
+
+	params := ListJobsMatchingUserSkillsParams{
+		UserID: user.ID,
+		Limit:  5,
+		Offset: 0,
+	}
+
+	jobs, err := testQueries.ListJobsMatchingUserSkills(context.Background(), params)
+	require.NoError(t, err)
+	require.Len(t, jobs, 5)
+	for _, job := range jobs {
+		require.NotEmpty(t, job)
+		require.Contains(t, jobIDs, job.ID)
+	}
+}
