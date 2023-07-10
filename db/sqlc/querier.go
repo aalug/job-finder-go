@@ -13,10 +13,12 @@ type Querier interface {
 	CreateJob(ctx context.Context, arg CreateJobParams) (Job, error)
 	CreateJobSkill(ctx context.Context, arg CreateJobSkillParams) (JobSkill, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateUserSkill(ctx context.Context, arg CreateUserSkillParams) (UserSkill, error)
 	DeleteCompany(ctx context.Context, id int32) error
 	DeleteJob(ctx context.Context, id int32) error
 	DeleteJobSkill(ctx context.Context, id int32) error
 	DeleteUser(ctx context.Context, id int32) error
+	DeleteUserSkill(ctx context.Context, id int32) error
 	GetCompanyByID(ctx context.Context, id int32) (Company, error)
 	GetCompanyByName(ctx context.Context, name string) (Company, error)
 	GetJob(ctx context.Context, id int32) (Job, error)
@@ -32,11 +34,14 @@ type Querier interface {
 	ListJobsBySkill(ctx context.Context, arg ListJobsBySkillParams) ([]int32, error)
 	ListJobsByTitle(ctx context.Context, arg ListJobsByTitleParams) ([]Job, error)
 	ListJobsMatchingUserSkills(ctx context.Context, arg ListJobsMatchingUserSkillsParams) ([]Job, error)
+	ListUserSkills(ctx context.Context, arg ListUserSkillsParams) ([]UserSkill, error)
+	ListUsersBySkill(ctx context.Context, arg ListUsersBySkillParams) ([]User, error)
 	UpdateCompany(ctx context.Context, arg UpdateCompanyParams) (Company, error)
 	UpdateJob(ctx context.Context, arg UpdateJobParams) (Job, error)
 	UpdateJobSkill(ctx context.Context, arg UpdateJobSkillParams) (JobSkill, error)
 	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpdateUserSkill(ctx context.Context, arg UpdateUserSkillParams) (UserSkill, error)
 }
 
 var _ Querier = (*Queries)(nil)
