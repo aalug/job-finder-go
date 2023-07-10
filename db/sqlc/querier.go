@@ -17,6 +17,9 @@ type Querier interface {
 	DeleteCompany(ctx context.Context, id int32) error
 	DeleteJob(ctx context.Context, id int32) error
 	DeleteJobSkill(ctx context.Context, id int32) error
+	DeleteJobSkillsByJobID(ctx context.Context, jobID int32) error
+	DeleteMultipleJobSkills(ctx context.Context, ids []int32) error
+	DeleteMultipleUserSkills(ctx context.Context, ids []int32) error
 	DeleteUser(ctx context.Context, id int32) error
 	DeleteUserSkill(ctx context.Context, id int32) error
 	GetCompanyByID(ctx context.Context, id int32) (Company, error)

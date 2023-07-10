@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/lib/pq"
 )
 
 const createUserSkill = `-- name: CreateUserSkill :one
@@ -31,6 +33,17 @@ func (q *Queries) CreateUserSkill(ctx context.Context, arg CreateUserSkillParams
 		&i.Experience,
 	)
 	return i, err
+}
+
+const deleteMultipleUserSkills = `-- name: DeleteMultipleUserSkills :exec
+DELETE
+FROM user_skills
+WHERE id = ANY($1::int[])
+`
+
+func (q *Queries) DeleteMultipleUserSkills(ctx context.Context, ids []int32) error {
+	_, err := q.db.ExecContext(ctx, deleteMultipleUserSkills, pq.Array(ids))
+	return err
 }
 
 const deleteUserSkill = `-- name: DeleteUserSkill :exec

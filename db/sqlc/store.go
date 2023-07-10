@@ -1,0 +1,84 @@
+package db
+
+import (
+	"context"
+	"database/sql"
+)
+
+type Store interface {
+	Querier
+	CreateMultipleUserSkills(ctx context.Context, arg []CreateMultipleUserSkillsParams, userID int32) error
+	CreateMultipleJobSkills(ctx context.Context, skills []string, jobID int32) error
+	DeleteJobPosting(ctx context.Context, jobID int32) error
+}
+
+// SQLStore provides all functions to execute db queries and transactions
+type SQLStore struct {
+	*Queries
+	db *sql.DB
+}
+
+// NewStore creates a new Store
+func NewStore(db *sql.DB) Store {
+	return &SQLStore{
+		db:      db,
+		Queries: New(db),
+	}
+}
+
+type CreateMultipleUserSkillsParams struct {
+	Skill      string
+	Experience int32
+}
+
+// CreateMultipleUserSkills creates multiple user skills for a user with ID of userID
+func (store SQLStore) CreateMultipleUserSkills(ctx context.Context, arg []CreateMultipleUserSkillsParams, userID int32) error {
+	for _, v := range arg {
+		params := CreateUserSkillParams{
+			Skill:      v.Skill,
+			Experience: v.Experience,
+			UserID:     userID,
+		}
+
+		_, err := store.CreateUserSkill(ctx, params)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// CreateMultipleJobSkills creates multiple job skills for a job with ID of jobID
+func (store SQLStore) CreateMultipleJobSkills(ctx context.Context, skills []string, jobID int32) error {
+	for _, skill := range skills {
+		params := CreateJobSkillParams{
+			Skill: skill,
+			JobID: jobID,
+		}
+
+		_, err := store.CreateJobSkill(ctx, params)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// DeleteJobPosting deletes a job with all its skills
+func (store SQLStore) DeleteJobPosting(ctx context.Context, jobID int32) error {
+	// Delete job skills
+	err := store.DeleteJobSkillsByJobID(ctx, jobID)
+	if err != nil {
+		return err
+	}
+
+	// Delete job
+	err = store.DeleteJob(ctx, jobID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

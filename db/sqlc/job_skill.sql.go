@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/lib/pq"
 )
 
 const createJobSkill = `-- name: CreateJobSkill :one
@@ -35,6 +37,28 @@ WHERE id = $1
 
 func (q *Queries) DeleteJobSkill(ctx context.Context, id int32) error {
 	_, err := q.db.ExecContext(ctx, deleteJobSkill, id)
+	return err
+}
+
+const deleteJobSkillsByJobID = `-- name: DeleteJobSkillsByJobID :exec
+DELETE
+FROM job_skills
+WHERE job_id = $1
+`
+
+func (q *Queries) DeleteJobSkillsByJobID(ctx context.Context, jobID int32) error {
+	_, err := q.db.ExecContext(ctx, deleteJobSkillsByJobID, jobID)
+	return err
+}
+
+const deleteMultipleJobSkills = `-- name: DeleteMultipleJobSkills :exec
+DELETE
+FROM job_skills
+WHERE id = ANY ($1::int[])
+`
+
+func (q *Queries) DeleteMultipleJobSkills(ctx context.Context, ids []int32) error {
+	_, err := q.db.ExecContext(ctx, deleteMultipleJobSkills, pq.Array(ids))
 	return err
 }
 
