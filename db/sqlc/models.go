@@ -15,6 +15,15 @@ type Company struct {
 	Location string `json:"location"`
 }
 
+type Employer struct {
+	ID             int32     `json:"id"`
+	CompanyID      int32     `json:"company_id"`
+	FullName       string    `json:"full_name"`
+	Email          string    `json:"email"`
+	HashedPassword string    `json:"hashed_password"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
 type Job struct {
 	ID           int32     `json:"id"`
 	Title        string    `json:"title"`
