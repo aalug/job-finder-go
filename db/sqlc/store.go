@@ -7,7 +7,7 @@ import (
 
 type Store interface {
 	Querier
-	CreateMultipleUserSkills(ctx context.Context, arg []CreateMultipleUserSkillsParams, userID int32) error
+	CreateMultipleUserSkills(ctx context.Context, arg []CreateMultipleUserSkillsParams, userID int32) ([]UserSkill, error)
 	CreateMultipleJobSkills(ctx context.Context, skills []string, jobID int32) error
 	DeleteJobPosting(ctx context.Context, jobID int32) error
 }
@@ -32,7 +32,9 @@ type CreateMultipleUserSkillsParams struct {
 }
 
 // CreateMultipleUserSkills creates multiple user skills for a user with ID of userID
-func (store SQLStore) CreateMultipleUserSkills(ctx context.Context, arg []CreateMultipleUserSkillsParams, userID int32) error {
+func (store SQLStore) CreateMultipleUserSkills(ctx context.Context, arg []CreateMultipleUserSkillsParams, userID int32) ([]UserSkill, error) {
+	var skills []UserSkill
+
 	for _, v := range arg {
 		params := CreateUserSkillParams{
 			Skill:      v.Skill,
@@ -40,13 +42,14 @@ func (store SQLStore) CreateMultipleUserSkills(ctx context.Context, arg []Create
 			UserID:     userID,
 		}
 
-		_, err := store.CreateUserSkill(ctx, params)
+		skl, err := store.CreateUserSkill(ctx, params)
 		if err != nil {
-			return err
+			return nil, err
 		}
+		skills = append(skills, skl)
 	}
 
-	return nil
+	return skills, nil
 }
 
 // CreateMultipleJobSkills creates multiple job skills for a job with ID of jobID

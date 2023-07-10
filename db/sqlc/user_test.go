@@ -22,7 +22,6 @@ func createRandomUser(t *testing.T) User {
 		DesiredSalaryMax: utils.RandomInt(11, 120),
 		Skills:           utils.RandomString(6),
 		Experience:       utils.RandomString(6),
-		CreatedAt:        time.Now(),
 	}
 
 	user, err := testQueries.CreateUser(context.Background(), params)

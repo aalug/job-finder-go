@@ -16,7 +16,7 @@ sqlc:
 
 # generate mock db for testing
 mock:
-	mockgen -package mockdb -destination db/mock/querier.go github.com/aalug/go-gin-job-search/db/sqlc Querier
+	mockgen -package mockdb -destination db/mock/store.go github.com/aalug/go-gin-job-search/db/sqlc Store
 
 # run all tests
 test:
@@ -29,4 +29,10 @@ test_coverage:
 runserver:
 	go run main.go
 
-.PHONY: generate_migrations, migrate_up, migrate_down, sqlc, mock, test, test_coverage, runserver
+# flush db and restart it
+flush_db:
+	docker-compose down
+	docker volume ls -qf dangling=true | xargs docker volume rm
+	docker-compose up -d
+
+.PHONY: generate_migrations, migrate_up, migrate_down, sqlc, mock, test, test_coverage, runserver, flush_db

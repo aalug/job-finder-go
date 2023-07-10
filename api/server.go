@@ -29,6 +29,9 @@ func NewServer(config utils.Config, store db.Store) *Server {
 func (server *Server) setupRouter() {
 	router := gin.Default()
 
+	// === users ===
+	router.POST("/users", server.createUser)
+
 	server.router = router
 }
 
