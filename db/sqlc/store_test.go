@@ -53,3 +53,27 @@ func TestSQLStore_DeleteJobPosting(t *testing.T) {
 	require.Len(t, jobSkills, 0)
 	require.Empty(t, jobSkills)
 }
+
+func TestSQLStore_GetUserDetailsByEmail(t *testing.T) {
+	user := createRandomUser(t)
+	params := CreateUserSkillParams{
+		UserID:     user.ID,
+		Skill:      utils.RandomString(4),
+		Experience: utils.RandomInt(1, 5),
+	}
+
+	skills, err := testStore.CreateUserSkill(context.Background(), params)
+	require.NoError(t, err)
+	require.NotEmpty(t, skills)
+	require.Equal(t, skills.Skill, params.Skill)
+	require.Equal(t, skills.Experience, params.Experience)
+	require.Equal(t, skills.UserID, params.UserID)
+
+	user, userSkills, err := testStore.GetUserDetailsByEmail(context.Background(), user.Email)
+	require.NoError(t, err)
+	require.NotEmpty(t, user)
+	require.NotEmpty(t, userSkills)
+	require.Equal(t, user.ID, userSkills[0].UserID)
+	require.Equal(t, userSkills[0].Skill, params.Skill)
+	require.Equal(t, userSkills[0].Experience, params.Experience)
+}
