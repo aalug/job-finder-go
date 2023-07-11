@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
 	"github.com/aalug/go-gin-job-search/utils"
@@ -139,4 +140,66 @@ func (server *Server) createUser(ctx *gin.Context) {
 	res := newUserResponse(user, userSkills)
 
 	ctx.JSON(http.StatusCreated, res)
+}
+
+type loginUserRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
+type loginUserResponse struct {
+	AccessToken string       `json:"access_token"`
+	User        userResponse `json:"user"`
+}
+
+// loginUser handles user login
+func (server *Server) loginUser(ctx *gin.Context) {
+	var request loginUserRequest
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	user, err := server.store.GetUserByEmail(ctx, request.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = fmt.Errorf("user with this email does not exist")
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	err = utils.CheckPassword(request.Password, user.HashedPassword)
+	if err != nil {
+		err = fmt.Errorf("incorrect password")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	accessToken, err := server.tokenMaker.CreateToken(user.Email, server.config.AccessTokenDuration)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// get user skills
+	params := db.ListUserSkillsParams{
+		UserID: user.ID,
+		Limit:  10,
+		Offset: 0,
+	}
+	userSkills, err := server.store.ListUserSkills(ctx, params)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	res := loginUserResponse{
+		AccessToken: accessToken,
+		User:        newUserResponse(user, userSkills),
+	}
+
+	ctx.JSON(http.StatusOK, res)
 }

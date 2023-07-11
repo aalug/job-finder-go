@@ -10,6 +10,7 @@ type Store interface {
 	CreateMultipleUserSkills(ctx context.Context, arg []CreateMultipleUserSkillsParams, userID int32) ([]UserSkill, error)
 	CreateMultipleJobSkills(ctx context.Context, skills []string, jobID int32) error
 	DeleteJobPosting(ctx context.Context, jobID int32) error
+	GetUserDetailsByEmail(ctx context.Context, email string) (User, []UserSkill, error)
 }
 
 // SQLStore provides all functions to execute db queries and transactions
@@ -84,4 +85,24 @@ func (store SQLStore) DeleteJobPosting(ctx context.Context, jobID int32) error {
 	}
 
 	return nil
+}
+
+// GetUserDetailsByEmail gets user details (user, user skills) by email
+func (store SQLStore) GetUserDetailsByEmail(ctx context.Context, email string) (User, []UserSkill, error) {
+	user, err := store.GetUserByEmail(ctx, email)
+	if err != nil {
+		return User{}, nil, err
+	}
+
+	params := ListUserSkillsParams{
+		UserID: user.ID,
+		Limit:  10,
+		Offset: 0,
+	}
+	userSkills, err := store.ListUserSkills(ctx, params)
+	if err != nil {
+		return User{}, nil, err
+	}
+
+	return user, userSkills, nil
 }

@@ -1,28 +1,36 @@
 package api
 
 import (
+	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
+	"github.com/aalug/go-gin-job-search/token"
 	"github.com/aalug/go-gin-job-search/utils"
 	"github.com/gin-gonic/gin"
 )
 
 // Server serves HTTP  requests for the service
 type Server struct {
-	config utils.Config
-	store  db.Store
-	router *gin.Engine
+	config     utils.Config
+	store      db.Store
+	tokenMaker token.Maker
+	router     *gin.Engine
 }
 
 // NewServer creates a new HTTP server and setups routing
-func NewServer(config utils.Config, store db.Store) *Server {
+func NewServer(config utils.Config, store db.Store) (*Server, error) {
+	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create token maker: %w", err)
+	}
 	server := &Server{
-		config: config,
-		store:  store,
+		config:     config,
+		store:      store,
+		tokenMaker: tokenMaker,
 	}
 
 	server.setupRouter()
 
-	return server
+	return server, nil
 }
 
 // setupRouter sets up the HTTP routing
@@ -31,6 +39,7 @@ func (server *Server) setupRouter() {
 
 	// === users ===
 	router.POST("/users", server.createUser)
+	router.POST("/users/login", server.loginUser)
 
 	server.router = router
 }

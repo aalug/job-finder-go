@@ -54,24 +54,7 @@ func TestCreateUserAPI(t *testing.T) {
 	var skills []Skill
 	var userSkills []db.UserSkill
 	var createUserSkills []db.CreateMultipleUserSkillsParams
-	for i := 0; i < 2; i++ {
-		name := utils.RandomString(3)
-		experience := utils.RandomInt(1, 5)
-		skills = append(skills, Skill{
-			SkillName:         name,
-			YearsOfExperience: experience,
-		})
-		createUserSkills = append(createUserSkills, db.CreateMultipleUserSkillsParams{
-			Skill:      name,
-			Experience: experience,
-		})
-		userSkills = append(userSkills, db.UserSkill{
-			ID:         utils.RandomInt(1, 100),
-			UserID:     user.ID,
-			Skill:      name,
-			Experience: experience,
-		})
-	}
+	skills, userSkills, createUserSkills = generateSkills(user.ID)
 
 	requestBody := gin.H{
 		"email":              user.Email,
@@ -312,6 +295,183 @@ func TestCreateUserAPI(t *testing.T) {
 	}
 }
 
+func TestLoginUserAPI(t *testing.T) {
+	user, password := generateRandomUser(t)
+	var userSkills []db.UserSkill
+	_, userSkills, _ = generateSkills(user.ID)
+
+	testCases := []struct {
+		name          string
+		body          gin.H
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			body: gin.H{
+				"email":    user.Email,
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				params := db.ListUserSkillsParams{
+					UserID: user.ID,
+					Limit:  10,
+					Offset: 0,
+				}
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Eq(params)).
+					Times(1).
+					Return(userSkills, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "Not Found",
+			body: gin.H{
+				"email":    user.Email,
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.User{}, sql.ErrNoRows)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error GetUserByEmail",
+			body: gin.H{
+				"email":    user.Email,
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.User{}, sql.ErrConnDone)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error ListUserSkills",
+			body: gin.H{
+				"email":    user.Email,
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return([]db.UserSkill{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Email",
+			body: gin.H{
+				"email":    "invalid",
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Incorrect Password",
+			body: gin.H{
+				"email":    user.Email,
+				"password": fmt.Sprintf("%d, %s", utils.RandomInt(1, 1000), utils.RandomString(10)),
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "Password Too Short",
+			body: gin.H{
+				"email":    user.Email,
+				"password": "abc",
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
+			recorder := httptest.NewRecorder()
+
+			data, err := json.Marshal(tc.body)
+			require.NoError(t, err)
+
+			url := "/users/login"
+			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
 // generateRandomUser generates a random user and returns it with the password
 func generateRandomUser(t *testing.T) (db.User, string) {
 	password := utils.RandomString(6)
@@ -366,4 +526,29 @@ func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db.User, skills
 	for _, skill := range userSkills {
 		require.Contains(t, gotUser.Skills, skill)
 	}
+}
+
+func generateSkills(userID int32) ([]Skill, []db.UserSkill, []db.CreateMultipleUserSkillsParams) {
+	var skills []Skill
+	var userSkills []db.UserSkill
+	var createUserSkills []db.CreateMultipleUserSkillsParams
+	for i := 0; i < 2; i++ {
+		name := utils.RandomString(3)
+		experience := utils.RandomInt(1, 5)
+		skills = append(skills, Skill{
+			SkillName:         name,
+			YearsOfExperience: experience,
+		})
+		createUserSkills = append(createUserSkills, db.CreateMultipleUserSkillsParams{
+			Skill:      name,
+			Experience: experience,
+		})
+		userSkills = append(userSkills, db.UserSkill{
+			ID:         utils.RandomInt(1, 100),
+			UserID:     userID,
+			Skill:      name,
+			Experience: experience,
+		})
+	}
+	return skills, userSkills, createUserSkills
 }
