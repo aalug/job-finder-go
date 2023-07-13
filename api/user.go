@@ -389,3 +389,29 @@ func (server *Server) updateUserPassword(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "password updated successfully"})
 }
+
+// deleteUser handles deleting users
+func (server *Server) deleteUser(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// delete all user skills
+	err = server.store.DeleteAllUserSkills(ctx, authUser.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// delete the user
+	err = server.store.DeleteUser(ctx, authUser.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
+}

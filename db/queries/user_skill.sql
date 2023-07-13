@@ -26,6 +26,11 @@ DELETE
 FROM user_skills
 WHERE id = ANY(@IDs::int[]);
 
+-- name: DeleteAllUserSkills :exec
+DELETE
+FROM user_skills
+WHERE user_id = $1;
+
 -- name: ListUsersBySkill :many
 SELECT u.*
 FROM users u

@@ -115,3 +115,23 @@ func TestQueries_DeleteMultipleUserSkills(t *testing.T) {
 	err := testQueries.DeleteMultipleUserSkills(context.Background(), userSkillIDs)
 	require.NoError(t, err)
 }
+
+func TestQueries_DeleteAllUserSkills(t *testing.T) {
+	user := createRandomUser(t)
+	for i := 0; i < 5; i++ {
+		createRandomUserSkill(t, user.ID, "")
+	}
+
+	err := testQueries.DeleteAllUserSkills(context.Background(), user.ID)
+	require.NoError(t, err)
+
+	params := ListUserSkillsParams{
+		UserID: user.ID,
+		Limit:  5,
+		Offset: 0,
+	}
+	userSkills, err := testQueries.ListUserSkills(context.Background(), params)
+	require.NoError(t, err)
+	require.Len(t, userSkills, 0)
+	require.Empty(t, userSkills)
+}
