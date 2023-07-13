@@ -2,8 +2,10 @@ package validation
 
 import (
 	"fmt"
-	"net/mail"
+	"regexp"
 )
+
+var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
 
 // ValidateStringLength check if the string length is between minLength and maxLength
 func ValidateStringLength(value string, minLength, maxLength int) error {
@@ -23,8 +25,7 @@ func ValidateEmail(value string) error {
 		return err
 	}
 
-	_, err := mail.ParseAddress(value)
-	if err != nil {
+	if !emailRegex.MatchString(value) {
 		return fmt.Errorf("email is invalid")
 	}
 
