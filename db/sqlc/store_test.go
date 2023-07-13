@@ -25,6 +25,13 @@ func TestSQLStore_CreateMultipleUserSkills(t *testing.T) {
 		require.Equal(t, user.ID, userSkill.UserID)
 		require.NotZero(t, userSkill.ID)
 	}
+
+	// TestSQLStore_DeleteMultipleUserSkills
+	var ids []int32
+	for _, us := range userSkills {
+		ids = append(ids, us.ID)
+	}
+	err = testStore.DeleteMultipleUserSkills(context.Background(), ids)
 }
 
 func TestSQLStore_CreateMultipleJobSkills(t *testing.T) {

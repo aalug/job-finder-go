@@ -7,6 +7,7 @@ import (
 	"fmt"
 	mockdb "github.com/aalug/go-gin-job-search/db/mock"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
+	"github.com/aalug/go-gin-job-search/token"
 	"github.com/aalug/go-gin-job-search/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
@@ -472,6 +473,392 @@ func TestLoginUserAPI(t *testing.T) {
 	}
 }
 
+func TestUpdateUserAPI(t *testing.T) {
+	user, _ := generateRandomUser(t)
+	skills, userSkills, createUserSkills := generateSkills(user.ID)
+	skillIDsToRemove := []int32{userSkills[0].ID}
+	newDetails := db.UpdateUserParams{
+		ID:               user.ID,
+		FullName:         utils.RandomString(5),
+		Email:            user.Email,
+		Location:         utils.RandomString(5),
+		DesiredJobTitle:  utils.RandomString(5),
+		DesiredIndustry:  utils.RandomString(5),
+		DesiredSalaryMin: utils.RandomInt(1000, 1100),
+		DesiredSalaryMax: utils.RandomInt(1100, 1200),
+		Skills:           user.Skills,
+		Experience:       user.Experience,
+	}
+
+	updatedUser := db.User{
+		ID:               user.ID,
+		FullName:         utils.RandomString(5),
+		Email:            user.Email,
+		HashedPassword:   user.HashedPassword,
+		Location:         utils.RandomString(5),
+		DesiredJobTitle:  utils.RandomString(5),
+		DesiredIndustry:  user.Location,
+		DesiredSalaryMin: user.DesiredSalaryMin,
+		DesiredSalaryMax: user.DesiredSalaryMax,
+		Skills:           user.Skills,
+		Experience:       user.Experience,
+		CreatedAt:        user.CreatedAt,
+	}
+
+	testCases := []struct {
+		name          string
+		body          gin.H
+		setupAuth     func(t *testing.T, r *http.Request, maker token.Maker)
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			body: gin.H{
+				"location":            newDetails.Location,
+				"desired_job_title":   newDetails.DesiredJobTitle,
+				"full_name":           newDetails.FullName,
+				"skills_to_add":       skills,
+				"skill_ids_to_remove": skillIDsToRemove,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					UpdateUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(updatedUser, nil)
+				store.EXPECT().
+					CreateMultipleUserSkills(gomock.Any(), gomock.Eq(createUserSkills), gomock.Eq(user.ID)).
+					Times(1).
+					Return(userSkills, nil)
+				store.EXPECT().
+					DeleteMultipleUserSkills(gomock.Any(), gomock.Eq(skillIDsToRemove)).
+					Times(1).
+					Return(nil)
+				listSkillsParams := db.ListUserSkillsParams{
+					UserID: user.ID,
+					Limit:  10,
+					Offset: 0,
+				}
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Eq(listSkillsParams)).
+					Times(1).
+					Return(userSkills, nil)
+
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error GetUserByEmail",
+			body: gin.H{
+				"location":            newDetails.Location,
+				"desired_job_title":   newDetails.DesiredJobTitle,
+				"full_name":           newDetails.FullName,
+				"skills_to_add":       skills,
+				"skill_ids_to_remove": skillIDsToRemove,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrConnDone)
+				store.EXPECT().
+					UpdateUser(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					CreateMultipleUserSkills(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteMultipleUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error UpdateUser",
+			body: gin.H{
+				"location":            newDetails.Location,
+				"desired_job_title":   newDetails.DesiredJobTitle,
+				"full_name":           newDetails.FullName,
+				"skills_to_add":       skills,
+				"skill_ids_to_remove": skillIDsToRemove,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					UpdateUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.User{}, sql.ErrConnDone)
+				store.EXPECT().
+					CreateMultipleUserSkills(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteMultipleUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error CreateMultipleUserSkills",
+			body: gin.H{
+				"location":            newDetails.Location,
+				"desired_job_title":   newDetails.DesiredJobTitle,
+				"full_name":           newDetails.FullName,
+				"skills_to_add":       skills,
+				"skill_ids_to_remove": skillIDsToRemove,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					UpdateUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(updatedUser, nil)
+				store.EXPECT().
+					CreateMultipleUserSkills(gomock.Any(), gomock.Eq(createUserSkills), gomock.Eq(user.ID)).
+					Times(1).
+					Return([]db.UserSkill{}, sql.ErrConnDone)
+				store.EXPECT().
+					DeleteMultipleUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error DeleteMultipleUserSkills",
+			body: gin.H{
+				"location":            newDetails.Location,
+				"full_name":           newDetails.FullName,
+				"skills_to_add":       skills,
+				"skill_ids_to_remove": skillIDsToRemove,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					UpdateUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(updatedUser, nil)
+				store.EXPECT().
+					CreateMultipleUserSkills(gomock.Any(), gomock.Eq(createUserSkills), gomock.Eq(user.ID)).
+					Times(1).
+					Return(userSkills, nil)
+				store.EXPECT().
+					DeleteMultipleUserSkills(gomock.Any(), gomock.Eq(skillIDsToRemove)).
+					Times(1).
+					Return(sql.ErrConnDone)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error ListUserSkills",
+			body: gin.H{
+				"desired_job_title":   newDetails.DesiredJobTitle,
+				"skills_to_add":       skills,
+				"skill_ids_to_remove": skillIDsToRemove,
+				"desired_salary_min":  1000,
+				"desired_salary_max":  2000,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					UpdateUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(updatedUser, nil)
+				store.EXPECT().
+					CreateMultipleUserSkills(gomock.Any(), gomock.Eq(createUserSkills), gomock.Eq(user.ID)).
+					Times(1).
+					Return(userSkills, nil)
+				store.EXPECT().
+					DeleteMultipleUserSkills(gomock.Any(), gomock.Eq(skillIDsToRemove)).
+					Times(1).
+					Return(nil)
+				listSkillsParams := db.ListUserSkillsParams{
+					UserID: user.ID,
+					Limit:  10,
+					Offset: 0,
+				}
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Eq(listSkillsParams)).
+					Times(1).
+					Return([]db.UserSkill{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Email",
+			body: gin.H{
+				"email": "invalid",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateUser(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					CreateMultipleUserSkills(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteMultipleUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Body",
+			body: gin.H{
+				"location": 123,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateUser(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					CreateMultipleUserSkills(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteMultipleUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Salary Min Greater Than Max",
+			body: gin.H{
+				"desired_salary_min": 10000,
+				"desired_salary_max": 100,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					UpdateUser(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					CreateMultipleUserSkills(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteMultipleUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
+			recorder := httptest.NewRecorder()
+
+			data, err := json.Marshal(tc.body)
+			require.NoError(t, err)
+
+			url := "/users"
+			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
+			require.NoError(t, err)
+
+			tc.setupAuth(t, req, server.tokenMaker)
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
 // generateRandomUser generates a random user and returns it with the password
 func generateRandomUser(t *testing.T) (db.User, string) {
 	password := utils.RandomString(6)
@@ -479,6 +866,7 @@ func generateRandomUser(t *testing.T) (db.User, string) {
 	require.NoError(t, err)
 
 	user := db.User{
+		ID:               utils.RandomInt(1, 1000),
 		FullName:         utils.RandomString(6),
 		Email:            utils.RandomEmail(),
 		HashedPassword:   hashedPassword,
@@ -523,8 +911,18 @@ func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db.User, skills
 		})
 	}
 
+	// in the response skills are sent with ids
+	// so we need to remove them from the response
+	// to compare with the skills from the request
+	var skls []Skill
+	for _, s := range gotUser.Skills {
+		skls = append(skls, Skill{
+			SkillName:         s.SkillName,
+			YearsOfExperience: s.YearsOfExperience,
+		})
+	}
 	for _, skill := range userSkills {
-		require.Contains(t, gotUser.Skills, skill)
+		require.Contains(t, skls, skill)
 	}
 }
 
