@@ -342,3 +342,50 @@ func (server *Server) updateUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, newUserResponse(updatedUser, userSkills))
 }
+
+type updateUserPasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required,min=6"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
+// updateUserPassword handles user password update
+func (server *Server) updateUserPassword(ctx *gin.Context) {
+	var request updateUserPasswordRequest
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	err = utils.CheckPassword(request.OldPassword, authUser.HashedPassword)
+	if err != nil {
+		err = fmt.Errorf("incorrect password")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	hashedPassword, err := utils.HashPassword(request.NewPassword)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	params := db.UpdatePasswordParams{
+		ID:             authUser.ID,
+		HashedPassword: hashedPassword,
+	}
+
+	err = server.store.UpdatePassword(ctx, params)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "password updated successfully"})
+}
