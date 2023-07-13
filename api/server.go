@@ -44,6 +44,7 @@ func (server *Server) setupRouter() {
 	// ===== routes that require authentication =====
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRoutes.PATCH("/users", server.updateUser)
+	authRoutes.PATCH("/users/password", server.updateUserPassword)
 
 	server.router = router
 }
