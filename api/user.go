@@ -2,9 +2,12 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
+	"github.com/aalug/go-gin-job-search/token"
 	"github.com/aalug/go-gin-job-search/utils"
+	"github.com/aalug/go-gin-job-search/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"net/http"
@@ -12,6 +15,7 @@ import (
 )
 
 type Skill struct {
+	ID                int32  `json:"id"`
 	SkillName         string `json:"skill"`
 	YearsOfExperience int32  `json:"years_of_experience"`
 }
@@ -49,6 +53,7 @@ func newUserResponse(user db.User, skills []db.UserSkill) userResponse {
 	var userSkills []Skill
 	for _, skill := range skills {
 		userSkills = append(userSkills, Skill{
+			ID:                skill.ID,
 			SkillName:         skill.Skill,
 			YearsOfExperience: skill.Experience,
 		})
@@ -202,4 +207,138 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, res)
+}
+
+type updateUserRequest struct {
+	Email             string  `json:"email"`
+	FullName          string  `json:"full_name"`
+	Location          string  `json:"location"`
+	DesiredJobTitle   string  `json:"desired_job_title"`
+	DesiredIndustry   string  `json:"desired_industry"`
+	DesiredSalaryMin  int32   `json:"desired_salary_min"`
+	DesiredSalaryMax  int32   `json:"desired_salary_max"`
+	SkillsDescription string  `json:"skills_description"`
+	Experience        string  `json:"experience"`
+	SkillsToAdd       []Skill `json:"skills_to_add"`
+	SkillsToRemove    []int32 `json:"skill_ids_to_remove"`
+}
+
+// updateUser handles user update
+func (server *Server) updateUser(ctx *gin.Context) {
+	var request updateUserRequest
+	err := json.NewDecoder(ctx.Request.Body).Decode(&request)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	if request.Email != "" {
+		if err := validation.ValidateEmail(request.Email); err != nil {
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return
+		}
+	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// check if the salary min is not greater than salary max
+	salaryMin := authUser.DesiredSalaryMin
+	if request.DesiredSalaryMin != 0 {
+		salaryMin = request.DesiredSalaryMin
+	}
+	salaryMax := authUser.DesiredSalaryMax
+	if request.DesiredSalaryMax != 0 {
+		salaryMax = request.DesiredSalaryMax
+	}
+
+	if salaryMin > salaryMax {
+		err := fmt.Errorf("desired salary min is greater than desired salary max")
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	params := db.UpdateUserParams{
+		ID:               authUser.ID,
+		FullName:         request.FullName,
+		Email:            request.Email,
+		Location:         request.Location,
+		DesiredJobTitle:  request.DesiredJobTitle,
+		DesiredIndustry:  request.DesiredIndustry,
+		DesiredSalaryMin: salaryMin,
+		DesiredSalaryMax: salaryMax,
+		Skills:           request.SkillsDescription,
+		Experience:       request.Experience,
+	}
+
+	if request.Email == "" {
+		params.Email = authUser.Email
+	}
+	if request.FullName == "" {
+		params.FullName = authUser.FullName
+	}
+	if request.Location == "" {
+		params.Location = authUser.Location
+	}
+	if request.DesiredJobTitle == "" {
+		params.DesiredJobTitle = authUser.DesiredJobTitle
+	}
+	if request.DesiredIndustry == "" {
+		params.DesiredIndustry = authUser.DesiredIndustry
+	}
+	if request.SkillsDescription == "" {
+		params.Skills = authUser.Skills
+	}
+	if request.Experience == "" {
+		params.Experience = authUser.Experience
+	}
+
+	// Update user
+	updatedUser, err := server.store.UpdateUser(ctx, params)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if len(request.SkillsToAdd) > 0 {
+		var params []db.CreateMultipleUserSkillsParams
+		for _, skill := range request.SkillsToAdd {
+			prm := db.CreateMultipleUserSkillsParams{
+				Skill:      skill.SkillName,
+				Experience: skill.YearsOfExperience,
+			}
+			params = append(params, prm)
+		}
+
+		_, err := server.store.CreateMultipleUserSkills(ctx, params, updatedUser.ID)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+	}
+
+	if len(request.SkillsToRemove) > 0 {
+		err = server.store.DeleteMultipleUserSkills(ctx, request.SkillsToRemove)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+	}
+
+	// get all user skills after update
+	userSkills, err := server.store.ListUserSkills(ctx, db.ListUserSkillsParams{
+		UserID: authUser.ID,
+		Limit:  10,
+		Offset: 0,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newUserResponse(updatedUser, userSkills))
 }

@@ -53,6 +53,16 @@ func (store SQLStore) CreateMultipleUserSkills(ctx context.Context, arg []Create
 	return skills, nil
 }
 
+func (store SQLStore) DeleteMultipleUserSkills(ctx context.Context, ids []int32) error {
+	for _, id := range ids {
+		err := store.DeleteUserSkill(ctx, id)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // CreateMultipleJobSkills creates multiple job skills for a job with ID of jobID
 func (store SQLStore) CreateMultipleJobSkills(ctx context.Context, skills []string, jobID int32) error {
 	for _, skill := range skills {
