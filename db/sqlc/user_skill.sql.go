@@ -35,6 +35,17 @@ func (q *Queries) CreateUserSkill(ctx context.Context, arg CreateUserSkillParams
 	return i, err
 }
 
+const deleteAllUserSkills = `-- name: DeleteAllUserSkills :exec
+DELETE
+FROM user_skills
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteAllUserSkills(ctx context.Context, userID int32) error {
+	_, err := q.db.ExecContext(ctx, deleteAllUserSkills, userID)
+	return err
+}
+
 const deleteMultipleUserSkills = `-- name: DeleteMultipleUserSkills :exec
 DELETE
 FROM user_skills

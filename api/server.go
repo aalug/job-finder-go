@@ -45,6 +45,7 @@ func (server *Server) setupRouter() {
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRoutes.PATCH("/users", server.updateUser)
 	authRoutes.PATCH("/users/password", server.updateUserPassword)
+	authRoutes.DELETE("/users", server.deleteUser)
 
 	server.router = router
 }

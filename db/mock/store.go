@@ -154,6 +154,20 @@ func (mr *MockStoreMockRecorder) CreateUserSkill(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserSkill", reflect.TypeOf((*MockStore)(nil).CreateUserSkill), arg0, arg1)
 }
 
+// DeleteAllUserSkills mocks base method.
+func (m *MockStore) DeleteAllUserSkills(arg0 context.Context, arg1 int32) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAllUserSkills", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAllUserSkills indicates an expected call of DeleteAllUserSkills.
+func (mr *MockStoreMockRecorder) DeleteAllUserSkills(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllUserSkills", reflect.TypeOf((*MockStore)(nil).DeleteAllUserSkills), arg0, arg1)
+}
+
 // DeleteCompany mocks base method.
 func (m *MockStore) DeleteCompany(arg0 context.Context, arg1 int32) error {
 	m.ctrl.T.Helper()
