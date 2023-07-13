@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
 	"github.com/aalug/go-gin-job-search/utils"
@@ -103,4 +104,79 @@ func (server *Server) createEmployer(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, newEmployerResponse(employer, company))
+}
+
+type loginEmployerRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
+type loginEmployerResponse struct {
+	AccessToken string           `json:"access_token"`
+	Employer    employerResponse `json:"employer"`
+}
+
+// loginEmployer handles login of an employer
+func (server *Server) loginEmployer(ctx *gin.Context) {
+	var request loginEmployerRequest
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// get the employer
+	employer, err := server.store.GetEmployerByEmail(ctx, request.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = fmt.Errorf("employer with this email does not exist")
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// check password
+	err = utils.CheckPassword(request.Password, employer.HashedPassword)
+	if err != nil {
+		err = fmt.Errorf("incorrect password")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	// create access token
+	accessToken, err := server.tokenMaker.CreateToken(employer.Email, server.config.AccessTokenDuration)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// get employers company
+	company, err := server.store.GetCompanyByID(ctx, employer.CompanyID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = fmt.Errorf("company with this id does not exist")
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	res := loginEmployerResponse{
+		AccessToken: accessToken,
+		Employer: employerResponse{
+			EmployerID:        employer.ID,
+			FullName:          employer.FullName,
+			Email:             employer.Email,
+			EmployerCreatedAt: employer.CreatedAt,
+			CompanyID:         employer.CompanyID,
+			CompanyName:       company.Name,
+			CompanyIndustry:   company.Industry,
+			CompanyLocation:   company.Location,
+		},
+	}
+
+	ctx.JSON(http.StatusOK, res)
 }
