@@ -209,6 +209,18 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
+// getUser handles getting user details
+func (server *Server) getUser(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	user, userSkills, err := server.store.GetUserDetailsByEmail(ctx, authPayload.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newUserResponse(user, userSkills))
+}
+
 type updateUserRequest struct {
 	Email             string  `json:"email"`
 	FullName          string  `json:"full_name"`
