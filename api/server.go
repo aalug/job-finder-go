@@ -43,6 +43,7 @@ func (server *Server) setupRouter() {
 
 	// === employers ===
 	router.POST("/employers", server.createEmployer)
+	router.POST("/employers/login", server.loginEmployer)
 
 	// ===== routes that require authentication =====
 	// === users ===
