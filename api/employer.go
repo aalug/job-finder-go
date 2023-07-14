@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
+	"github.com/aalug/go-gin-job-search/token"
 	"github.com/aalug/go-gin-job-search/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
@@ -166,17 +167,26 @@ func (server *Server) loginEmployer(ctx *gin.Context) {
 
 	res := loginEmployerResponse{
 		AccessToken: accessToken,
-		Employer: employerResponse{
-			EmployerID:        employer.ID,
-			FullName:          employer.FullName,
-			Email:             employer.Email,
-			EmployerCreatedAt: employer.CreatedAt,
-			CompanyID:         employer.CompanyID,
-			CompanyName:       company.Name,
-			CompanyIndustry:   company.Industry,
-			CompanyLocation:   company.Location,
-		},
+		Employer:    newEmployerResponse(employer, company),
 	}
 
 	ctx.JSON(http.StatusOK, res)
+}
+
+// getEmployer get details of the authenticated employer
+func (server *Server) getEmployer(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	company, err := server.store.GetCompanyByID(ctx, authEmployer.CompanyID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newEmployerResponse(authEmployer, company))
 }
