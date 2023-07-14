@@ -53,6 +53,9 @@ func (server *Server) setupRouter() {
 	authRoutes.DELETE("/users", server.deleteUser)
 	authRoutes.GET("/users", server.getUser)
 
+	// employers
+	authRoutes.GET("/employers", server.getEmployer)
+
 	server.router = router
 }
 
