@@ -201,6 +201,7 @@ type updateEmployerRequest struct {
 	CompanyLocation string `json:"company_location"`
 }
 
+// updateEmployer handles update of an employer details
 func (server *Server) updateEmployer(ctx *gin.Context) {
 	var request updateEmployerRequest
 	err := json.NewDecoder(ctx.Request.Body).Decode(&request)
@@ -287,4 +288,51 @@ func (server *Server) updateEmployer(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, newEmployerResponse(authEmployer, company))
+}
+
+type updateEmployerPasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required,min=6"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
+// updateEmployerPassword handles user password update
+func (server *Server) updateEmployerPassword(ctx *gin.Context) {
+	var request updateEmployerPasswordRequest
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	err = utils.CheckPassword(request.OldPassword, authEmployer.HashedPassword)
+	if err != nil {
+		err = fmt.Errorf("incorrect password")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	hashedPassword, err := utils.HashPassword(request.NewPassword)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	params := db.UpdateEmployerPasswordParams{
+		ID:             authEmployer.ID,
+		HashedPassword: hashedPassword,
+	}
+
+	err = server.store.UpdateEmployerPassword(ctx, params)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "password updated successfully"})
 }

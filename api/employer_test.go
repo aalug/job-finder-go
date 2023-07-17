@@ -768,6 +768,179 @@ func TestUpdateEmployerAPI(t *testing.T) {
 	}
 }
 
+func TestUpdateEmployerPasswordAPI(t *testing.T) {
+	employer, password, _ := generateRandomEmployerAndCompany(t)
+	newPassword := utils.RandomString(6)
+
+	testCases := []struct {
+		name          string
+		body          gin.H
+		setupAuth     func(t *testing.T, r *http.Request, maker token.Maker)
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			body: gin.H{
+				"old_password": password,
+				"new_password": newPassword,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					UpdateEmployerPassword(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "Old Password Too Short",
+			body: gin.H{
+				"old_password": "123",
+				"new_password": newPassword,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateEmployerPassword(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "New Password Too Short",
+			body: gin.H{
+				"old_password": password,
+				"new_password": "123",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateEmployerPassword(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Incorrect Password",
+			body: gin.H{
+				"old_password": "incorrect",
+				"new_password": newPassword,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					UpdateEmployerPassword(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error UpdateEmployerPassword",
+			body: gin.H{
+				"old_password": password,
+				"new_password": newPassword,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					UpdateEmployerPassword(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error GetEmployerByEmail",
+			body: gin.H{
+				"old_password": password,
+				"new_password": newPassword,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.Employer{}, sql.ErrConnDone)
+				store.EXPECT().
+					UpdateEmployerPassword(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
+			recorder := httptest.NewRecorder()
+
+			data, err := json.Marshal(tc.body)
+			require.NoError(t, err)
+
+			url := "/employers/password"
+			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
+			require.NoError(t, err)
+
+			tc.setupAuth(t, req, server.tokenMaker)
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
 // generateRandomEmployer create a random employer and company
 func generateRandomEmployerAndCompany(t *testing.T) (db.Employer, string, db.Company) {
 	password := utils.RandomString(6)
