@@ -2,10 +2,12 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
 	"github.com/aalug/go-gin-job-search/token"
 	"github.com/aalug/go-gin-job-search/utils"
+	"github.com/aalug/go-gin-job-search/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"net/http"
@@ -186,6 +188,102 @@ func (server *Server) getEmployer(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
+	}
+
+	ctx.JSON(http.StatusOK, newEmployerResponse(authEmployer, company))
+}
+
+type updateEmployerRequest struct {
+	FullName        string `json:"full_name"`
+	Email           string `json:"email"`
+	CompanyName     string `json:"company_name"`
+	CompanyIndustry string `json:"company_industry"`
+	CompanyLocation string `json:"company_location"`
+}
+
+func (server *Server) updateEmployer(ctx *gin.Context) {
+	var request updateEmployerRequest
+	err := json.NewDecoder(ctx.Request.Body).Decode(&request)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	if request.Email != "" {
+		if err := validation.ValidateEmail(request.Email); err != nil {
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return
+		}
+	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	company, err := server.store.GetCompanyByID(ctx, authEmployer.CompanyID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// update the company details
+	companyParams := db.UpdateCompanyParams{
+		ID:       company.ID,
+		Name:     company.Name,
+		Industry: company.Industry,
+		Location: company.Location,
+	}
+
+	shouldUpdateCompany := false
+	if request.CompanyName != "" {
+		companyParams.Name = request.CompanyName
+		shouldUpdateCompany = true
+	}
+	if request.CompanyIndustry != "" {
+		companyParams.Industry = request.CompanyIndustry
+		shouldUpdateCompany = true
+	}
+	if request.CompanyLocation != "" {
+		companyParams.Location = request.CompanyLocation
+		shouldUpdateCompany = true
+	}
+
+	if shouldUpdateCompany {
+		// Update the company
+		company, err = server.store.UpdateCompany(ctx, companyParams)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+
+		employerParams := db.UpdateEmployerParams{
+			ID:        authEmployer.ID,
+			CompanyID: authEmployer.CompanyID,
+			FullName:  authEmployer.FullName,
+			Email:     authEmployer.Email,
+		}
+
+		shouldUpdateEmployer := false
+		if request.Email != "" {
+			employerParams.Email = request.Email
+			shouldUpdateEmployer = true
+		}
+		if request.FullName != "" {
+			employerParams.FullName = request.FullName
+			shouldUpdateEmployer = true
+		}
+
+		if shouldUpdateEmployer {
+			// Update the employer
+			authEmployer, err = server.store.UpdateEmployer(ctx, employerParams)
+			if err != nil {
+				ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+				return
+			}
+		}
 	}
 
 	ctx.JSON(http.StatusOK, newEmployerResponse(authEmployer, company))
