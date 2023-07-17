@@ -59,6 +59,7 @@ func (server *Server) setupRouter() {
 	// employers
 	authRoutes.GET("/employers", server.getEmployer)
 	authRoutes.PATCH("/employers", server.updateEmployer)
+	authRoutes.PATCH("/employers/password", server.updateEmployerPassword)
 
 	server.router = router
 }
