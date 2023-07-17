@@ -336,3 +336,29 @@ func (server *Server) updateEmployerPassword(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "password updated successfully"})
 }
+
+// deleteEmployer handles deleting employer
+func (server *Server) deleteEmployer(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// delete the company
+	err = server.store.DeleteCompany(ctx, authEmployer.CompanyID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// delete the employer
+	err = server.store.DeleteEmployer(ctx, authEmployer.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
+}
