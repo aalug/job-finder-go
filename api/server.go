@@ -5,6 +5,7 @@ import (
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
 	"github.com/aalug/go-gin-job-search/token"
 	"github.com/aalug/go-gin-job-search/utils"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -36,6 +37,8 @@ func NewServer(config utils.Config, store db.Store) (*Server, error) {
 // setupRouter sets up the HTTP routing
 func (server *Server) setupRouter() {
 	router := gin.Default()
+
+	router.Use(cors.Default())
 
 	// === users ===
 	router.POST("/users", server.createUser)
