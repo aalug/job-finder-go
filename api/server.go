@@ -60,6 +60,7 @@ func (server *Server) setupRouter() {
 	authRoutes.GET("/employers", server.getEmployer)
 	authRoutes.PATCH("/employers", server.updateEmployer)
 	authRoutes.PATCH("/employers/password", server.updateEmployerPassword)
+	authRoutes.DELETE("/employers", server.deleteEmployer)
 
 	server.router = router
 }
