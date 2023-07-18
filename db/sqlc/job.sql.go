@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"time"
 )
 
 const createJob = `-- name: CreateJob :one
@@ -18,22 +17,20 @@ INSERT INTO jobs (title,
                   location,
                   salary_min,
                   salary_max,
-                  requirements,
-                  created_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                  requirements)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING id, title, industry, company_id, description, location, salary_min, salary_max, requirements, created_at
 `
 
 type CreateJobParams struct {
-	Title        string    `json:"title"`
-	Industry     string    `json:"industry"`
-	CompanyID    int32     `json:"company_id"`
-	Description  string    `json:"description"`
-	Location     string    `json:"location"`
-	SalaryMin    int32     `json:"salary_min"`
-	SalaryMax    int32     `json:"salary_max"`
-	Requirements string    `json:"requirements"`
-	CreatedAt    time.Time `json:"created_at"`
+	Title        string `json:"title"`
+	Industry     string `json:"industry"`
+	CompanyID    int32  `json:"company_id"`
+	Description  string `json:"description"`
+	Location     string `json:"location"`
+	SalaryMin    int32  `json:"salary_min"`
+	SalaryMax    int32  `json:"salary_max"`
+	Requirements string `json:"requirements"`
 }
 
 func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, error) {
@@ -46,7 +43,6 @@ func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, erro
 		arg.SalaryMin,
 		arg.SalaryMax,
 		arg.Requirements,
-		arg.CreatedAt,
 	)
 	var i Job
 	err := row.Scan(

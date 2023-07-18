@@ -31,7 +31,6 @@ func createRandomJob(t *testing.T, company *Company, details jobDetails) Job {
 		CompanyID:    c.ID,
 		Description:  utils.RandomString(7),
 		Requirements: utils.RandomString(5),
-		CreatedAt:    time.Now(),
 	}
 
 	if details.title != "" {
@@ -71,7 +70,7 @@ func createRandomJob(t *testing.T, company *Company, details jobDetails) Job {
 	require.Equal(t, job.SalaryMin, params.SalaryMin)
 	require.Equal(t, job.SalaryMax, params.SalaryMax)
 	require.Equal(t, job.Requirements, params.Requirements)
-	require.WithinDuration(t, job.CreatedAt, params.CreatedAt, time.Second)
+	require.WithinDuration(t, job.CreatedAt, time.Now(), 2*time.Second)
 
 	return job
 }
