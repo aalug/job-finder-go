@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
 	"github.com/aalug/go-gin-job-search/token"
 	"github.com/gin-gonic/gin"
@@ -96,4 +97,47 @@ func (server *Server) createJob(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, newJobResponse(job, jobSkills))
+}
+
+type deleteJobRequest struct {
+	ID int32 `uri:"id" binding:"required,min=1"`
+}
+
+// deleteJob handles deleting a job posting
+func (server *Server) deleteJob(ctx *gin.Context) {
+	var request deleteJobRequest
+	if err := ctx.ShouldBindUri(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// get employer that is making the request
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// get job that is being deleted
+	job, err := server.store.GetJob(ctx, request.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// check if job is owned by the employer
+	if job.CompanyID != authEmployer.CompanyID {
+		err = fmt.Errorf("job does not belong to this employer")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	err = server.store.DeleteJob(ctx, request.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
 }

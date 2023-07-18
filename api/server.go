@@ -64,6 +64,7 @@ func (server *Server) setupRouter() {
 
 	// jobs
 	authRoutes.POST("/jobs", server.createJob)
+	authRoutes.DELETE("/jobs/:id", server.deleteJob)
 
 	server.router = router
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	mockdb "github.com/aalug/go-gin-job-search/db/mock"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
 	"github.com/aalug/go-gin-job-search/token"
@@ -11,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -91,6 +93,7 @@ func TestCreateJobAPI(t *testing.T) {
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusCreated, recorder.Code)
+				requireBodyMatchJob(t, recorder.Body, job, jobSkills)
 			},
 		},
 		{
@@ -276,6 +279,189 @@ func TestCreateJobAPI(t *testing.T) {
 	}
 }
 
+func TestDeleteJobAPI(t *testing.T) {
+	employer, _, _ := generateRandomEmployerAndCompany(t)
+	job := generateRandomJob()
+
+	// set the company ID to the employer's company ID
+	// so that the job belongs to the employer
+	job.CompanyID = employer.CompanyID
+
+	testCases := []struct {
+		name          string
+		jobID         int32
+		setupAuth     func(t *testing.T, r *http.Request, maker token.Maker)
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:  "OK",
+			jobID: job.ID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetJob(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(job, nil)
+				store.EXPECT().
+					DeleteJob(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNoContent, recorder.Code)
+			},
+		},
+		{
+			name:  "Unauthorized User",
+			jobID: job.ID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, "unauthorized@example.com", time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq("unauthorized@example.com")).
+					Times(1).
+					Return(db.Employer{
+						ID:        employer.ID + 1,
+						CompanyID: employer.CompanyID + 1,
+						Email:     "unauthorized@example.com",
+					}, nil)
+				store.EXPECT().
+					GetJob(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(job, nil)
+				store.EXPECT().
+					DeleteJob(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name:  "Invalid Job ID",
+			jobID: 0,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					GetJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteJob(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:  "Internal Server Error GetEmployerByEmail",
+			jobID: job.ID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.Employer{}, sql.ErrConnDone)
+				store.EXPECT().
+					GetJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteJob(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:  "Internal Server Error GetJob",
+			jobID: job.ID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetJob(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.Job{}, sql.ErrConnDone)
+				store.EXPECT().
+					DeleteJob(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:  "Internal Server Error DeleteJob",
+			jobID: job.ID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetJob(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(job, nil)
+				store.EXPECT().
+					DeleteJob(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
+			recorder := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/jobs/%d", tc.jobID)
+			req, err := http.NewRequest(http.MethodDelete, url, nil)
+			require.NoError(t, err)
+
+			tc.setupAuth(t, req, server.tokenMaker)
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
 func generateRandomJob() db.Job {
 	return db.Job{
 		ID:           utils.RandomInt(1, 1000),
@@ -287,4 +473,22 @@ func generateRandomJob() db.Job {
 		SalaryMax:    utils.RandomInt(100, 1000),
 		Requirements: utils.RandomString(5),
 	}
+}
+
+func requireBodyMatchJob(t *testing.T, body *bytes.Buffer, job db.Job, skills []db.ListJobSkillsByJobIDRow) {
+	data, err := io.ReadAll(body)
+	require.NoError(t, err)
+
+	var gotJob jobResponse
+	err = json.Unmarshal(data, &gotJob)
+	require.NoError(t, err)
+
+	require.Equal(t, job.Title, gotJob.Title)
+	require.Equal(t, job.Industry, gotJob.Industry)
+	require.Equal(t, job.Description, gotJob.Description)
+	require.Equal(t, job.Location, gotJob.Location)
+	require.Equal(t, job.SalaryMin, gotJob.SalaryMin)
+	require.Equal(t, job.SalaryMax, gotJob.SalaryMax)
+	require.Equal(t, job.Requirements, gotJob.Requirements)
+	require.Equal(t, skills, gotJob.RequiredSkills)
 }
