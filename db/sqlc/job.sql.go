@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
 const createJob = `-- name: CreateJob :one
@@ -91,6 +92,63 @@ func (q *Queries) GetJob(ctx context.Context, id int32) (Job, error) {
 		&i.SalaryMax,
 		&i.Requirements,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getJobDetails = `-- name: GetJobDetails :one
+SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.salary_min, j.salary_max, j.requirements, j.created_at,
+       c.name      AS company_name,
+       c.location  AS company_location,
+       c.industry  AS company_industry,
+       e.id        AS employer_id,
+       e.email     AS employer_email,
+       e.full_name AS employer_full_name
+FROM jobs j
+         JOIN companies c ON j.company_id = c.id
+         JOIN employers e ON c.id = e.company_id
+WHERE j.id = $1
+`
+
+type GetJobDetailsRow struct {
+	ID               int32     `json:"id"`
+	Title            string    `json:"title"`
+	Industry         string    `json:"industry"`
+	CompanyID        int32     `json:"company_id"`
+	Description      string    `json:"description"`
+	Location         string    `json:"location"`
+	SalaryMin        int32     `json:"salary_min"`
+	SalaryMax        int32     `json:"salary_max"`
+	Requirements     string    `json:"requirements"`
+	CreatedAt        time.Time `json:"created_at"`
+	CompanyName      string    `json:"company_name"`
+	CompanyLocation  string    `json:"company_location"`
+	CompanyIndustry  string    `json:"company_industry"`
+	EmployerID       int32     `json:"employer_id"`
+	EmployerEmail    string    `json:"employer_email"`
+	EmployerFullName string    `json:"employer_full_name"`
+}
+
+func (q *Queries) GetJobDetails(ctx context.Context, id int32) (GetJobDetailsRow, error) {
+	row := q.db.QueryRowContext(ctx, getJobDetails, id)
+	var i GetJobDetailsRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Industry,
+		&i.CompanyID,
+		&i.Description,
+		&i.Location,
+		&i.SalaryMin,
+		&i.SalaryMax,
+		&i.Requirements,
+		&i.CreatedAt,
+		&i.CompanyName,
+		&i.CompanyLocation,
+		&i.CompanyIndustry,
+		&i.EmployerID,
+		&i.EmployerEmail,
+		&i.EmployerFullName,
 	)
 	return i, err
 }

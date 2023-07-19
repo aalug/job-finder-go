@@ -51,6 +51,9 @@ func (server *Server) setupRouter() {
 	router.POST("/employers", server.createEmployer)
 	router.POST("/employers/login", server.loginEmployer)
 
+	// === jobs ===
+	router.GET("/jobs/:id", server.getJob)
+
 	// ===== routes that require authentication =====
 	// === users ===
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
