@@ -79,9 +79,39 @@ func TestQueries_CreateJob(t *testing.T) {
 	createRandomJob(t, nil, jobDetails{})
 }
 
+func TestQueries_GetJobDetails(t *testing.T) {
+	company := createRandomCompany(t, "")
+	job := createRandomJob(t, &company, jobDetails{})
+	employer := createRandomEmployer(t, job.CompanyID)
+
+	job2, err := testQueries.GetJobDetails(context.Background(), job.ID)
+
+	require.NoError(t, err)
+	require.NotEmpty(t, job2)
+	require.Equal(t, job.ID, job2.ID)
+	require.Equal(t, job.Title, job2.Title)
+	require.Equal(t, job.Industry, job2.Industry)
+	require.Equal(t, job.CompanyID, job2.CompanyID)
+	require.Equal(t, job.Description, job2.Description)
+	require.Equal(t, job.Location, job2.Location)
+	require.Equal(t, job.SalaryMin, job2.SalaryMin)
+	require.Equal(t, job.SalaryMax, job2.SalaryMax)
+	require.Equal(t, job.Requirements, job2.Requirements)
+	require.WithinDuration(t, job.CreatedAt, job2.CreatedAt, time.Second)
+
+	require.Equal(t, job2.CompanyName, company.Name)
+	require.Equal(t, job2.CompanyIndustry, company.Industry)
+	require.Equal(t, job2.CompanyLocation, company.Location)
+	require.Equal(t, job2.EmployerEmail, employer.Email)
+	require.Equal(t, job2.EmployerFullName, employer.FullName)
+	require.Equal(t, job2.EmployerID, employer.ID)
+}
+
 func TestQueries_GetJob(t *testing.T) {
 	job := createRandomJob(t, nil, jobDetails{})
+
 	job2, err := testQueries.GetJob(context.Background(), job.ID)
+
 	require.NoError(t, err)
 	require.NotEmpty(t, job2)
 	require.Equal(t, job.ID, job2.ID)

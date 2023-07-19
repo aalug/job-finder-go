@@ -15,6 +15,19 @@ SELECT *
 FROM jobs
 WHERE id = $1;
 
+-- name: GetJobDetails :one
+SELECT j.*,
+       c.name      AS company_name,
+       c.location  AS company_location,
+       c.industry  AS company_industry,
+       e.id        AS employer_id,
+       e.email     AS employer_email,
+       e.full_name AS employer_full_name
+FROM jobs j
+         JOIN companies c ON j.company_id = c.id
+         JOIN employers e ON c.id = e.company_id
+WHERE j.id = $1;
+
 -- name: ListJobsByTitle :many
 SELECT *
 FROM jobs

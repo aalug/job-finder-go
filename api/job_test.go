@@ -462,6 +462,116 @@ func TestDeleteJobAPI(t *testing.T) {
 	}
 }
 
+func TestGetJobAPI(t *testing.T) {
+	employer, _, company := generateRandomEmployerAndCompany(t)
+	job := generateRandomJob()
+
+	// set the company ID to the employer's company ID
+	// so that the job belongs to the employer
+	job.CompanyID = employer.CompanyID
+
+	getJobRow := db.GetJobDetailsRow{
+		ID:               job.ID,
+		Title:            job.Title,
+		Industry:         job.Industry,
+		CompanyID:        job.CompanyID,
+		Description:      job.Description,
+		Location:         job.Location,
+		SalaryMin:        job.SalaryMin,
+		SalaryMax:        job.SalaryMax,
+		Requirements:     job.Requirements,
+		CreatedAt:        job.CreatedAt,
+		CompanyName:      company.Name,
+		CompanyLocation:  company.Location,
+		CompanyIndustry:  company.Industry,
+		EmployerID:       employer.ID,
+		EmployerEmail:    employer.Email,
+		EmployerFullName: employer.FullName,
+	}
+
+	testCases := []struct {
+		name          string
+		jobID         int32
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:  "OK",
+			jobID: job.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetJobDetails(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(getJobRow, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchJobDetails(t, recorder.Body, getJobRow)
+			},
+		},
+		{
+			name:  "Not Found",
+			jobID: job.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetJobDetails(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.GetJobDetailsRow{}, sql.ErrNoRows)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:  "Internal Server Error",
+			jobID: job.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetJobDetails(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.GetJobDetailsRow{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:  "Invalid Job ID",
+			jobID: 0,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetJobDetails(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
+			recorder := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/jobs/%d", tc.jobID)
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
 func generateRandomJob() db.Job {
 	return db.Job{
 		ID:           utils.RandomInt(1, 1000),
@@ -491,4 +601,14 @@ func requireBodyMatchJob(t *testing.T, body *bytes.Buffer, job db.Job, skills []
 	require.Equal(t, job.SalaryMax, gotJob.SalaryMax)
 	require.Equal(t, job.Requirements, gotJob.Requirements)
 	require.Equal(t, skills, gotJob.RequiredSkills)
+}
+
+func requireBodyMatchJobDetails(t *testing.T, body *bytes.Buffer, row db.GetJobDetailsRow) {
+	data, err := io.ReadAll(body)
+	require.NoError(t, err)
+
+	var gotJobRow db.GetJobDetailsRow
+	err = json.Unmarshal(data, &gotJobRow)
+	require.NoError(t, err)
+	require.Equal(t, row, gotJobRow)
 }

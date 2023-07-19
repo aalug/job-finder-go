@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
 	"github.com/aalug/go-gin-job-search/token"
@@ -140,4 +141,31 @@ func (server *Server) deleteJob(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusNoContent, nil)
+}
+
+type getJobRequest struct {
+	ID int32 `uri:"id" binding:"required,min=1"`
+}
+
+// getJob handles getting a job posting with all details
+// without job skills - these are fetched separately
+// to allow for the client to get paginated job skills.
+func (server *Server) getJob(ctx *gin.Context) {
+	var request getJobRequest
+	if err := ctx.ShouldBindUri(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	job, err := server.store.GetJobDetails(ctx, request.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, job)
 }
