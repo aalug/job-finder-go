@@ -492,9 +492,11 @@ func (q *Queries) ListJobsByTitle(ctx context.Context, arg ListJobsByTitleParams
 }
 
 const listJobsMatchingUserSkills = `-- name: ListJobsMatchingUserSkills :many
-SELECT id, title, industry, company_id, description, location, salary_min, salary_max, requirements, created_at
-FROM jobs
-WHERE id IN (SELECT job_id
+SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.salary_min, j.salary_max, j.requirements, j.created_at,
+       c.name AS company_name
+FROM jobs j
+         JOIN companies c ON j.company_id = c.id
+WHERE j.id IN (SELECT job_id
              FROM job_skills
              WHERE skill IN (SELECT skill
                              FROM user_skills
@@ -508,15 +510,29 @@ type ListJobsMatchingUserSkillsParams struct {
 	Offset int32 `json:"offset"`
 }
 
-func (q *Queries) ListJobsMatchingUserSkills(ctx context.Context, arg ListJobsMatchingUserSkillsParams) ([]Job, error) {
+type ListJobsMatchingUserSkillsRow struct {
+	ID           int32     `json:"id"`
+	Title        string    `json:"title"`
+	Industry     string    `json:"industry"`
+	CompanyID    int32     `json:"company_id"`
+	Description  string    `json:"description"`
+	Location     string    `json:"location"`
+	SalaryMin    int32     `json:"salary_min"`
+	SalaryMax    int32     `json:"salary_max"`
+	Requirements string    `json:"requirements"`
+	CreatedAt    time.Time `json:"created_at"`
+	CompanyName  string    `json:"company_name"`
+}
+
+func (q *Queries) ListJobsMatchingUserSkills(ctx context.Context, arg ListJobsMatchingUserSkillsParams) ([]ListJobsMatchingUserSkillsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listJobsMatchingUserSkills, arg.UserID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Job{}
+	items := []ListJobsMatchingUserSkillsRow{}
 	for rows.Next() {
-		var i Job
+		var i ListJobsMatchingUserSkillsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -528,6 +544,7 @@ func (q *Queries) ListJobsMatchingUserSkills(ctx context.Context, arg ListJobsMa
 			&i.SalaryMax,
 			&i.Requirements,
 			&i.CreatedAt,
+			&i.CompanyName,
 		); err != nil {
 			return nil, err
 		}

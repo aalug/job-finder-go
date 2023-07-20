@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 type Store interface {
@@ -11,6 +12,7 @@ type Store interface {
 	CreateMultipleJobSkills(ctx context.Context, skills []string, jobID int32) error
 	DeleteJobPosting(ctx context.Context, jobID int32) error
 	GetUserDetailsByEmail(ctx context.Context, email string) (User, []UserSkill, error)
+	ListJobsByFilters(ctx context.Context, arg ListJobsByFiltersParams) ([]ListJobsByFiltersRow, error)
 }
 
 // SQLStore provides all functions to execute db queries and transactions
@@ -115,4 +117,86 @@ func (store SQLStore) GetUserDetailsByEmail(ctx context.Context, email string) (
 	}
 
 	return user, userSkills, nil
+}
+
+// This function could not be implemented using sqlc.
+// Because of that, it is implemented manually.
+const listJobsByFilters = `-- name: ListJobsByFilters :many
+SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.salary_min, j.salary_max, j.requirements, j.created_at,
+       c.name AS company_name
+FROM jobs j
+         JOIN companies c ON j.company_id = c.id
+WHERE ($3::text IS NULL OR j.title ILIKE '%' || $3 || '%')
+  AND ($4::text IS NULL OR j.location = $4)
+  AND ($5::text IS NULL OR j.industry = $5)
+  AND ($6::int IS NULL OR j.salary_min >= $6)
+  AND ($7::int IS NULL OR j.salary_max <= $7)
+LIMIT $1 OFFSET $2
+`
+
+type ListJobsByFiltersParams struct {
+	Limit       int32          `json:"limit"`
+	Offset      int32          `json:"offset"`
+	Title       sql.NullString `json:"title"`
+	JobLocation sql.NullString `json:"job_location"`
+	Industry    sql.NullString `json:"industry"`
+	SalaryMin   sql.NullInt32  `json:"salary_min"`
+	SalaryMax   sql.NullInt32  `json:"salary_max"`
+}
+
+type ListJobsByFiltersRow struct {
+	ID           int32     `json:"id"`
+	Title        string    `json:"title"`
+	Industry     string    `json:"industry"`
+	CompanyID    int32     `json:"company_id"`
+	Description  string    `json:"description"`
+	Location     string    `json:"location"`
+	SalaryMin    int32     `json:"salary_min"`
+	SalaryMax    int32     `json:"salary_max"`
+	Requirements string    `json:"requirements"`
+	CreatedAt    time.Time `json:"created_at"`
+	CompanyName  string    `json:"company_name"`
+}
+
+func (store SQLStore) ListJobsByFilters(ctx context.Context, arg ListJobsByFiltersParams) ([]ListJobsByFiltersRow, error) {
+	rows, err := store.db.QueryContext(ctx, listJobsByFilters,
+		arg.Limit,
+		arg.Offset,
+		arg.Title,
+		arg.JobLocation,
+		arg.Industry,
+		arg.SalaryMin,
+		arg.SalaryMax,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListJobsByFiltersRow{}
+	for rows.Next() {
+		var i ListJobsByFiltersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Industry,
+			&i.CompanyID,
+			&i.Description,
+			&i.Location,
+			&i.SalaryMin,
+			&i.SalaryMax,
+			&i.Requirements,
+			&i.CreatedAt,
+			&i.CompanyName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

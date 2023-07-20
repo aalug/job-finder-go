@@ -53,6 +53,7 @@ func (server *Server) setupRouter() {
 
 	// === jobs ===
 	router.GET("/jobs/:id", server.getJob)
+	router.GET("/jobs", server.filterAndListJobs)
 
 	// ===== routes that require authentication =====
 	// === users ===
