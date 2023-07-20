@@ -74,9 +74,11 @@ WHERE salary_min >= $1
 LIMIT $3 OFFSET $4;
 
 -- name: ListJobsMatchingUserSkills :many
-SELECT *
-FROM jobs
-WHERE id IN (SELECT job_id
+SELECT j.*,
+       c.name AS company_name
+FROM jobs j
+         JOIN companies c ON j.company_id = c.id
+WHERE j.id IN (SELECT job_id
              FROM job_skills
              WHERE skill IN (SELECT skill
                              FROM user_skills

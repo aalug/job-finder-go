@@ -169,3 +169,54 @@ func (server *Server) getJob(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, job)
 }
+
+type filterAndListJobs struct {
+	Title       string `form:"title"`
+	Industry    string `form:"industry"`
+	JobLocation string `form:"job_location"`
+	SalaryMin   int32  `form:"salary_min"`
+	SalaryMax   int32  `form:"salary_max"`
+	Page        int32  `form:"page" binding:"required,min=1"`
+	PageSize    int32  `form:"page_size" binding:"required,min=5,max=15"`
+}
+
+func (server *Server) filterAndListJobs(ctx *gin.Context) {
+	var request filterAndListJobs
+	if err := ctx.ShouldBindQuery(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	params := db.ListJobsByFiltersParams{
+		Limit:  request.PageSize,
+		Offset: (request.Page - 1) * request.PageSize,
+		Title: sql.NullString{
+			String: request.Title,
+			Valid:  request.Title != "",
+		},
+		JobLocation: sql.NullString{
+			String: request.JobLocation,
+			Valid:  request.JobLocation != "",
+		},
+		Industry: sql.NullString{
+			String: request.Industry,
+			Valid:  request.Industry != "",
+		},
+		SalaryMin: sql.NullInt32{
+			Int32: request.SalaryMin,
+			Valid: request.SalaryMin != 0,
+		},
+		SalaryMax: sql.NullInt32{
+			Int32: request.SalaryMax,
+			Valid: request.SalaryMax != 0,
+		},
+	}
+
+	jobs, err := server.store.ListJobsByFilters(ctx, params)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, jobs)
+}

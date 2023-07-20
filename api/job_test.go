@@ -572,6 +572,247 @@ func TestGetJobAPI(t *testing.T) {
 	}
 }
 
+func TestFilterAndListJobsAPI(t *testing.T) {
+	_, _, company := generateRandomEmployerAndCompany(t)
+	var jobs []db.ListJobsByFiltersRow
+	title := utils.RandomString(5)
+	industry := utils.RandomString(4)
+	jobLocation := utils.RandomString(6)
+	salaryMin := utils.RandomInt(100, 150)
+	salaryMax := utils.RandomInt(151, 200)
+	title2 := utils.RandomString(8)
+	industry2 := utils.RandomString(5)
+	jobLocation2 := utils.RandomString(7)
+	salaryMin2 := utils.RandomInt(201, 250)
+	salaryMax2 := utils.RandomInt(251, 300)
+
+	job := generateJob(
+		title,
+		industry,
+		jobLocation,
+		salaryMin,
+		salaryMax,
+	)
+	job2 := generateJob(
+		title2,
+		industry2,
+		jobLocation2,
+		salaryMin2,
+		salaryMax2,
+	)
+
+	for i := 0; i < 10; i++ {
+		j := job
+		if i%2 == 0 {
+			j = job2
+		}
+		row := db.ListJobsByFiltersRow{
+			ID:           j.ID,
+			Title:        j.Title,
+			Industry:     j.Industry,
+			CompanyID:    j.CompanyID,
+			Description:  j.Description,
+			Location:     j.Location,
+			SalaryMin:    j.SalaryMin,
+			SalaryMax:    j.SalaryMax,
+			Requirements: j.Requirements,
+			CreatedAt:    j.CreatedAt,
+			CompanyName:  company.Name,
+		}
+		jobs = append(jobs, row)
+	}
+
+	type Query struct {
+		page        int32
+		pageSize    int32
+		industry    string
+		jobLocation string
+		title       string
+		salaryMin   int32
+		salaryMax   int32
+	}
+
+	testCases := []struct {
+		name          string
+		query         Query
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			query: Query{
+				page:        1,
+				pageSize:    10,
+				industry:    industry2,
+				jobLocation: jobLocation2,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				params := db.ListJobsByFiltersParams{
+					Limit:  10,
+					Offset: 0,
+					Title: sql.NullString{
+						String: "",
+						Valid:  false,
+					},
+					JobLocation: sql.NullString{
+						String: jobLocation2,
+						Valid:  true,
+					},
+					Industry: sql.NullString{
+						String: industry2,
+						Valid:  true,
+					},
+					SalaryMin: sql.NullInt32{
+						Int32: 0,
+						Valid: false,
+					},
+					SalaryMax: sql.NullInt32{
+						Int32: 0,
+						Valid: false,
+					},
+				}
+				store.EXPECT().
+					ListJobsByFilters(gomock.Any(), gomock.Eq(params)).
+					Times(1).
+					Return(jobs, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchJobs(t, recorder.Body, jobs)
+			},
+		},
+		{
+			name: "No Page In Query",
+			query: Query{
+				pageSize:    10,
+				industry:    industry,
+				jobLocation: jobLocation,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByFilters(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "No Page Size In Query",
+			query: Query{
+				page:        1,
+				industry:    industry,
+				jobLocation: jobLocation,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByFilters(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Page",
+			query: Query{
+				page:        0,
+				pageSize:    10,
+				industry:    industry,
+				jobLocation: jobLocation,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByFilters(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Page Size",
+			query: Query{
+				page:        1,
+				pageSize:    50,
+				industry:    industry,
+				jobLocation: jobLocation,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByFilters(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				title:    title,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByFilters(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return([]db.ListJobsByFiltersRow{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
+			recorder := httptest.NewRecorder()
+
+			url := "/jobs"
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			// Add query params
+			q := req.URL.Query()
+			q.Add("page", fmt.Sprintf("%d", tc.query.page))
+			q.Add("page_size", fmt.Sprintf("%d", tc.query.pageSize))
+			q.Add("industry", tc.query.industry)
+			q.Add("job_location", tc.query.jobLocation)
+			q.Add("title", tc.query.title)
+			q.Add("salary_min", fmt.Sprintf("%d", tc.query.salaryMin))
+			q.Add("salary_max", fmt.Sprintf("%d", tc.query.salaryMax))
+			req.URL.RawQuery = q.Encode()
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
+func generateJob(title, industry, jobLocation string, salaryMin, salaryMax int32) db.Job {
+	return db.Job{
+		ID:           utils.RandomInt(1, 1000),
+		Title:        title,
+		Industry:     industry,
+		Description:  utils.RandomString(5),
+		Location:     jobLocation,
+		SalaryMin:    salaryMin,
+		SalaryMax:    salaryMax,
+		Requirements: utils.RandomString(5),
+	}
+}
+
 func generateRandomJob() db.Job {
 	return db.Job{
 		ID:           utils.RandomInt(1, 1000),
@@ -611,4 +852,17 @@ func requireBodyMatchJobDetails(t *testing.T, body *bytes.Buffer, row db.GetJobD
 	err = json.Unmarshal(data, &gotJobRow)
 	require.NoError(t, err)
 	require.Equal(t, row, gotJobRow)
+}
+
+func requireBodyMatchJobs(t *testing.T, body *bytes.Buffer, jobs []db.ListJobsByFiltersRow) {
+	data, err := io.ReadAll(body)
+	require.NoError(t, err)
+
+	var gotJobRows []db.ListJobsByFiltersRow
+	err = json.Unmarshal(data, &gotJobRows)
+	require.NoError(t, err)
+
+	for i := 0; i < len(jobs); i++ {
+		require.Equal(t, jobs[i], gotJobRows[i])
+	}
 }
