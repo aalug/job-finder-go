@@ -220,3 +220,47 @@ func (server *Server) filterAndListJobs(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, jobs)
 }
+
+type listJobsByMatchingSkillsRequest struct {
+	Page     int32 `form:"page" binding:"required,min=1"`
+	PageSize int32 `form:"page_size" binding:"required,min=5,max=15"`
+}
+
+// listJobsByMatchingSkills handles listing all jobs
+// that skills match the users skills.
+func (server *Server) listJobsByMatchingSkills(ctx *gin.Context) {
+	var request listJobsByMatchingSkillsRequest
+	if err := ctx.ShouldBindQuery(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		// person is authenticated but cannot be find in users table
+		// means that this is an employer
+		if err == sql.ErrNoRows {
+			err = fmt.Errorf("only users can call this endpoint")
+			ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	params := db.ListJobsMatchingUserSkillsParams{
+		UserID: authUser.ID,
+		Limit:  request.PageSize,
+		Offset: (request.Page - 1) * request.PageSize,
+	}
+
+	jobs, err := server.store.ListJobsMatchingUserSkills(ctx, params)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, jobs)
+}
