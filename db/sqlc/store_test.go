@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"github.com/aalug/go-gin-job-search/utils"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -83,4 +84,49 @@ func TestSQLStore_GetUserDetailsByEmail(t *testing.T) {
 	require.Equal(t, user.ID, userSkills[0].UserID)
 	require.Equal(t, userSkills[0].Skill, params.Skill)
 	require.Equal(t, userSkills[0].Experience, params.Experience)
+}
+
+func TestSQLStore_ListJobsByFilters(t *testing.T) {
+	company := createRandomCompany(t, "")
+	title := utils.RandomString(5)
+	var salaryMin int32 = 100
+	var salaryMax int32 = 200
+	for i := 0; i < 5; i++ {
+		createRandomJob(t, &company, jobDetails{
+			title:     title,
+			salaryMin: salaryMin,
+			salaryMax: salaryMax,
+		})
+	}
+
+	params := ListJobsByFiltersParams{
+		Limit:  5,
+		Offset: 0,
+		Title: sql.NullString{
+			String: title,
+			Valid:  true,
+		},
+		JobLocation: sql.NullString{},
+		Industry:    sql.NullString{},
+		SalaryMin: sql.NullInt32{
+			Int32: salaryMin,
+			Valid: true,
+		},
+		SalaryMax: sql.NullInt32{
+			Int32: salaryMax,
+			Valid: true,
+		},
+	}
+
+	jobs, err := testStore.ListJobsByFilters(context.Background(), params)
+	require.NoError(t, err)
+	require.Len(t, jobs, 5)
+	for _, job := range jobs {
+		require.NotEmpty(t, job)
+		require.Equal(t, title, job.Title)
+		require.Equal(t, salaryMin, job.SalaryMin)
+		require.Equal(t, salaryMax, job.SalaryMax)
+		require.Equal(t, company.ID, job.CompanyID)
+		require.NotZero(t, job.ID)
+	}
 }

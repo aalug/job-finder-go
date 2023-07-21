@@ -63,15 +63,19 @@ func (server *Server) setupRouter() {
 	authRoutes.DELETE("/users", server.deleteUser)
 	authRoutes.GET("/users", server.getUser)
 
-	// employers
+	// === employers ===
 	authRoutes.GET("/employers", server.getEmployer)
 	authRoutes.PATCH("/employers", server.updateEmployer)
 	authRoutes.PATCH("/employers/password", server.updateEmployerPassword)
 	authRoutes.DELETE("/employers", server.deleteEmployer)
 
-	// jobs
+	// === jobs ===
+	// for employers, jobs CRUD
 	authRoutes.POST("/jobs", server.createJob)
 	authRoutes.DELETE("/jobs/:id", server.deleteJob)
+
+	// for users
+	authRoutes.GET("/jobs/match-skills", server.listJobsByMatchingSkills)
 
 	server.router = router
 }
