@@ -56,12 +56,13 @@ func (server *Server) setupRouter() {
 	router.GET("/jobs", server.filterAndListJobs)
 
 	// ===== routes that require authentication =====
-	// === users ===
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
+
+	// === users ===
+	authRoutes.GET("/users", server.getUser)
 	authRoutes.PATCH("/users", server.updateUser)
 	authRoutes.PATCH("/users/password", server.updateUserPassword)
 	authRoutes.DELETE("/users", server.deleteUser)
-	authRoutes.GET("/users", server.getUser)
 
 	// === employers ===
 	authRoutes.GET("/employers", server.getEmployer)
@@ -73,8 +74,9 @@ func (server *Server) setupRouter() {
 	// for employers, jobs CRUD
 	authRoutes.POST("/jobs", server.createJob)
 	authRoutes.DELETE("/jobs/:id", server.deleteJob)
+	authRoutes.PATCH("/jobs/:id", server.updateJob)
 
-	// for users
+	// for users, listing jobs that use user details
 	authRoutes.GET("/jobs/match-skills", server.listJobsByMatchingSkills)
 
 	server.router = router

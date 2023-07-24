@@ -2,11 +2,20 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
 	"github.com/aalug/go-gin-job-search/token"
 	"github.com/gin-gonic/gin"
 	"net/http"
+)
+
+var (
+	onlyEmployersAccessError = errors.New("only employers can access this endpoint")
+	onlyUsersAccessError     = errors.New("only users can access this endpoint")
+	jobOwnershipError        = errors.New("job does not belong to this employer")
+	salaryRangeError         = errors.New("salary min cannot be greater than salary max")
 )
 
 type jobResponse struct {
@@ -50,6 +59,11 @@ func (server *Server) createJob(ctx *gin.Context) {
 	var request createJobRequest
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	if request.SalaryMin > request.SalaryMax {
+		ctx.JSON(http.StatusBadRequest, errorResponse(salaryRangeError))
 		return
 	}
 
@@ -129,8 +143,7 @@ func (server *Server) deleteJob(ctx *gin.Context) {
 
 	// check if job is owned by the employer
 	if job.CompanyID != authEmployer.CompanyID {
-		err = fmt.Errorf("job does not belong to this employer")
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		ctx.JSON(http.StatusUnauthorized, errorResponse(jobOwnershipError))
 		return
 	}
 
@@ -141,6 +154,151 @@ func (server *Server) deleteJob(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusNoContent, nil)
+}
+
+type updateJobUriRequest struct {
+	ID int32 `uri:"id" binding:"required,min=1"`
+}
+
+type updateJobRequest struct {
+	Title                    string   `json:"title"`
+	Description              string   `json:"description"`
+	Industry                 string   `json:"industry"`
+	Location                 string   `json:"location"`
+	SalaryMin                int32    `json:"salary_min"`
+	SalaryMax                int32    `json:"salary_max"`
+	Requirements             string   `json:"requirements"`
+	RequiredSkillsToAdd      []string `json:"required_skills_to_add"`
+	RequiredSkillIDsToRemove []int32  `json:"required_skill_ids_to_remove"`
+}
+
+// updateJob handles updating a job posting - job and job skills
+func (server *Server) updateJob(ctx *gin.Context) {
+	// job ID
+	var uriRequest updateJobUriRequest
+	if err := ctx.ShouldBindUri(&uriRequest); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// job details
+	var request updateJobRequest
+	err := json.NewDecoder(ctx.Request.Body).Decode(&request)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// get employer that is making the request
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyEmployersAccessError))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// get job that is being updated
+	job, err := server.store.GetJob(ctx, uriRequest.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// check if job is owned by the employer
+	if job.CompanyID != authEmployer.CompanyID {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(jobOwnershipError))
+		return
+	}
+
+	// update job
+	params := db.UpdateJobParams{
+		ID:           job.ID,
+		Title:        request.Title,
+		Description:  request.Description,
+		Industry:     request.Industry,
+		Location:     request.Location,
+		SalaryMin:    request.SalaryMin,
+		SalaryMax:    request.SalaryMax,
+		Requirements: request.Requirements,
+		CompanyID:    job.CompanyID,
+	}
+
+	if params.SalaryMin > params.SalaryMax {
+		err = fmt.Errorf("salary min cannot be greater than ")
+		ctx.JSON(http.StatusBadRequest, errorResponse(salaryRangeError))
+		return
+	}
+
+	if request.Title == "" {
+		params.Title = job.Title
+	}
+	if request.Description == "" {
+		params.Description = job.Description
+	}
+	if request.Industry == "" {
+		params.Industry = job.Industry
+	}
+	if request.Location == "" {
+		params.Location = job.Location
+	}
+	if request.SalaryMin == 0 {
+		params.SalaryMin = job.SalaryMin
+	}
+	if request.SalaryMax == 0 {
+		params.SalaryMax = job.SalaryMax
+	}
+	if request.Requirements == "" {
+		params.Requirements = job.Requirements
+	}
+
+	job, err = server.store.UpdateJob(ctx, params)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// --- update job skills
+
+	// delete
+	if len(request.RequiredSkillIDsToRemove) > 0 {
+		err = server.store.DeleteMultipleJobSkills(ctx, request.RequiredSkillIDsToRemove)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+	}
+
+	// add
+	if len(request.RequiredSkillsToAdd) > 0 {
+		err = server.store.CreateMultipleJobSkills(ctx, request.RequiredSkillsToAdd, job.ID)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+	}
+
+	// get skills
+	jobSkillsParams := db.ListJobSkillsByJobIDParams{
+		JobID:  job.ID,
+		Limit:  10,
+		Offset: 0,
+	}
+	jobSkills, err := server.store.ListJobSkillsByJobID(ctx, jobSkillsParams)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newJobResponse(job, jobSkills))
 }
 
 type getJobRequest struct {
@@ -241,9 +399,7 @@ func (server *Server) listJobsByMatchingSkills(ctx *gin.Context) {
 		// person is authenticated but cannot be find in users table
 		// means that this is an employer
 		if err == sql.ErrNoRows {
-			err = fmt.Errorf("only users can call this endpoint")
-			ctx.JSON(http.StatusUnauthorized, errorResponse(err))
-			return
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
 		}
 
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
