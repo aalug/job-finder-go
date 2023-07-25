@@ -54,6 +54,7 @@ func (server *Server) setupRouter() {
 	// === jobs ===
 	router.GET("/jobs/:id", server.getJob)
 	router.GET("/jobs", server.filterAndListJobs)
+	router.GET("/jobs/company", server.listJobsByCompany)
 
 	// ===== routes that require authentication =====
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))

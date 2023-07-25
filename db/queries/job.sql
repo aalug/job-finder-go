@@ -47,20 +47,24 @@ WHERE industry = $1
 LIMIT $2 OFFSET $3;
 
 -- name: ListJobsByCompanyID :many
-SELECT *
-FROM jobs
-WHERE company_id = $1
+SELECT j.*,
+       c.name AS company_name
+FROM jobs j
+         JOIN companies c ON j.company_id = c.id
+WHERE j.company_id = $1
 LIMIT $2 OFFSET $3;
 
 -- name: ListJobsByCompanyExactName :many
-SELECT j.*
+SELECT j.*,
+       c.name AS company_name
 FROM jobs j
          JOIN companies c ON j.company_id = c.id
 WHERE c.name = $1
 LIMIT $2 OFFSET $3;
 
 -- name: ListJobsByCompanyName :many
-SELECT j.*
+SELECT j.*,
+       c.name AS company_name
 FROM jobs j
          JOIN companies c ON j.company_id = c.id
 WHERE c.name ILIKE '%' || @name::text || '%'
@@ -79,10 +83,10 @@ SELECT j.*,
 FROM jobs j
          JOIN companies c ON j.company_id = c.id
 WHERE j.id IN (SELECT job_id
-             FROM job_skills
-             WHERE skill IN (SELECT skill
-                             FROM user_skills
-                             WHERE user_id = $1))
+               FROM job_skills
+               WHERE skill IN (SELECT skill
+                               FROM user_skills
+                               WHERE user_id = $1))
 LIMIT $2 OFFSET $3;
 
 -- name: UpdateJob :one

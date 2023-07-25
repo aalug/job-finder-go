@@ -1616,6 +1616,364 @@ func TestUpdateJobAPI(t *testing.T) {
 	}
 }
 
+func TestListJobsByCompanyAPI(t *testing.T) {
+	_, _, company := generateRandomEmployerAndCompany(t)
+	var jobsByExactName []db.ListJobsByCompanyExactNameRow
+	var jobByName []db.ListJobsByCompanyNameRow
+	var jobByID []db.ListJobsByCompanyIDRow
+	title := utils.RandomString(5)
+	industry := utils.RandomString(4)
+	jobLocation := utils.RandomString(6)
+	salaryMin := utils.RandomInt(100, 150)
+	salaryMax := utils.RandomInt(151, 200)
+
+	job := generateJob(
+		title,
+		industry,
+		jobLocation,
+		salaryMin,
+		salaryMax,
+	)
+
+	for i := 0; i < 5; i++ {
+		row := db.ListJobsByCompanyExactNameRow{
+			ID:           job.ID,
+			Title:        job.Title,
+			Industry:     job.Industry,
+			CompanyID:    job.CompanyID,
+			Description:  job.Description,
+			Location:     job.Location,
+			SalaryMin:    job.SalaryMin,
+			SalaryMax:    job.SalaryMax,
+			Requirements: job.Requirements,
+			CreatedAt:    job.CreatedAt,
+			CompanyName:  company.Name,
+		}
+		jobsByExactName = append(jobsByExactName, row)
+
+		row2 := db.ListJobsByCompanyNameRow{
+			ID:           job.ID,
+			Title:        job.Title,
+			Industry:     job.Industry,
+			CompanyID:    job.CompanyID,
+			Description:  job.Description,
+			Location:     job.Location,
+			SalaryMin:    job.SalaryMin,
+			SalaryMax:    job.SalaryMax,
+			Requirements: job.Requirements,
+			CreatedAt:    job.CreatedAt,
+			CompanyName:  company.Name,
+		}
+		jobByName = append(jobByName, row2)
+
+		row3 := db.ListJobsByCompanyIDRow{
+			ID:           job.ID,
+			Title:        job.Title,
+			Industry:     job.Industry,
+			CompanyID:    job.CompanyID,
+			Description:  job.Description,
+			Location:     job.Location,
+			SalaryMin:    job.SalaryMin,
+			SalaryMax:    job.SalaryMax,
+			Requirements: job.Requirements,
+			CreatedAt:    job.CreatedAt,
+			CompanyName:  company.Name,
+		}
+		jobByID = append(jobByID, row3)
+	}
+
+	type Query struct {
+		page         int32
+		pageSize     int32
+		id           int32
+		name         string
+		nameContains string
+	}
+
+	testCases := []struct {
+		name          string
+		query         Query
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK Name",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				name:     company.Name,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByCompanyID(gomock.Any(), gomock.Any()).
+					Times(0)
+				params := db.ListJobsByCompanyExactNameParams{
+					Name:   company.Name,
+					Limit:  10,
+					Offset: 0,
+				}
+				store.EXPECT().
+					ListJobsByCompanyExactName(gomock.Any(), gomock.Eq(params)).
+					Times(1).
+					Return(jobsByExactName, nil)
+				store.EXPECT().
+					ListJobsByCompanyName(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchJobs(t, recorder.Body, jobsByExactName)
+			},
+		},
+		{
+			name: "OK ID",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				id:       company.ID,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				params := db.ListJobsByCompanyIDParams{
+					CompanyID: company.ID,
+					Limit:     10,
+					Offset:    0,
+				}
+				store.EXPECT().
+					ListJobsByCompanyID(gomock.Any(), gomock.Eq(params)).
+					Times(1).
+					Return(jobByID, nil)
+				store.EXPECT().
+					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyName(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchJobs(t, recorder.Body, jobByID)
+			},
+		},
+		{
+			name: "OK Name Contains",
+			query: Query{
+				page:         1,
+				pageSize:     10,
+				nameContains: company.Name[1:3],
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByCompanyID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
+					Times(0)
+				params := db.ListJobsByCompanyNameParams{
+					Name:   company.Name[1:3],
+					Limit:  10,
+					Offset: 0,
+				}
+				store.EXPECT().
+					ListJobsByCompanyName(gomock.Any(), gomock.Eq(params)).
+					Times(1).
+					Return(jobByName, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchJobs(t, recorder.Body, jobByName)
+			},
+		},
+		{
+			name: "Invalid Page Size",
+			query: Query{
+				page:     1,
+				pageSize: 50,
+				id:       company.ID,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByCompanyID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyName(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Page",
+			query: Query{
+				page:     0,
+				pageSize: 10,
+				id:       company.ID,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByCompanyID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyName(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "No Parameters",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByCompanyID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyName(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "To Many Parameters",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				id:       company.ID,
+				name:     company.Name,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByCompanyID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyName(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error ListJobsByCompanyID",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				id:       company.ID,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByCompanyID(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return([]db.ListJobsByCompanyIDRow{}, sql.ErrConnDone)
+				store.EXPECT().
+					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyName(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error ListJobsByCompanyExactName",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				name:     company.Name,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByCompanyID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return([]db.ListJobsByCompanyExactNameRow{}, sql.ErrConnDone)
+				store.EXPECT().
+					ListJobsByCompanyName(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error ListJobsByCompanyExactName",
+			query: Query{
+				page:         1,
+				pageSize:     10,
+				nameContains: company.Name[1:3],
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					ListJobsByCompanyID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobsByCompanyName(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return([]db.ListJobsByCompanyNameRow{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store)
+			recorder := httptest.NewRecorder()
+
+			url := "/jobs/company"
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			// Add query params
+			q := req.URL.Query()
+			q.Add("page", fmt.Sprintf("%d", tc.query.page))
+			q.Add("page_size", fmt.Sprintf("%d", tc.query.pageSize))
+			q.Add("name", tc.query.name)
+			q.Add("name_contains", tc.query.nameContains)
+			q.Add("id", fmt.Sprintf("%d", tc.query.id))
+			req.URL.RawQuery = q.Encode()
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
 func generateJob(title, industry, jobLocation string, salaryMin, salaryMax int32) db.Job {
 	return db.Job{
 		ID:           utils.RandomInt(1, 1000),
@@ -1685,6 +2043,30 @@ func requireBodyMatchJobs(t *testing.T, body *bytes.Buffer, jobs interface{}) {
 		}
 	case []db.ListJobsMatchingUserSkillsRow:
 		var gotJobRows []db.ListJobsMatchingUserSkillsRow
+		err = json.Unmarshal(data, &gotJobRows)
+		require.NoError(t, err)
+
+		for i := 0; i < len(j); i++ {
+			require.Equal(t, j[i], gotJobRows[i])
+		}
+	case []db.ListJobsByCompanyExactNameRow:
+		var gotJobRows []db.ListJobsByCompanyExactNameRow
+		err = json.Unmarshal(data, &gotJobRows)
+		require.NoError(t, err)
+
+		for i := 0; i < len(j); i++ {
+			require.Equal(t, j[i], gotJobRows[i])
+		}
+	case []db.ListJobsByCompanyNameRow:
+		var gotJobRows []db.ListJobsByCompanyNameRow
+		err = json.Unmarshal(data, &gotJobRows)
+		require.NoError(t, err)
+
+		for i := 0; i < len(j); i++ {
+			require.Equal(t, j[i], gotJobRows[i])
+		}
+	case []db.ListJobsByCompanyIDRow:
+		var gotJobRows []db.ListJobsByCompanyIDRow
 		err = json.Unmarshal(data, &gotJobRows)
 		require.NoError(t, err)
 
