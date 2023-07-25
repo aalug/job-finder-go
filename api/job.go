@@ -54,6 +54,17 @@ type createJobRequest struct {
 	RequiredSkills []string `json:"required_skills" binding:"required"`
 }
 
+// @Schemes
+// @Summary Create job
+// @Description Create a new job
+// @Tags jobs
+// @Accept json
+// @Produce json
+// @param CreateJobRequest body createJobRequest true "Job details"
+// @Success 201 {object} jobResponse
+// @Failure 400 {object} ErrorResponse "Invalid request body"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /jobs [post]
 // createJob handles creating a job posting - job with job skills
 func (server *Server) createJob(ctx *gin.Context) {
 	var request createJobRequest
@@ -118,6 +129,14 @@ type deleteJobRequest struct {
 	ID int32 `uri:"id" binding:"required,min=1"`
 }
 
+// @Schemes
+// @Summary Delete job
+// @Description Delete the job with the given id
+// @Tags jobs
+// @param id path integer true "Job ID"
+// @Success 204 {null} null
+// @Failure 500 {object} ErrorResponse "Any error"
+// @Router /jobs/{id} [delete]
 // deleteJob handles deleting a job posting
 func (server *Server) deleteJob(ctx *gin.Context) {
 	var request deleteJobRequest
@@ -172,6 +191,20 @@ type updateJobRequest struct {
 	RequiredSkillIDsToRemove []int32  `json:"required_skill_ids_to_remove"`
 }
 
+// @Schemes
+// @Summary Update job
+// @Description update the job with the given id
+// @Tags jobs
+// @Param id path integer true "Job ID"
+// @Param UpdateJobRequest body updateJobRequest true "Job details to update"
+// @Accept json
+// @Produce json
+// @Success 200 {object} jobResponse
+// @Failure 400 {object} ErrorResponse "Invalid request query or body"
+// @Failure 401 {object} ErrorResponse "User making the request not an employer or employer not the owner of the job"
+// @Failure 404 {object} ErrorResponse "Job not found"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /jobs/{id} [patch]
 // updateJob handles updating a job posting - job and job skills
 func (server *Server) updateJob(ctx *gin.Context) {
 	// job ID
@@ -305,6 +338,17 @@ type getJobRequest struct {
 	ID int32 `uri:"id" binding:"required,min=1"`
 }
 
+// @Schemes
+// @Summary Get job
+// @Description Get details of the job with the given id
+// @Tags jobs
+// @Param id path integer true "Job ID"
+// @Produce json
+// @Success 200 {object} jobResponse
+// @Failure 400 {object} ErrorResponse "Invalid request query"
+// @Failure 404 {object} ErrorResponse "Job not found"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /jobs/{id} [get]
 // getJob handles getting a job posting with all details
 // without job skills - these are fetched separately
 // to allow for the client to get paginated job skills.
@@ -338,6 +382,23 @@ type filterAndListJobs struct {
 	PageSize    int32  `form:"page_size" binding:"required,min=5,max=15"`
 }
 
+// @Schemes
+// @Summary Filter and list jobs
+// @Description Filter and list jobs
+// @Tags jobs
+// @Param page query integer true "Page number"
+// @Param page_size query integer true "Page size"
+// @Param title query string false "Job title - matches partially (ILIKE)"
+// @Param industry query string false "Job industry - exact name"
+// @Param job_location query string false "Job location - exact name"
+// @Param salary_min query integer false "Salary min - must be smaller or equal salary_max"
+// @Param salary_max query integer false "Salary max - must be greater or equal salary_min"
+// @Produce json
+// @Success 200 {array} []db.ListJobsByFiltersRow
+// @Failure 400 {object} ErrorResponse "Invalid query"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /jobs [get]
+// filterAndListJobs handles filtering and listing jobs
 func (server *Server) filterAndListJobs(ctx *gin.Context) {
 	var request filterAndListJobs
 	if err := ctx.ShouldBindQuery(&request); err != nil {
@@ -384,6 +445,18 @@ type listJobsByMatchingSkillsRequest struct {
 	PageSize int32 `form:"page_size" binding:"required,min=5,max=15"`
 }
 
+// @Schemes
+// @Summary List jobs by matching skills
+// @Description List jobs that match the authenticated users skills
+// @Tags jobs
+// @Param page query integer true "Page number"
+// @Param page_size query integer true "Page size"
+// @Produce json
+// @Success 200 {array} []db.ListJobsMatchingUserSkillsRow
+// @Failure 400 {object} ErrorResponse "Invalid query"
+// @Failure 401 {object} ErrorResponse "Employer making the request - only users can access"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /jobs/match-skills [get]
 // listJobsByMatchingSkills handles listing all jobs
 // that skills match the users skills.
 func (server *Server) listJobsByMatchingSkills(ctx *gin.Context) {
@@ -429,6 +502,20 @@ type listJobsByCompanyRequest struct {
 	PageSize     int32  `form:"page_size" binding:"required,min=5,max=15"`
 }
 
+// @Schemes
+// @Summary List jobs by company
+// @Description List jobs by company name, id or part of the name.
+// @Tags jobs
+// @Param page query integer true "Page number"
+// @Param page_size query integer true "Page size"
+// @Param id query integer false "Company ID"
+// @Param name query string false "Company name"
+// @Param name_contains query string false "Part of the company name"
+// @Produce json
+// @Success 200 {array} []db.ListJobsByCompanyNameRow
+// @Failure 400 {object} ErrorResponse "Invalid query. Only one of the three parameters is allowed."
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /jobs/company [get]
 // listJobsByCompany  handles listing jobs by company.
 // Required parameters:
 // - page (page number)

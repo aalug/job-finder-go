@@ -1,0 +1,937 @@
+basePath: /api/v1
+definitions:
+  api.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  api.Skill:
+    properties:
+      id:
+        type: integer
+      skill:
+        type: string
+      years_of_experience:
+        type: integer
+    type: object
+  api.createEmployerRequest:
+    properties:
+      company_industry:
+        type: string
+      company_location:
+        type: string
+      company_name:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - company_industry
+    - company_location
+    - company_name
+    - email
+    - full_name
+    - password
+    type: object
+  api.createJobRequest:
+    properties:
+      description:
+        type: string
+      industry:
+        type: string
+      location:
+        type: string
+      required_skills:
+        items:
+          type: string
+        type: array
+      requirements:
+        type: string
+      salary_max:
+        minimum: 0
+        type: integer
+      salary_min:
+        minimum: 0
+        type: integer
+      title:
+        type: string
+    required:
+    - description
+    - industry
+    - location
+    - required_skills
+    - requirements
+    - salary_max
+    - salary_min
+    - title
+    type: object
+  api.createUserRequest:
+    properties:
+      desired_industry:
+        type: string
+      desired_job_title:
+        type: string
+      desired_salary_max:
+        minimum: 0
+        type: integer
+      desired_salary_min:
+        minimum: 0
+        type: integer
+      email:
+        type: string
+      experience:
+        type: string
+      full_name:
+        type: string
+      location:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      skills:
+        items:
+          $ref: '#/definitions/api.Skill'
+        type: array
+      skills_description:
+        type: string
+    required:
+    - desired_industry
+    - desired_job_title
+    - desired_salary_max
+    - desired_salary_min
+    - email
+    - full_name
+    - location
+    - password
+    type: object
+  api.employerResponse:
+    properties:
+      company_id:
+        type: integer
+      company_industry:
+        type: string
+      company_location:
+        type: string
+      company_name:
+        type: string
+      email:
+        type: string
+      employer_created_at:
+        type: string
+      employer_id:
+        type: integer
+      full_name:
+        type: string
+    type: object
+  api.jobResponse:
+    properties:
+      description:
+        type: string
+      industry:
+        type: string
+      location:
+        type: string
+      required_skills:
+        items:
+          $ref: '#/definitions/db.ListJobSkillsByJobIDRow'
+        type: array
+      requirements:
+        type: string
+      salary_max:
+        type: integer
+      salary_min:
+        type: integer
+      title:
+        type: string
+    type: object
+  api.loginEmployerRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  api.loginEmployerResponse:
+    properties:
+      access_token:
+        type: string
+      employer:
+        $ref: '#/definitions/api.employerResponse'
+    type: object
+  api.loginUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  api.loginUserResponse:
+    properties:
+      access_token:
+        type: string
+      user:
+        $ref: '#/definitions/api.userResponse'
+    type: object
+  api.updateEmployerPasswordRequest:
+    properties:
+      new_password:
+        minLength: 6
+        type: string
+      old_password:
+        minLength: 6
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  api.updateEmployerPasswordResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  api.updateEmployerRequest:
+    properties:
+      company_industry:
+        type: string
+      company_location:
+        type: string
+      company_name:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+    type: object
+  api.updateJobRequest:
+    properties:
+      description:
+        type: string
+      industry:
+        type: string
+      location:
+        type: string
+      required_skill_ids_to_remove:
+        items:
+          type: integer
+        type: array
+      required_skills_to_add:
+        items:
+          type: string
+        type: array
+      requirements:
+        type: string
+      salary_max:
+        type: integer
+      salary_min:
+        type: integer
+      title:
+        type: string
+    type: object
+  api.updateUserPasswordRequest:
+    properties:
+      new_password:
+        minLength: 6
+        type: string
+      old_password:
+        minLength: 6
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  api.updateUserPasswordResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  api.updateUserRequest:
+    properties:
+      desired_industry:
+        type: string
+      desired_job_title:
+        type: string
+      desired_salary_max:
+        type: integer
+      desired_salary_min:
+        type: integer
+      email:
+        type: string
+      experience:
+        type: string
+      full_name:
+        type: string
+      location:
+        type: string
+      skill_ids_to_remove:
+        items:
+          type: integer
+        type: array
+      skills_description:
+        type: string
+      skills_to_add:
+        items:
+          $ref: '#/definitions/api.Skill'
+        type: array
+    type: object
+  api.userResponse:
+    properties:
+      created_at:
+        type: string
+      desired_industry:
+        type: string
+      desired_job_title:
+        type: string
+      desired_salary_max:
+        type: integer
+      desired_salary_min:
+        type: integer
+      email:
+        type: string
+      experience:
+        type: string
+      full_name:
+        type: string
+      location:
+        type: string
+      skills:
+        items:
+          $ref: '#/definitions/api.Skill'
+        type: array
+      skills_description:
+        type: string
+    type: object
+  db.ListJobSkillsByJobIDRow:
+    properties:
+      id:
+        type: integer
+      skill:
+        type: string
+    type: object
+  db.ListJobsByCompanyNameRow:
+    properties:
+      company_id:
+        type: integer
+      company_name:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      industry:
+        type: string
+      location:
+        type: string
+      requirements:
+        type: string
+      salary_max:
+        type: integer
+      salary_min:
+        type: integer
+      title:
+        type: string
+    type: object
+  db.ListJobsByFiltersRow:
+    properties:
+      company_id:
+        type: integer
+      company_name:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      industry:
+        type: string
+      location:
+        type: string
+      requirements:
+        type: string
+      salary_max:
+        type: integer
+      salary_min:
+        type: integer
+      title:
+        type: string
+    type: object
+info:
+  contact:
+    email: a.a.gulczynski@gmail.com
+    name: aalug
+    url: https://github.com/aalug
+paths:
+  /employers:
+    delete:
+      description: Delete the logged-in employer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: "null"
+        "500":
+          description: Any error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Delete employer
+      tags:
+      - employers
+    get:
+      description: Get the details of the authenticated employer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.employerResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get employer
+      tags:
+      - employers
+    patch:
+      consumes:
+      - application/json
+      description: Update the details of the authenticated employer
+      parameters:
+      - description: Employer details to update
+        in: body
+        name: UpdateEmployerRequest
+        required: true
+        schema:
+          $ref: '#/definitions/api.updateEmployerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.employerResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Update employer
+      tags:
+      - employers
+    post:
+      consumes:
+      - application/json
+      description: Create a new employer
+      parameters:
+      - description: Employer and company details
+        in: body
+        name: CreateEmployerRequest
+        required: true
+        schema:
+          $ref: '#/definitions/api.createEmployerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.employerResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Company with given name or employer with given email already
+            exists
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Create employer
+      tags:
+      - employers
+  /employers/login:
+    post:
+      consumes:
+      - application/json
+      description: Login an employer
+      parameters:
+      - description: Employer credentials
+        in: body
+        name: LoginEmployerRequest
+        required: true
+        schema:
+          $ref: '#/definitions/api.loginEmployerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.loginEmployerResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Incorrect password
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Employer with given email or company with given id does not
+            exist
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Login employer
+      tags:
+      - employers
+  /employers/password:
+    patch:
+      consumes:
+      - application/json
+      description: Update/change logged-in employer password
+      parameters:
+      - description: Employer old and new password
+        in: body
+        name: UpdateEmployerPasswordRequest
+        required: true
+        schema:
+          $ref: '#/definitions/api.updateEmployerPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.updateEmployerPasswordResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Incorrect password
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Update employer password
+      tags:
+      - employers
+  /jobs:
+    get:
+      description: Filter and list jobs
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Job title - matches partially (ILIKE)
+        in: query
+        name: title
+        type: string
+      - description: Job industry - exact name
+        in: query
+        name: industry
+        type: string
+      - description: Job location - exact name
+        in: query
+        name: job_location
+        type: string
+      - description: Salary min - must be smaller than salary_max
+        in: query
+        name: salary_min
+        type: integer
+      - description: Salary max - must be greater than salary_min
+        in: query
+        name: salary_max
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/db.ListJobsByFiltersRow'
+              type: array
+            type: array
+        "400":
+          description: Invalid query
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Filter and list jobs
+      tags:
+      - jobs
+    post:
+      consumes:
+      - application/json
+      description: Create a new job
+      parameters:
+      - description: Job details
+        in: body
+        name: CreateJobRequest
+        required: true
+        schema:
+          $ref: '#/definitions/api.createJobRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.jobResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Create job
+      tags:
+      - jobs
+  /jobs/{id}:
+    delete:
+      description: Delete the job with the given id
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: "null"
+        "500":
+          description: Any error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Delete job
+      tags:
+      - jobs
+    get:
+      description: Get details of the job with the given id
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.jobResponse'
+        "400":
+          description: Invalid request query
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Job not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get job
+      tags:
+      - jobs
+    patch:
+      consumes:
+      - application/json
+      description: update the job with the given id
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Job details to update
+        in: body
+        name: UpdateJobRequest
+        required: true
+        schema:
+          $ref: '#/definitions/api.updateJobRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.jobResponse'
+        "400":
+          description: Invalid request query or body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: User making the request not an employer or employer not the
+            owner of the job
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Job not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Update job
+      tags:
+      - jobs
+  /jobs/company:
+    get:
+      description: List jobs by company name, id or part of the name.
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Company ID
+        in: query
+        name: id
+        type: integer
+      - description: Company name
+        in: query
+        name: name
+        type: string
+      - description: Part of the company name
+        in: query
+        name: name_contains
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/db.ListJobsByCompanyNameRow'
+              type: array
+            type: array
+        "400":
+          description: Invalid query. Only one of the three parameters is allowed.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: List jobs by company
+      tags:
+      - jobs
+  /users:
+    delete:
+      description: Delete the logged-in user
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: "null"
+        "500":
+          description: Any error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Delete user
+      tags:
+      - users
+    get:
+      description: Get details of the logged in user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.userResponse'
+        "500":
+          description: Any error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get user
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      description: Update the logged-in user details
+      parameters:
+      - description: User details to update
+        in: body
+        name: UpdateUserRequest
+        required: true
+        schema:
+          $ref: '#/definitions/api.updateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.userResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Update user
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user
+      parameters:
+      - description: User details
+        in: body
+        name: CreateUserRequest
+        required: true
+        schema:
+          $ref: '#/definitions/api.createUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.userResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: User with given email already exists
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Create user
+      tags:
+      - users
+  /users/login:
+    post:
+      consumes:
+      - application/json
+      description: Login user
+      parameters:
+      - description: User credentials
+        in: body
+        name: LoginUserRequest
+        required: true
+        schema:
+          $ref: '#/definitions/api.loginUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.loginUserResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Incorrect password
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: User with given email does not exist
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Login user
+      tags:
+      - users
+  /users/password:
+    patch:
+      consumes:
+      - application/json
+      description: Change / update password of the logged-in user
+      parameters:
+      - description: Users old and new password
+        in: body
+        name: UpdateUserPasswordRequest
+        required: true
+        schema:
+          $ref: '#/definitions/api.updateUserPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.updateUserPasswordResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Incorrect password
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Update user password
+      tags:
+      - users
+swagger: "2.0"

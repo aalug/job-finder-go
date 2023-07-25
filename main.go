@@ -21,6 +21,10 @@ func main() {
 
 	store := db.NewStore(conn)
 
+	// @BasePath /api/v1
+	// @contact.name aalug
+	// @contact.url https://github.com/aalug
+	// @contact.email a.a.gulczynski@gmail.com
 	server, err := api.NewServer(config, store)
 	if err != nil {
 		log.Fatal("cannot create server: ", err)
