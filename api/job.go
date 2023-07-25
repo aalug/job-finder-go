@@ -420,3 +420,98 @@ func (server *Server) listJobsByMatchingSkills(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, jobs)
 }
+
+type listJobsByCompanyRequest struct {
+	ID           int32  `form:"id"`
+	Name         string `form:"name"`
+	NameContains string `form:"name_contains"`
+	Page         int32  `form:"page" binding:"required,min=1"`
+	PageSize     int32  `form:"page_size" binding:"required,min=5,max=15"`
+}
+
+// listJobsByCompany  handles listing jobs by company.
+// Required parameters:
+// - page (page number)
+// - page_size (number of items per page)
+// and either:
+// - id (company id) or
+// - name (company name) or
+// - name_contains (part of the company name)
+func (server *Server) listJobsByCompany(ctx *gin.Context) {
+	var request listJobsByCompanyRequest
+	if err := ctx.ShouldBindQuery(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// validate params - that only one of the three is set
+	numParams := 0
+	if request.ID != 0 {
+		numParams++
+	}
+	if request.Name != "" {
+		numParams++
+	}
+	if request.NameContains != "" {
+		numParams++
+	}
+
+	if numParams == 0 {
+		err := fmt.Errorf("company id, name or name_contains is required")
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	} else if numParams > 1 {
+		err := fmt.Errorf("only one of company id, name or name_contains is allowed")
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	if request.ID != 0 {
+		params := db.ListJobsByCompanyIDParams{
+			CompanyID: request.ID,
+			Limit:     request.PageSize,
+			Offset:    (request.Page - 1) * request.PageSize,
+		}
+
+		jobs, err := server.store.ListJobsByCompanyID(ctx, params)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusOK, jobs)
+		return
+	}
+
+	if request.Name != "" {
+		params := db.ListJobsByCompanyExactNameParams{
+			Name:   request.Name,
+			Limit:  request.PageSize,
+			Offset: (request.Page - 1) * request.PageSize,
+		}
+
+		jobs, err := server.store.ListJobsByCompanyExactName(ctx, params)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusOK, jobs)
+		return
+	}
+	if request.NameContains != "" {
+		params := db.ListJobsByCompanyNameParams{
+			Name:   request.NameContains,
+			Limit:  request.PageSize,
+			Offset: (request.Page - 1) * request.PageSize,
+		}
+
+		jobs, err := server.store.ListJobsByCompanyName(ctx, params)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusOK, jobs)
+	}
+}

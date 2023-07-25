@@ -460,10 +460,10 @@ func (mr *MockStoreMockRecorder) ListJobSkillsByJobID(arg0, arg1 interface{}) *g
 }
 
 // ListJobsByCompanyExactName mocks base method.
-func (m *MockStore) ListJobsByCompanyExactName(arg0 context.Context, arg1 db.ListJobsByCompanyExactNameParams) ([]db.Job, error) {
+func (m *MockStore) ListJobsByCompanyExactName(arg0 context.Context, arg1 db.ListJobsByCompanyExactNameParams) ([]db.ListJobsByCompanyExactNameRow, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListJobsByCompanyExactName", arg0, arg1)
-	ret0, _ := ret[0].([]db.Job)
+	ret0, _ := ret[0].([]db.ListJobsByCompanyExactNameRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -475,10 +475,10 @@ func (mr *MockStoreMockRecorder) ListJobsByCompanyExactName(arg0, arg1 interface
 }
 
 // ListJobsByCompanyID mocks base method.
-func (m *MockStore) ListJobsByCompanyID(arg0 context.Context, arg1 db.ListJobsByCompanyIDParams) ([]db.Job, error) {
+func (m *MockStore) ListJobsByCompanyID(arg0 context.Context, arg1 db.ListJobsByCompanyIDParams) ([]db.ListJobsByCompanyIDRow, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListJobsByCompanyID", arg0, arg1)
-	ret0, _ := ret[0].([]db.Job)
+	ret0, _ := ret[0].([]db.ListJobsByCompanyIDRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -490,10 +490,10 @@ func (mr *MockStoreMockRecorder) ListJobsByCompanyID(arg0, arg1 interface{}) *go
 }
 
 // ListJobsByCompanyName mocks base method.
-func (m *MockStore) ListJobsByCompanyName(arg0 context.Context, arg1 db.ListJobsByCompanyNameParams) ([]db.Job, error) {
+func (m *MockStore) ListJobsByCompanyName(arg0 context.Context, arg1 db.ListJobsByCompanyNameParams) ([]db.ListJobsByCompanyNameRow, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListJobsByCompanyName", arg0, arg1)
-	ret0, _ := ret[0].([]db.Job)
+	ret0, _ := ret[0].([]db.ListJobsByCompanyNameRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

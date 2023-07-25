@@ -154,7 +154,8 @@ func (q *Queries) GetJobDetails(ctx context.Context, id int32) (GetJobDetailsRow
 }
 
 const listJobsByCompanyExactName = `-- name: ListJobsByCompanyExactName :many
-SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.salary_min, j.salary_max, j.requirements, j.created_at
+SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.salary_min, j.salary_max, j.requirements, j.created_at,
+       c.name AS company_name
 FROM jobs j
          JOIN companies c ON j.company_id = c.id
 WHERE c.name = $1
@@ -167,15 +168,29 @@ type ListJobsByCompanyExactNameParams struct {
 	Offset int32  `json:"offset"`
 }
 
-func (q *Queries) ListJobsByCompanyExactName(ctx context.Context, arg ListJobsByCompanyExactNameParams) ([]Job, error) {
+type ListJobsByCompanyExactNameRow struct {
+	ID           int32     `json:"id"`
+	Title        string    `json:"title"`
+	Industry     string    `json:"industry"`
+	CompanyID    int32     `json:"company_id"`
+	Description  string    `json:"description"`
+	Location     string    `json:"location"`
+	SalaryMin    int32     `json:"salary_min"`
+	SalaryMax    int32     `json:"salary_max"`
+	Requirements string    `json:"requirements"`
+	CreatedAt    time.Time `json:"created_at"`
+	CompanyName  string    `json:"company_name"`
+}
+
+func (q *Queries) ListJobsByCompanyExactName(ctx context.Context, arg ListJobsByCompanyExactNameParams) ([]ListJobsByCompanyExactNameRow, error) {
 	rows, err := q.db.QueryContext(ctx, listJobsByCompanyExactName, arg.Name, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Job{}
+	items := []ListJobsByCompanyExactNameRow{}
 	for rows.Next() {
-		var i Job
+		var i ListJobsByCompanyExactNameRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -187,6 +202,7 @@ func (q *Queries) ListJobsByCompanyExactName(ctx context.Context, arg ListJobsBy
 			&i.SalaryMax,
 			&i.Requirements,
 			&i.CreatedAt,
+			&i.CompanyName,
 		); err != nil {
 			return nil, err
 		}
@@ -202,9 +218,11 @@ func (q *Queries) ListJobsByCompanyExactName(ctx context.Context, arg ListJobsBy
 }
 
 const listJobsByCompanyID = `-- name: ListJobsByCompanyID :many
-SELECT id, title, industry, company_id, description, location, salary_min, salary_max, requirements, created_at
-FROM jobs
-WHERE company_id = $1
+SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.salary_min, j.salary_max, j.requirements, j.created_at,
+       c.name AS company_name
+FROM jobs j
+         JOIN companies c ON j.company_id = c.id
+WHERE j.company_id = $1
 LIMIT $2 OFFSET $3
 `
 
@@ -214,15 +232,29 @@ type ListJobsByCompanyIDParams struct {
 	Offset    int32 `json:"offset"`
 }
 
-func (q *Queries) ListJobsByCompanyID(ctx context.Context, arg ListJobsByCompanyIDParams) ([]Job, error) {
+type ListJobsByCompanyIDRow struct {
+	ID           int32     `json:"id"`
+	Title        string    `json:"title"`
+	Industry     string    `json:"industry"`
+	CompanyID    int32     `json:"company_id"`
+	Description  string    `json:"description"`
+	Location     string    `json:"location"`
+	SalaryMin    int32     `json:"salary_min"`
+	SalaryMax    int32     `json:"salary_max"`
+	Requirements string    `json:"requirements"`
+	CreatedAt    time.Time `json:"created_at"`
+	CompanyName  string    `json:"company_name"`
+}
+
+func (q *Queries) ListJobsByCompanyID(ctx context.Context, arg ListJobsByCompanyIDParams) ([]ListJobsByCompanyIDRow, error) {
 	rows, err := q.db.QueryContext(ctx, listJobsByCompanyID, arg.CompanyID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Job{}
+	items := []ListJobsByCompanyIDRow{}
 	for rows.Next() {
-		var i Job
+		var i ListJobsByCompanyIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -234,6 +266,7 @@ func (q *Queries) ListJobsByCompanyID(ctx context.Context, arg ListJobsByCompany
 			&i.SalaryMax,
 			&i.Requirements,
 			&i.CreatedAt,
+			&i.CompanyName,
 		); err != nil {
 			return nil, err
 		}
@@ -249,7 +282,8 @@ func (q *Queries) ListJobsByCompanyID(ctx context.Context, arg ListJobsByCompany
 }
 
 const listJobsByCompanyName = `-- name: ListJobsByCompanyName :many
-SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.salary_min, j.salary_max, j.requirements, j.created_at
+SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.salary_min, j.salary_max, j.requirements, j.created_at,
+       c.name AS company_name
 FROM jobs j
          JOIN companies c ON j.company_id = c.id
 WHERE c.name ILIKE '%' || $3::text || '%'
@@ -262,15 +296,29 @@ type ListJobsByCompanyNameParams struct {
 	Name   string `json:"name"`
 }
 
-func (q *Queries) ListJobsByCompanyName(ctx context.Context, arg ListJobsByCompanyNameParams) ([]Job, error) {
+type ListJobsByCompanyNameRow struct {
+	ID           int32     `json:"id"`
+	Title        string    `json:"title"`
+	Industry     string    `json:"industry"`
+	CompanyID    int32     `json:"company_id"`
+	Description  string    `json:"description"`
+	Location     string    `json:"location"`
+	SalaryMin    int32     `json:"salary_min"`
+	SalaryMax    int32     `json:"salary_max"`
+	Requirements string    `json:"requirements"`
+	CreatedAt    time.Time `json:"created_at"`
+	CompanyName  string    `json:"company_name"`
+}
+
+func (q *Queries) ListJobsByCompanyName(ctx context.Context, arg ListJobsByCompanyNameParams) ([]ListJobsByCompanyNameRow, error) {
 	rows, err := q.db.QueryContext(ctx, listJobsByCompanyName, arg.Limit, arg.Offset, arg.Name)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Job{}
+	items := []ListJobsByCompanyNameRow{}
 	for rows.Next() {
-		var i Job
+		var i ListJobsByCompanyNameRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -282,6 +330,7 @@ func (q *Queries) ListJobsByCompanyName(ctx context.Context, arg ListJobsByCompa
 			&i.SalaryMax,
 			&i.Requirements,
 			&i.CreatedAt,
+			&i.CompanyName,
 		); err != nil {
 			return nil, err
 		}
@@ -497,10 +546,10 @@ SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.sal
 FROM jobs j
          JOIN companies c ON j.company_id = c.id
 WHERE j.id IN (SELECT job_id
-             FROM job_skills
-             WHERE skill IN (SELECT skill
-                             FROM user_skills
-                             WHERE user_id = $1))
+               FROM job_skills
+               WHERE skill IN (SELECT skill
+                               FROM user_skills
+                               WHERE user_id = $1))
 LIMIT $2 OFFSET $3
 `
 
