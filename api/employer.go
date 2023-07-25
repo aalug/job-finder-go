@@ -48,7 +48,19 @@ func newEmployerResponse(employer db.Employer, company db.Company) employerRespo
 	}
 }
 
-// createEmployer handles creation of an employer
+// @Schemes
+// @Summary Create employer
+// @Description Create a new employer
+// @Tags employers
+// @Accept json
+// @Produce json
+// @param CreateEmployerRequest body createEmployerRequest true "Employer and company details"
+// @Success 201 {object} employerResponse
+// @Failure 400 {object} ErrorResponse "Invalid request body"
+// @Failure 403 {object} ErrorResponse "Company with given name or employer with given email already exists"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /employers [post]
+// createEmployer handles creating a new employer
 func (server *Server) createEmployer(ctx *gin.Context) {
 	var request createEmployerRequest
 	if err := ctx.ShouldBindJSON(&request); err != nil {
@@ -119,6 +131,19 @@ type loginEmployerResponse struct {
 	Employer    employerResponse `json:"employer"`
 }
 
+// @Schemes
+// @Summary Login employer
+// @Description Login an employer
+// @Tags employers
+// @Accept json
+// @Produce json
+// @param LoginEmployerRequest body loginEmployerRequest true "Employer credentials"
+// @Success 200 {object} loginEmployerResponse
+// @Failure 400 {object} ErrorResponse "Invalid request body"
+// @Failure 404 {object} ErrorResponse "Employer with given email or company with given id does not exist"
+// @Failure 401 {object} ErrorResponse "Incorrect password"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /employers/login [post]
 // loginEmployer handles login of an employer
 func (server *Server) loginEmployer(ctx *gin.Context) {
 	var request loginEmployerRequest
@@ -175,6 +200,14 @@ func (server *Server) loginEmployer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
+// @Schemes
+// @Summary Get employer
+// @Description Get the details of the authenticated employer
+// @Tags employers
+// @Produce json
+// @Success 200 {object} employerResponse
+// @Failure 500 {object} ErrorResponse "Internal error"
+// @Router /employers [get]
 // getEmployer get details of the authenticated employer
 func (server *Server) getEmployer(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
@@ -201,6 +234,17 @@ type updateEmployerRequest struct {
 	CompanyLocation string `json:"company_location"`
 }
 
+// @Schemes
+// @Summary Update employer
+// @Description Update the details of the authenticated employer
+// @Tags employers
+// @Accept json
+// @Produce json
+// @param UpdateEmployerRequest body updateEmployerRequest true "Employer details to update"
+// @Success 200 {object} employerResponse
+// @Failure 400 {object} ErrorResponse "Invalid request body"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /employers [patch]
 // updateEmployer handles update of an employer details
 func (server *Server) updateEmployer(ctx *gin.Context) {
 	var request updateEmployerRequest
@@ -295,6 +339,22 @@ type updateEmployerPasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required,min=6"`
 }
 
+type updateEmployerPasswordResponse struct {
+	Message string `json:"message"`
+}
+
+// @Schemes
+// @Summary Update employer password
+// @Description Update/change logged-in employer password
+// @Tags employers
+// @Accept json
+// @Produce json
+// @param UpdateEmployerPasswordRequest body updateEmployerPasswordRequest true "Employer old and new password"
+// @Success 200 {object} updateEmployerPasswordResponse
+// @Failure 400 {object} ErrorResponse "Invalid request body"
+// @Failure 401 {object} ErrorResponse "Incorrect password"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /employers/password [patch]
 // updateEmployerPassword handles user password update
 func (server *Server) updateEmployerPassword(ctx *gin.Context) {
 	var request updateEmployerPasswordRequest
@@ -334,9 +394,16 @@ func (server *Server) updateEmployerPassword(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "password updated successfully"})
+	ctx.JSON(http.StatusOK, updateEmployerPasswordResponse{"password updated successfully"})
 }
 
+// @Schemes
+// @Summary Delete employer
+// @Description Delete the logged-in employer
+// @Tags employers
+// @Success 204 {null} null
+// @Failure 500 {object} ErrorResponse "Any error"
+// @Router /employers [delete]
 // deleteEmployer handles deleting employer
 func (server *Server) deleteEmployer(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)

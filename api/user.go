@@ -74,6 +74,18 @@ func newUserResponse(user db.User, skills []db.UserSkill) userResponse {
 	}
 }
 
+// @Schemes
+// @Summary Create user
+// @Description Create a new user
+// @Tags users
+// @Accept json
+// @Produce json
+// @param CreateUserRequest body createUserRequest true "User details"
+// @Success 201 {object} userResponse
+// @Failure 400 {object} ErrorResponse "Invalid request body"
+// @Failure 403 {object} ErrorResponse "User with given email already exists"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /users [post]
 // createUser creates a new user
 func (server *Server) createUser(ctx *gin.Context) {
 	var request createUserRequest
@@ -157,6 +169,19 @@ type loginUserResponse struct {
 	User        userResponse `json:"user"`
 }
 
+// @Schemes
+// @Summary Login user
+// @Description Login user
+// @Tags users
+// @Accept json
+// @Produce json
+// @param LoginUserRequest body loginUserRequest true "User credentials"
+// @Success 200 {object} loginUserResponse
+// @Failure 400 {object} ErrorResponse "Invalid request body"
+// @Failure 401 {object} ErrorResponse "Incorrect password"
+// @Failure 404 {object} ErrorResponse "User with given email does not exist"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /users/login [post]
 // loginUser handles user login
 func (server *Server) loginUser(ctx *gin.Context) {
 	var request loginUserRequest
@@ -209,6 +234,14 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, res)
 }
 
+// @Schemes
+// @Summary Get user
+// @Description Get details of the logged in user
+// @Tags users
+// @Produce json
+// @Success 200 {object} userResponse
+// @Failure 500 {object} ErrorResponse "Any error"
+// @Router /users [get]
 // getUser handles getting user details
 func (server *Server) getUser(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
@@ -235,6 +268,17 @@ type updateUserRequest struct {
 	SkillsToRemove    []int32 `json:"skill_ids_to_remove"`
 }
 
+// @Schemes
+// @Summary Update user
+// @Description Update the logged-in user details
+// @Tags users
+// @Accept json
+// @Produce json
+// @param UpdateUserRequest body updateUserRequest true "User details to update"
+// @Success 200 {object} userResponse
+// @Failure 400 {object} ErrorResponse "Invalid request body"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /users [patch]
 // updateUser handles user update
 func (server *Server) updateUser(ctx *gin.Context) {
 	var request updateUserRequest
@@ -360,6 +404,22 @@ type updateUserPasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required,min=6"`
 }
 
+type updateUserPasswordResponse struct {
+	Message string `json:"message"`
+}
+
+// @Schemes
+// @Summary Update user password
+// @Description Change / update password of the logged-in user
+// @Tags users
+// @Accept json
+// @Produce json
+// @param UpdateUserPasswordRequest body updateUserPasswordRequest true "Users old and new password"
+// @Success 200 {object} updateUserPasswordResponse
+// @Failure 400 {object} ErrorResponse "Invalid request body"
+// @Failure 401 {object} ErrorResponse "Incorrect password"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /users/password [patch]
 // updateUserPassword handles user password update
 func (server *Server) updateUserPassword(ctx *gin.Context) {
 	var request updateUserPasswordRequest
@@ -399,9 +459,16 @@ func (server *Server) updateUserPassword(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "password updated successfully"})
+	ctx.JSON(http.StatusOK, updateUserPasswordResponse{Message: "password updated successfully"})
 }
 
+// @Schemes
+// @Summary Delete user
+// @Description Delete the logged-in user
+// @Tags users
+// @Success 204 {null} null
+// @Failure 500 {object} ErrorResponse "Any error"
+// @Router /users [delete]
 // deleteUser handles deleting users
 func (server *Server) deleteUser(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)

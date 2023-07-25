@@ -3,10 +3,13 @@ package api
 import (
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
+	"github.com/aalug/go-gin-job-search/docs"
 	"github.com/aalug/go-gin-job-search/token"
 	"github.com/aalug/go-gin-job-search/utils"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // Server serves HTTP  requests for the service
@@ -38,47 +41,54 @@ func NewServer(config utils.Config, store db.Store) (*Server, error) {
 func (server *Server) setupRouter() {
 	router := gin.Default()
 
+	routerV1 := router.Group("/api/v1")
+
+	// CORS
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
 	corsConfig.AllowHeaders = append(corsConfig.AllowHeaders, "Authorization")
 	router.Use(cors.New(corsConfig))
 
+	// Swagger docs
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+	docs.SwaggerInfo.BasePath = "/api/v1"
+
 	// === users ===
-	router.POST("/users", server.createUser)
-	router.POST("/users/login", server.loginUser)
+	routerV1.POST("/users", server.createUser)
+	routerV1.POST("/users/login", server.loginUser)
 
 	// === employers ===
-	router.POST("/employers", server.createEmployer)
-	router.POST("/employers/login", server.loginEmployer)
+	routerV1.POST("/employers", server.createEmployer)
+	routerV1.POST("/employers/login", server.loginEmployer)
 
 	// === jobs ===
-	router.GET("/jobs/:id", server.getJob)
-	router.GET("/jobs", server.filterAndListJobs)
-	router.GET("/jobs/company", server.listJobsByCompany)
+	routerV1.GET("/jobs/:id", server.getJob)
+	routerV1.GET("/jobs", server.filterAndListJobs)
+	routerV1.GET("/jobs/company", server.listJobsByCompany)
 
 	// ===== routes that require authentication =====
-	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
+	authRoutesV1 := routerV1.Group("/").Use(authMiddleware(server.tokenMaker))
 
 	// === users ===
-	authRoutes.GET("/users", server.getUser)
-	authRoutes.PATCH("/users", server.updateUser)
-	authRoutes.PATCH("/users/password", server.updateUserPassword)
-	authRoutes.DELETE("/users", server.deleteUser)
+	authRoutesV1.GET("/users", server.getUser)
+	authRoutesV1.PATCH("/users", server.updateUser)
+	authRoutesV1.PATCH("/users/password", server.updateUserPassword)
+	authRoutesV1.DELETE("/users", server.deleteUser)
 
 	// === employers ===
-	authRoutes.GET("/employers", server.getEmployer)
-	authRoutes.PATCH("/employers", server.updateEmployer)
-	authRoutes.PATCH("/employers/password", server.updateEmployerPassword)
-	authRoutes.DELETE("/employers", server.deleteEmployer)
+	authRoutesV1.GET("/employers", server.getEmployer)
+	authRoutesV1.PATCH("/employers", server.updateEmployer)
+	authRoutesV1.PATCH("/employers/password", server.updateEmployerPassword)
+	authRoutesV1.DELETE("/employers", server.deleteEmployer)
 
 	// === jobs ===
 	// for employers, jobs CRUD
-	authRoutes.POST("/jobs", server.createJob)
-	authRoutes.DELETE("/jobs/:id", server.deleteJob)
-	authRoutes.PATCH("/jobs/:id", server.updateJob)
+	authRoutesV1.POST("/jobs", server.createJob)
+	authRoutesV1.DELETE("/jobs/:id", server.deleteJob)
+	authRoutesV1.PATCH("/jobs/:id", server.updateJob)
 
 	// for users, listing jobs that use user details
-	authRoutes.GET("/jobs/match-skills", server.listJobsByMatchingSkills)
+	authRoutesV1.GET("/jobs/match-skills", server.listJobsByMatchingSkills)
 
 	server.router = router
 }
@@ -88,6 +98,10 @@ func (server *Server) Start(address string) error {
 	return server.router.Run(address)
 }
 
-func errorResponse(err error) gin.H {
-	return gin.H{"error": err.Error()}
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+func errorResponse(err error) ErrorResponse {
+	return ErrorResponse{Error: err.Error()}
 }

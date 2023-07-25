@@ -299,7 +299,7 @@ func TestCreateJobAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := "/jobs"
+			url := "/api/v1/jobs"
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -482,7 +482,7 @@ func TestDeleteJobAPI(t *testing.T) {
 			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf("/jobs/%d", tc.jobID)
+			url := fmt.Sprintf("/api/v1/jobs/%d", tc.jobID)
 			req, err := http.NewRequest(http.MethodDelete, url, nil)
 			require.NoError(t, err)
 
@@ -594,7 +594,7 @@ func TestGetJobAPI(t *testing.T) {
 			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf("/jobs/%d", tc.jobID)
+			url := fmt.Sprintf("/api/v1/jobs/%d", tc.jobID)
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -811,7 +811,7 @@ func TestFilterAndListJobsAPI(t *testing.T) {
 			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
-			url := "/jobs"
+			url := "/api/v1/jobs"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -1074,7 +1074,7 @@ func TestListJobsByMatchingSkillsAPI(t *testing.T) {
 			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
-			url := "/jobs/match-skills"
+			url := "/api/v1/jobs/match-skills"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -1603,7 +1603,7 @@ func TestUpdateJobAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := fmt.Sprintf("/jobs/%d", tc.jobID)
+			url := fmt.Sprintf("/api/v1/jobs/%d", tc.jobID)
 			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -1954,7 +1954,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
-			url := "/jobs/company"
+			url := "/api/v1/jobs/company"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
