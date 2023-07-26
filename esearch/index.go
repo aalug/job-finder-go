@@ -27,7 +27,7 @@ func IndexJobsAsDocuments(ctx context.Context) {
 	}
 
 	for documentID, document := range jobs {
-		body, err := convertToReadSeeker(esutil.NewJSONReader(document))
+		body, err := readerToReadSeeker(esutil.NewJSONReader(document))
 		if err != nil {
 			panic(err)
 		}
@@ -49,7 +49,20 @@ func IndexJobsAsDocuments(ctx context.Context) {
 	log.Printf("Jobs indexed on Elasticsearch: %d \n", biStats.NumIndexed)
 }
 
-func convertToReadSeeker(reader io.Reader) (io.ReadSeeker, error) {
+// IndexJobAsDocument index one job as document
+//func IndexJobAsDocument(ctx context.Context, job Job) {
+
+//client := ctx.Value(ClientKey).(*elasticsearch.Client)
+
+// get id of the last document and set documentID to it + 1
+//_, err := client.Index("movies", esutil.NewJSONReader(job),
+//	client.Index.WithDocumentID(strconv.Itoa(documentID)))
+//if err != nil {
+//	panic(err)
+//}
+//}
+
+func readerToReadSeeker(reader io.Reader) (io.ReadSeeker, error) {
 	// Read the entire content of the reader into a buffer.
 	data, err := io.ReadAll(reader)
 	if err != nil {

@@ -11,11 +11,13 @@ import (
 )
 
 func main() {
+	// === config, env file ===
 	config, err := utils.LoadConfig(".")
 	if err != nil {
 		log.Fatal("cannot load env file: ", err)
 	}
 
+	// === database ===
 	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatal("cannot connect to the db: ", err)
@@ -23,11 +25,15 @@ func main() {
 
 	store := db.NewStore(conn)
 
-	// Elasticsearch
+	// === Elasticsearch ===
 	ctx := context.Background()
-	ctx = esearch.LoadJobsFromDB(ctx, store)
+	// TODO: for now, all jobs are indexed every time the server starts
+	// TODO: later on, we will index only new or updated jobs
+	//ctx = esearch.LoadJobsFromDB(ctx, store)
 	ctx = esearch.ConnectWithElasticsearch(ctx, config.ElasticSearchAddress)
+	esearch.IndexJobsAsDocuments(ctx)
 
+	// === HTTP server ===
 	// @BasePath /api/v1
 	// @contact.name aalug
 	// @contact.url https://github.com/aalug

@@ -1,5 +1,7 @@
 package esearch
 
+// === Types for the ES part of the Application ===
+
 type Job struct {
 	ID           int32    `json:"id"`
 	Title        string   `json:"title"`
@@ -13,9 +15,19 @@ type Job struct {
 	JobSkills    []string `json:"job_skills"`
 }
 
+// === for the Context ===
 type contextKey struct {
 	Key int
 }
 
 var JobKey contextKey = contextKey{Key: 1}
 var ClientKey contextKey = contextKey{Key: 2}
+
+// === Queries and Searches ===
+
+type GetResponse struct {
+	Index   string `json:"_index"`
+	ID      string `json:"_id"`
+	Version int    `json:"_version"`
+	Source  *Job   `json:"_source"`
+}
