@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"github.com/aalug/go-gin-job-search/api"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
+	"github.com/aalug/go-gin-job-search/esearch"
 	"github.com/aalug/go-gin-job-search/utils"
 	"log"
 )
@@ -20,6 +22,11 @@ func main() {
 	}
 
 	store := db.NewStore(conn)
+
+	// Elasticsearch
+	ctx := context.Background()
+	ctx = esearch.LoadJobsFromDB(ctx, store)
+	ctx = esearch.ConnectWithElasticsearch(ctx, config.ElasticSearchAddress)
 
 	// @BasePath /api/v1
 	// @contact.name aalug

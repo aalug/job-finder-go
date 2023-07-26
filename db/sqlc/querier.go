@@ -33,6 +33,8 @@ type Querier interface {
 	GetJobDetails(ctx context.Context, id int32) (GetJobDetailsRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
+	ListAllJobSkillsByJobID(ctx context.Context, jobID int32) ([]string, error)
+	ListAllJobsForES(ctx context.Context) ([]ListAllJobsForESRow, error)
 	ListJobSkillsByJobID(ctx context.Context, arg ListJobSkillsByJobIDParams) ([]ListJobSkillsByJobIDRow, error)
 	ListJobsByCompanyExactName(ctx context.Context, arg ListJobsByCompanyExactNameParams) ([]ListJobsByCompanyExactNameRow, error)
 	ListJobsByCompanyID(ctx context.Context, arg ListJobsByCompanyIDParams) ([]ListJobsByCompanyIDRow, error)

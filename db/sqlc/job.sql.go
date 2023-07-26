@@ -153,6 +153,65 @@ func (q *Queries) GetJobDetails(ctx context.Context, id int32) (GetJobDetailsRow
 	return i, err
 }
 
+const listAllJobsForES = `-- name: ListAllJobsForES :many
+SELECT j.id,
+       j.title,
+       j.industry,
+       j.location,
+       j.description,
+       c.name AS company_name,
+       j.salary_min,
+       j.salary_max,
+       j.requirements
+FROM jobs j
+         JOIN companies c ON j.company_id = c.id
+`
+
+type ListAllJobsForESRow struct {
+	ID           int32  `json:"id"`
+	Title        string `json:"title"`
+	Industry     string `json:"industry"`
+	Location     string `json:"location"`
+	Description  string `json:"description"`
+	CompanyName  string `json:"company_name"`
+	SalaryMin    int32  `json:"salary_min"`
+	SalaryMax    int32  `json:"salary_max"`
+	Requirements string `json:"requirements"`
+}
+
+func (q *Queries) ListAllJobsForES(ctx context.Context) ([]ListAllJobsForESRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAllJobsForES)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListAllJobsForESRow{}
+	for rows.Next() {
+		var i ListAllJobsForESRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Industry,
+			&i.Location,
+			&i.Description,
+			&i.CompanyName,
+			&i.SalaryMin,
+			&i.SalaryMax,
+			&i.Requirements,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listJobsByCompanyExactName = `-- name: ListJobsByCompanyExactName :many
 SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.salary_min, j.salary_max, j.requirements, j.created_at,
        c.name AS company_name

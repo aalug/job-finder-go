@@ -106,3 +106,16 @@ RETURNING *;
 DELETE
 FROM jobs
 WHERE id = $1;
+
+-- name: ListAllJobsForES :many
+SELECT j.id,
+       j.title,
+       j.industry,
+       j.location,
+       j.description,
+       c.name AS company_name,
+       j.salary_min,
+       j.salary_max,
+       j.requirements
+FROM jobs j
+         JOIN companies c ON j.company_id = c.id;
