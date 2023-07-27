@@ -3,8 +3,9 @@ package esearch
 import (
 	"context"
 	"encoding/json"
-	"github.com/elastic/go-elasticsearch/v8"
 	"strconv"
+
+	"github.com/elastic/go-elasticsearch/v8"
 )
 
 // QueryJobsByDocumentID queries the jobs index by document ID.

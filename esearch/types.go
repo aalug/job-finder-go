@@ -20,8 +20,8 @@ type contextKey struct {
 	Key int
 }
 
-var JobKey contextKey = contextKey{Key: 1}
-var ClientKey contextKey = contextKey{Key: 2}
+var JobKey = contextKey{Key: 1}
+var ClientKey = contextKey{Key: 2}
 
 // === Queries and Searches ===
 
@@ -30,4 +30,15 @@ type GetResponse struct {
 	ID      string `json:"_id"`
 	Version int    `json:"_version"`
 	Source  *Job   `json:"_source"`
+}
+
+type SearchResponse struct {
+	Hits struct {
+		Total struct {
+			Value int64 `json:"value"`
+		} `json:"total"`
+		Hits []*struct {
+			Source *Job `json:"_source"`
+		} `json:"hits"`
+	} `json:"hits"`
 }

@@ -31,7 +31,13 @@ func main() {
 	// TODO: later on, we will index only new or updated jobs
 	//ctx = esearch.LoadJobsFromDB(ctx, store)
 	ctx = esearch.ConnectWithElasticsearch(ctx, config.ElasticSearchAddress)
-	esearch.IndexJobsAsDocuments(ctx)
+	//esearch.IndexJobsAsDocuments(ctx)
+	jobs := esearch.SearchJobs(ctx, "descriptor")
+	log.Println("*****************")
+	for _, job := range jobs {
+		log.Println(job.Title)
+	}
+	log.Println("*****************")
 
 	// === HTTP server ===
 	// @BasePath /api/v1
