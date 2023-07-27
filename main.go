@@ -32,12 +32,7 @@ func main() {
 	//ctx = esearch.LoadJobsFromDB(ctx, store)
 	ctx = esearch.ConnectWithElasticsearch(ctx, config.ElasticSearchAddress)
 	//esearch.IndexJobsAsDocuments(ctx)
-	jobs := esearch.SearchJobs(ctx, "descriptor")
-	log.Println("*****************")
-	for _, job := range jobs {
-		log.Println(job.Title)
-	}
-	log.Println("*****************")
+	//jobs := esearch.SearchJobs(ctx, "descriptor")
 
 	// === HTTP server ===
 	// @BasePath /api/v1
