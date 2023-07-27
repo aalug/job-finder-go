@@ -9,6 +9,11 @@ FROM job_skills
 WHERE job_id = $1
 LIMIT $2 OFFSET $3;
 
+-- name: ListAllJobSkillsByJobID :many
+SELECT skill
+FROM job_skills
+WHERE job_id = $1;
+
 -- name: ListJobsBySkill :many
 SELECT job_id
 FROM job_skills

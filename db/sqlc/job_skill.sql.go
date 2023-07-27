@@ -62,6 +62,35 @@ func (q *Queries) DeleteMultipleJobSkills(ctx context.Context, ids []int32) erro
 	return err
 }
 
+const listAllJobSkillsByJobID = `-- name: ListAllJobSkillsByJobID :many
+SELECT skill
+FROM job_skills
+WHERE job_id = $1
+`
+
+func (q *Queries) ListAllJobSkillsByJobID(ctx context.Context, jobID int32) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listAllJobSkillsByJobID, jobID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var skill string
+		if err := rows.Scan(&skill); err != nil {
+			return nil, err
+		}
+		items = append(items, skill)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listJobSkillsByJobID = `-- name: ListJobSkillsByJobID :many
 SELECT id, skill
 FROM job_skills

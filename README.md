@@ -13,6 +13,8 @@
 - [Viper](https://github.com/spf13/viper)
 - [gin-swagger](https://github.com/swaggo/gin-swagger) for generating docs
 
+<hr>
+
 ## Getting started
 1. Clone the repository
 2. Go to the project's root directory
@@ -22,7 +24,7 @@
      - `docker-compose up` to run the database container
      - `make runserver` - to run HTTP server
 5. Now everything should be ready and server running on `SERVER_ADDRESS` specified in `app.env`
-
+<hr>
 
 ## Testing
 1. Run the postgres container (`docker-compose up`)
@@ -32,7 +34,7 @@
     - `make test_coverage p={PATH}` - to get the coverage in the HTML format - where `{PATH}` is the path to the target directory for which you want to generate test coverage. The `{PATH}` should be replaced with the actual path you want to use. For example `./api`
    or
     - use standard `go test` commands (e.g. `go test -v ./api`)
-
+<hr>
 
 ## API endpoints
 This API provides a set of endpoints for managing:
@@ -40,7 +42,15 @@ This API provides a set of endpoints for managing:
 - employers
 - jobs
 
-#### The base path for all endpoints is `/api/v1`. 
+After running the server, the Swagger documentation is available at http://localhost:8080/swagger/index.html. 
+You can find there detailed information about the API endpoints, including their parameters, 
+request and response formats, and examples. You can use the Swagger UI to test the API 
+endpoints and see their responses in real-time.
+
+### The base path for all endpoints is `/api/v1`
+so for example `/api/v1/users/login`
+
+
 Here is a summary of the available endpoints and their functionality:
 
 
