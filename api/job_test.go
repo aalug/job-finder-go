@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	mockdb "github.com/aalug/go-gin-job-search/db/mock"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
+	"github.com/aalug/go-gin-job-search/esearch"
+	mockesearch "github.com/aalug/go-gin-job-search/esearch/mock"
 	"github.com/aalug/go-gin-job-search/token"
 	"github.com/aalug/go-gin-job-search/utils"
 	"github.com/gin-gonic/gin"
@@ -293,7 +296,7 @@ func TestCreateJobAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store)
+			server := newTestServer(t, store, nil)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
@@ -479,7 +482,7 @@ func TestDeleteJobAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store)
+			server := newTestServer(t, store, nil)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/api/v1/jobs/%d", tc.jobID)
@@ -591,7 +594,7 @@ func TestGetJobAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store)
+			server := newTestServer(t, store, nil)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/api/v1/jobs/%d", tc.jobID)
@@ -808,7 +811,7 @@ func TestFilterAndListJobsAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store)
+			server := newTestServer(t, store, nil)
 			recorder := httptest.NewRecorder()
 
 			url := "/api/v1/jobs"
@@ -1071,7 +1074,7 @@ func TestListJobsByMatchingSkillsAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store)
+			server := newTestServer(t, store, nil)
 			recorder := httptest.NewRecorder()
 
 			url := "/api/v1/jobs/match-skills"
@@ -1597,7 +1600,7 @@ func TestUpdateJobAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store)
+			server := newTestServer(t, store, nil)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
@@ -1951,7 +1954,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store)
+			server := newTestServer(t, store, nil)
 			recorder := httptest.NewRecorder()
 
 			url := "/api/v1/jobs/company"
@@ -1965,6 +1968,196 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 			q.Add("name", tc.query.name)
 			q.Add("name_contains", tc.query.nameContains)
 			q.Add("id", fmt.Sprintf("%d", tc.query.id))
+			req.URL.RawQuery = q.Encode()
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
+func TestSearchJobsAPI(t *testing.T) {
+	_, _, company := generateRandomEmployerAndCompany(t)
+	var jobs []*esearch.Job
+	title := utils.RandomString(5)
+	industry := utils.RandomString(4)
+	jobLocation := utils.RandomString(6)
+	salaryMin := utils.RandomInt(100, 150)
+	salaryMax := utils.RandomInt(151, 200)
+
+	job := generateJob(
+		title,
+		industry,
+		jobLocation,
+		salaryMin,
+		salaryMax,
+	)
+
+	for i := 0; i < 10; i++ {
+		row := esearch.Job{
+			ID:           job.ID,
+			Title:        job.Title,
+			Industry:     job.Industry,
+			CompanyName:  company.Name,
+			Description:  job.Description,
+			Location:     job.Location,
+			SalaryMin:    job.SalaryMin,
+			SalaryMax:    job.SalaryMax,
+			Requirements: job.Requirements,
+		}
+		jobs = append(jobs, &row)
+	}
+
+	var page int32 = 1
+	var pageSize int32 = 10
+
+	type Query struct {
+		page     int32
+		pageSize int32
+		search   string
+	}
+
+	testCases := []struct {
+		name          string
+		query         Query
+		buildStubs    func(client *mockesearch.MockESearchClient)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			query: Query{
+				page:     page,
+				pageSize: pageSize,
+				search:   title,
+			},
+			buildStubs: func(client *mockesearch.MockESearchClient) {
+				client.EXPECT().
+					SearchJobs(gomock.Any(), gomock.Eq(title), gomock.Eq(page), gomock.Eq(pageSize)).
+					Times(1).
+					Return(jobs, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchJobs(t, recorder.Body, jobs)
+			},
+		},
+		{
+			name: "Internal Server Error",
+			query: Query{
+				page:     page,
+				pageSize: pageSize,
+				search:   title,
+			},
+			buildStubs: func(client *mockesearch.MockESearchClient) {
+				client.EXPECT().
+					SearchJobs(gomock.Any(), gomock.Eq(title), gomock.Eq(page), gomock.Eq(pageSize)).
+					Times(1).
+					Return([]*esearch.Job{}, errors.New("some error"))
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "No Page",
+			query: Query{
+				pageSize: pageSize,
+				search:   title,
+			},
+			buildStubs: func(client *mockesearch.MockESearchClient) {
+				client.EXPECT().
+					SearchJobs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "No Search",
+			query: Query{
+				pageSize: pageSize,
+				page:     page,
+			},
+			buildStubs: func(client *mockesearch.MockESearchClient) {
+				client.EXPECT().
+					SearchJobs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "No Page Size",
+			query: Query{
+				page:   page,
+				search: title,
+			},
+			buildStubs: func(client *mockesearch.MockESearchClient) {
+				client.EXPECT().
+					SearchJobs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Page Size",
+			query: Query{
+				pageSize: 50,
+				search:   title,
+			},
+			buildStubs: func(client *mockesearch.MockESearchClient) {
+				client.EXPECT().
+					SearchJobs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Page",
+			query: Query{
+				page:   0,
+				search: title,
+			},
+			buildStubs: func(client *mockesearch.MockESearchClient) {
+				client.EXPECT().
+					SearchJobs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			store := mockdb.NewMockStore(ctrl)
+
+			client := mockesearch.NewMockESearchClient(ctrl)
+			tc.buildStubs(client)
+
+			server := newTestServer(t, store, client)
+			recorder := httptest.NewRecorder()
+
+			url := "/api/v1/jobs/search"
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			// Add query params
+			q := req.URL.Query()
+			q.Add("page", fmt.Sprintf("%d", tc.query.page))
+			q.Add("page_size", fmt.Sprintf("%d", tc.query.pageSize))
+			q.Add("search", tc.query.search)
 			req.URL.RawQuery = q.Encode()
 
 			server.router.ServeHTTP(recorder, req)
@@ -2072,6 +2265,23 @@ func requireBodyMatchJobs(t *testing.T, body *bytes.Buffer, jobs interface{}) {
 
 		for i := 0; i < len(j); i++ {
 			require.Equal(t, j[i], gotJobRows[i])
+		}
+	case []*esearch.Job:
+		var gotJobRows []esearch.Job
+		err = json.Unmarshal(data, &gotJobRows)
+		require.NoError(t, err)
+
+		for i := 0; i < len(j); i++ {
+			require.Equal(t, j[i].Title, gotJobRows[i].Title)
+			require.Equal(t, j[i].Industry, gotJobRows[i].Industry)
+			require.Equal(t, j[i].Description, gotJobRows[i].Description)
+			require.Equal(t, j[i].Location, gotJobRows[i].Location)
+			require.Equal(t, j[i].SalaryMin, gotJobRows[i].SalaryMin)
+			require.Equal(t, j[i].SalaryMax, gotJobRows[i].SalaryMax)
+			require.Equal(t, j[i].Requirements, gotJobRows[i].Requirements)
+			require.Equal(t, j[i].CompanyName, gotJobRows[i].CompanyName)
+			require.Equal(t, j[i].ID, gotJobRows[i].ID)
+			require.Equal(t, j[i].JobSkills, gotJobRows[i].JobSkills)
 		}
 	default:
 		t.Fatalf("unsupported type %T", jobs)

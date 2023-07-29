@@ -4,6 +4,7 @@ import (
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
 	"github.com/aalug/go-gin-job-search/docs"
+	"github.com/aalug/go-gin-job-search/esearch"
 	"github.com/aalug/go-gin-job-search/token"
 	"github.com/aalug/go-gin-job-search/utils"
 	"github.com/gin-contrib/cors"
@@ -18,18 +19,33 @@ type Server struct {
 	store      db.Store
 	tokenMaker token.Maker
 	router     *gin.Engine
+	esDetails  elasticSearchDetails
+}
+
+type elasticSearchDetails struct {
+	client            esearch.ESearchClient
+	jobs              []esearch.Job
+	lastDocumentIndex int64
 }
 
 // NewServer creates a new HTTP server and setups routing
-func NewServer(config utils.Config, store db.Store) (*Server, error) {
+func NewServer(config utils.Config, store db.Store, client esearch.ESearchClient) (*Server, error) {
+	// === tokens ===
 	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
 	}
+
+	// === elasticsearch ===
+	esDetails := elasticSearchDetails{
+		client: client,
+	}
+
 	server := &Server{
 		config:     config,
 		store:      store,
 		tokenMaker: tokenMaker,
+		esDetails:  esDetails,
 	}
 
 	server.setupRouter()
@@ -65,6 +81,7 @@ func (server *Server) setupRouter() {
 	routerV1.GET("/jobs/:id", server.getJob)
 	routerV1.GET("/jobs", server.filterAndListJobs)
 	routerV1.GET("/jobs/company", server.listJobsByCompany)
+	routerV1.GET("/jobs/search", server.searchJobs)
 
 	// ===== routes that require authentication =====
 	authRoutesV1 := routerV1.Group("/").Use(authMiddleware(server.tokenMaker))

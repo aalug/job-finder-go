@@ -1,12 +1,11 @@
 package esearch
 
 import (
-	"context"
 	"github.com/elastic/go-elasticsearch/v8"
 )
 
 // ConnectWithElasticsearch creates a new elasticsearch client and stores it in the context
-func ConnectWithElasticsearch(ctx context.Context, address string) context.Context {
+func ConnectWithElasticsearch(address string) (*elasticsearch.Client, error) {
 
 	newClient, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{
@@ -14,8 +13,9 @@ func ConnectWithElasticsearch(ctx context.Context, address string) context.Conte
 		},
 	})
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return context.WithValue(ctx, ClientKey, newClient)
+	//return context.WithValue(ctx, ClientKey, newClient), nil
+	return newClient, nil
 }

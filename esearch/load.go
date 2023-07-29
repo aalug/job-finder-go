@@ -65,5 +65,4 @@ func LoadJobsFromDB(ctx context.Context, store db.Store) context.Context {
 
 	log.Printf("Jobs loaded from the database: %d\n", len(jobs))
 	return context.WithValue(ctx, JobKey, jobs)
-
 }
