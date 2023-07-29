@@ -35,6 +35,20 @@ func (m *MockESearchClient) EXPECT() *MockESearchClientMockRecorder {
 	return m.recorder
 }
 
+// IndexJobAsDocument mocks base method.
+func (m *MockESearchClient) IndexJobAsDocument(arg0 int, arg1 esearch.Job) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IndexJobAsDocument", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IndexJobAsDocument indicates an expected call of IndexJobAsDocument.
+func (mr *MockESearchClientMockRecorder) IndexJobAsDocument(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IndexJobAsDocument", reflect.TypeOf((*MockESearchClient)(nil).IndexJobAsDocument), arg0, arg1)
+}
+
 // SearchJobs mocks base method.
 func (m *MockESearchClient) SearchJobs(arg0 context.Context, arg1 string, arg2, arg3 int32) ([]*esearch.Job, error) {
 	m.ctrl.T.Helper()

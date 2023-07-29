@@ -20,6 +20,10 @@ func newTestServer(t *testing.T, store db.Store, client esearch.ESearchClient) *
 	server, err := NewServer(config, store, client)
 	require.NoError(t, err)
 
+	if client != nil {
+		server.esDetails.lastDocumentIndex = 1
+	}
+
 	return server
 }
 

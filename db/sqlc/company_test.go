@@ -59,6 +59,14 @@ func TestQueries_GetCompanyByID(t *testing.T) {
 	require.Equal(t, company.Location, company2.Location)
 }
 
+func TestQueries_GetCompanyNameByID(t *testing.T) {
+	company := createRandomCompany(t, "")
+	companyName, err := testQueries.GetCompanyNameByID(context.Background(), company.ID)
+
+	require.NoError(t, err)
+	require.Equal(t, company.Name, companyName)
+}
+
 func TestQueries_GetCompanyByName(t *testing.T) {
 	company := createRandomCompany(t, "")
 	company2, err := testQueries.GetCompanyByName(context.Background(), company.Name)

@@ -9,6 +9,7 @@ import (
 
 type ESearchClient interface {
 	SearchJobs(ctx context.Context, query string, page, pageSize int32) ([]*Job, error)
+	IndexJobAsDocument(documentID int, job Job) error
 }
 
 type ESClient struct {
