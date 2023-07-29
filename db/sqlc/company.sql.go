@@ -80,6 +80,19 @@ func (q *Queries) GetCompanyByName(ctx context.Context, name string) (Company, e
 	return i, err
 }
 
+const getCompanyNameByID = `-- name: GetCompanyNameByID :one
+SELECT name
+FROM companies
+WHERE id = $1
+`
+
+func (q *Queries) GetCompanyNameByID(ctx context.Context, id int32) (string, error) {
+	row := q.db.QueryRowContext(ctx, getCompanyNameByID, id)
+	var name string
+	err := row.Scan(&name)
+	return name, err
+}
+
 const updateCompany = `-- name: UpdateCompany :one
 UPDATE companies
 SET name     = $2,

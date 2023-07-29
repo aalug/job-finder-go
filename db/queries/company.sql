@@ -8,6 +8,11 @@ SELECT *
 FROM companies
 WHERE id = $1;
 
+-- name: GetCompanyNameByID :one
+SELECT name
+FROM companies
+WHERE id = $1;
+
 -- name: GetCompanyByName :one
 SELECT *
 FROM companies

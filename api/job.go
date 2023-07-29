@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
+	"github.com/aalug/go-gin-job-search/esearch"
 	"github.com/aalug/go-gin-job-search/token"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -117,6 +118,42 @@ func (server *Server) createJob(ctx *gin.Context) {
 	}
 
 	jobSkills, err := server.store.ListJobSkillsByJobID(ctx, listJobSkillsParams)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// creation was successful - create an elasticsearch index
+
+	// get the company name
+	companyName, err := server.store.GetCompanyNameByID(ctx, authEmployer.CompanyID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	var skills []string
+	// get the skill names from the job skills
+	for _, skill := range jobSkills {
+		skills = append(skills, skill.Skill)
+	}
+
+	j := esearch.Job{
+		ID:           job.ID,
+		Title:        job.Title,
+		Industry:     job.Industry,
+		CompanyName:  companyName,
+		Description:  job.Description,
+		Location:     job.Location,
+		SalaryMin:    job.SalaryMin,
+		SalaryMax:    job.SalaryMax,
+		Requirements: job.Requirements,
+		JobSkills:    skills,
+	}
+
+	err = server.esDetails.client.IndexJobAsDocument(
+		int(server.esDetails.lastDocumentIndex),
+		j,
+	)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return

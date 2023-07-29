@@ -23,7 +23,7 @@ import (
 )
 
 func TestCreateJobAPI(t *testing.T) {
-	employer, _, _ := generateRandomEmployerAndCompany(t)
+	employer, _, company := generateRandomEmployerAndCompany(t)
 
 	job := generateRandomJob()
 
@@ -52,7 +52,7 @@ func TestCreateJobAPI(t *testing.T) {
 		name          string
 		body          gin.H
 		setupAuth     func(t *testing.T, r *http.Request, maker token.Maker)
-		buildStubs    func(store *mockdb.MockStore)
+		buildStubs    func(store *mockdb.MockStore, client *mockesearch.MockESearchClient)
 		checkResponse func(recorder *httptest.ResponseRecorder)
 	}{
 		{
@@ -61,7 +61,7 @@ func TestCreateJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
@@ -93,6 +93,26 @@ func TestCreateJobAPI(t *testing.T) {
 					ListJobSkillsByJobID(gomock.Any(), gomock.Eq(listSkillsParams)).
 					Times(1).
 					Return(jobSkills, nil)
+				store.EXPECT().
+					GetCompanyNameByID(gomock.Any(), gomock.Eq(employer.CompanyID)).
+					Times(1).
+					Return(company.Name, nil)
+				j := esearch.Job{
+					ID:           job.ID,
+					Title:        job.Title,
+					Industry:     job.Industry,
+					CompanyName:  company.Name,
+					Description:  job.Description,
+					Location:     job.Location,
+					SalaryMin:    job.SalaryMin,
+					SalaryMax:    job.SalaryMax,
+					Requirements: job.Requirements,
+					JobSkills:    requiredSkills,
+				}
+				client.EXPECT().
+					IndexJobAsDocument(gomock.Eq(1), gomock.Eq(j)).
+					Times(1).
+					Return(nil)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusCreated, recorder.Code)
@@ -105,7 +125,7 @@ func TestCreateJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
@@ -132,6 +152,12 @@ func TestCreateJobAPI(t *testing.T) {
 					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
 					Times(1).
 					Return([]db.ListJobSkillsByJobIDRow{}, sql.ErrConnDone)
+				store.EXPECT().
+					GetCompanyNameByID(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					IndexJobAsDocument(gomock.Any(), gomock.Any()).
+					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -143,7 +169,7 @@ func TestCreateJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
@@ -169,6 +195,12 @@ func TestCreateJobAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
 					Times(0)
+				store.EXPECT().
+					GetCompanyNameByID(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					IndexJobAsDocument(gomock.Any(), gomock.Any()).
+					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -180,7 +212,7 @@ func TestCreateJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
@@ -195,6 +227,12 @@ func TestCreateJobAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
 					Times(0)
+				store.EXPECT().
+					GetCompanyNameByID(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					IndexJobAsDocument(gomock.Any(), gomock.Any()).
+					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -206,7 +244,7 @@ func TestCreateJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -220,6 +258,83 @@ func TestCreateJobAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
 					Times(0)
+				store.EXPECT().
+					GetCompanyNameByID(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					IndexJobAsDocument(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error GetCompanyNameByID",
+			body: requestBody,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					CreateJob(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(job, nil)
+				store.EXPECT().
+					CreateMultipleJobSkills(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(nil)
+				store.EXPECT().
+					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(jobSkills, nil)
+				store.EXPECT().
+					GetCompanyNameByID(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return("", sql.ErrConnDone)
+				client.EXPECT().
+					IndexJobAsDocument(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error IndexJobAsDocument",
+			body: requestBody,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					CreateJob(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(job, nil)
+				store.EXPECT().
+					CreateMultipleJobSkills(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(nil)
+				store.EXPECT().
+					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(jobSkills, nil)
+				store.EXPECT().
+					GetCompanyNameByID(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(company.Name, nil)
+				client.EXPECT().
+					IndexJobAsDocument(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(errors.New("some error"))
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -234,7 +349,7 @@ func TestCreateJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -246,6 +361,12 @@ func TestCreateJobAPI(t *testing.T) {
 					Times(0)
 				store.EXPECT().
 					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					GetCompanyNameByID(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					IndexJobAsDocument(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -267,7 +388,7 @@ func TestCreateJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -279,6 +400,12 @@ func TestCreateJobAPI(t *testing.T) {
 					Times(0)
 				store.EXPECT().
 					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					GetCompanyNameByID(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					IndexJobAsDocument(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -294,9 +421,10 @@ func TestCreateJobAPI(t *testing.T) {
 			defer ctrl.Finish()
 
 			store := mockdb.NewMockStore(ctrl)
-			tc.buildStubs(store)
+			client := mockesearch.NewMockESearchClient(ctrl)
+			tc.buildStubs(store, client)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, client)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
