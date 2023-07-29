@@ -7,12 +7,27 @@ import (
 	"github.com/elastic/go-elasticsearch/v8"
 )
 
-func SearchJobs(ctx context.Context, query string) []*Job {
+type ESearchClient interface {
+	SearchJobs(ctx context.Context, query string, page, pageSize int32) ([]*Job, error)
+}
 
-	client := ctx.Value(ClientKey).(*elasticsearch.Client)
+type ESClient struct {
+	client *elasticsearch.Client
+}
+
+func NewClient(client *elasticsearch.Client) ESearchClient {
+	return &ESClient{
+		client: client,
+	}
+}
+
+func (client ESClient) SearchJobs(ctx context.Context, query string, page, pageSize int32) ([]*Job, error) {
+	var jobs []*Job
 
 	var searchBuffer bytes.Buffer
 	search := map[string]interface{}{
+		"from": (page - 1) * pageSize,
+		"size": pageSize,
 		"query": map[string]interface{}{
 			"bool": map[string]interface{}{
 				"should": []interface{}{
@@ -42,32 +57,31 @@ func SearchJobs(ctx context.Context, query string) []*Job {
 	}
 	err := json.NewEncoder(&searchBuffer).Encode(search)
 	if err != nil {
-		panic(err)
+		return jobs, err
 	}
 
-	response, err := client.Search(
-		client.Search.WithContext(ctx),
-		client.Search.WithIndex("jobs"),
-		client.Search.WithBody(&searchBuffer),
-		client.Search.WithTrackTotalHits(true),
-		client.Search.WithPretty(),
+	response, err := client.client.Search(
+		client.client.Search.WithContext(ctx),
+		client.client.Search.WithIndex("jobs"),
+		client.client.Search.WithBody(&searchBuffer),
+		client.client.Search.WithTrackTotalHits(true),
+		client.client.Search.WithPretty(),
 	)
 	if err != nil {
-		panic(err)
+		return jobs, err
 	}
 	defer response.Body.Close()
 
 	var searchResponse = SearchResponse{}
 	err = json.NewDecoder(response.Body).Decode(&searchResponse)
 	if err != nil {
-		panic(err)
+		return jobs, err
 	}
 
-	var jobs []*Job
 	if searchResponse.Hits.Total.Value > 0 {
 		for _, job := range searchResponse.Hits.Hits {
 			jobs = append(jobs, job.Source)
 		}
 	}
-	return jobs
+	return jobs, nil
 }

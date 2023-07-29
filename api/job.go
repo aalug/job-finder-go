@@ -602,3 +602,40 @@ func (server *Server) listJobsByCompany(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, jobs)
 	}
 }
+
+type searchJobsRequest struct {
+	Search   string `form:"search" binding:"required"`
+	Page     int32  `form:"page" binding:"required,min=1"`
+	PageSize int32  `form:"page_size" binding:"required,min=5,max=15"`
+}
+
+// @Schemes
+// @Summary Search jobs
+// @Description Search for jobs with elasticsearch.
+// @Tags jobs
+// @Param page query integer true "Page number"
+// @Param page_size query integer true "Page size"
+// @Param search query string true "Search query"
+// @Produce json
+// @Success 200 {array} []esearch.Job
+// @Failure 400 {object} ErrorResponse "Invalid query"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /jobs/search [get]
+// searchJobs handles searching for jobs with elasticsearch.
+// Function uses esearch package that is an implementation of
+// elasticsearch in this application.
+func (server *Server) searchJobs(ctx *gin.Context) {
+	var request searchJobsRequest
+	if err := ctx.ShouldBindQuery(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	jobs, err := server.esDetails.client.SearchJobs(ctx, request.Search, request.Page, request.PageSize)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, jobs)
+}

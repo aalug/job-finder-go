@@ -388,3 +388,26 @@ func TestQueries_ListJobsMatchingUserSkills(t *testing.T) {
 		require.Contains(t, jobIDs, job.ID)
 	}
 }
+
+func TestQueries_ListAllJobsForES(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		createRandomJob(t, nil, jobDetails{})
+	}
+
+	jobs, err := testQueries.ListAllJobsForES(context.Background())
+	require.NoError(t, err)
+
+	require.True(t, len(jobs) >= 10)
+	for _, job := range jobs {
+		require.NotEmpty(t, job)
+		require.NotZero(t, job.ID)
+		require.NotEmpty(t, job.Title)
+		require.NotEmpty(t, job.Description)
+		require.NotEmpty(t, job.Location)
+		require.NotEmpty(t, job.CompanyName)
+		require.NotZero(t, job.SalaryMin)
+		require.NotZero(t, job.SalaryMax)
+		require.NotEmpty(t, job.Industry)
+		require.NotEmpty(t, job.Requirements)
+	}
+}

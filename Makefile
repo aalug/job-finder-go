@@ -18,6 +18,11 @@ sqlc:
 mock:
 	mockgen -package mockdb -destination db/mock/store.go github.com/aalug/go-gin-job-search/db/sqlc Store
 
+# generate mock functions for elasticsearch based functions
+mock_es:
+	mockgen -package mockesearch -destination esearch/mock/search.go github.com/aalug/go-gin-job-search/esearch ESearchClient
+
+
 # run all tests
 test:
 	go test -v -cover ./...
