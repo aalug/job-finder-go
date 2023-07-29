@@ -69,6 +69,15 @@ func (client ESClient) UpdateJobDocument(documentID string, updatedJob Job) erro
 	return nil
 }
 
+// DeleteJobDocument delete document from the index
+func (client ESClient) DeleteJobDocument(documentID string) error {
+	_, err := client.client.Delete("jobs", documentID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func readerToReadSeeker(reader io.Reader) (io.ReadSeeker, error) {
 	// Read the entire content of the reader into a buffer.
 	data, err := io.ReadAll(reader)

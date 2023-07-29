@@ -35,6 +35,20 @@ func (m *MockESearchClient) EXPECT() *MockESearchClientMockRecorder {
 	return m.recorder
 }
 
+// DeleteJobDocument mocks base method.
+func (m *MockESearchClient) DeleteJobDocument(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteJobDocument", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteJobDocument indicates an expected call of DeleteJobDocument.
+func (mr *MockESearchClientMockRecorder) DeleteJobDocument(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteJobDocument", reflect.TypeOf((*MockESearchClient)(nil).DeleteJobDocument), arg0)
+}
+
 // GetDocumentIDByJobID mocks base method.
 func (m *MockESearchClient) GetDocumentIDByJobID(arg0 int) (string, error) {
 	m.ctrl.T.Helper()

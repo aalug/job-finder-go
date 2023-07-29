@@ -456,7 +456,7 @@ func TestDeleteJobAPI(t *testing.T) {
 		name          string
 		jobID         int32
 		setupAuth     func(t *testing.T, r *http.Request, maker token.Maker)
-		buildStubs    func(store *mockdb.MockStore)
+		buildStubs    func(store *mockdb.MockStore, client *mockesearch.MockESearchClient)
 		checkResponse func(recorder *httptest.ResponseRecorder)
 	}{
 		{
@@ -465,7 +465,7 @@ func TestDeleteJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
@@ -475,7 +475,20 @@ func TestDeleteJobAPI(t *testing.T) {
 					Times(1).
 					Return(job, nil)
 				store.EXPECT().
+					DeleteJobSkillsByJobID(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(nil)
+				store.EXPECT().
 					DeleteJob(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(nil)
+				documentID := strconv.Itoa(int(job.ID))
+				client.EXPECT().
+					GetDocumentIDByJobID(gomock.Eq(int(job.ID))).
+					Times(1).
+					Return(documentID, nil)
+				client.EXPECT().
+					DeleteJobDocument(gomock.Eq(documentID)).
 					Times(1).
 					Return(nil)
 			},
@@ -489,7 +502,7 @@ func TestDeleteJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, "unauthorized@example.com", time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq("unauthorized@example.com")).
 					Times(1).
@@ -503,7 +516,16 @@ func TestDeleteJobAPI(t *testing.T) {
 					Times(1).
 					Return(job, nil)
 				store.EXPECT().
+					DeleteJobSkillsByJobID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
 					DeleteJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					GetDocumentIDByJobID(gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					DeleteJobDocument(gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -516,7 +538,7 @@ func TestDeleteJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -524,7 +546,16 @@ func TestDeleteJobAPI(t *testing.T) {
 					GetJob(gomock.Any(), gomock.Any()).
 					Times(0)
 				store.EXPECT().
+					DeleteJobSkillsByJobID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
 					DeleteJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					GetDocumentIDByJobID(gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					DeleteJobDocument(gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -537,7 +568,7 @@ func TestDeleteJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -546,7 +577,16 @@ func TestDeleteJobAPI(t *testing.T) {
 					GetJob(gomock.Any(), gomock.Any()).
 					Times(0)
 				store.EXPECT().
+					DeleteJobSkillsByJobID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
 					DeleteJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					GetDocumentIDByJobID(gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					DeleteJobDocument(gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -559,7 +599,7 @@ func TestDeleteJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
@@ -569,7 +609,16 @@ func TestDeleteJobAPI(t *testing.T) {
 					Times(1).
 					Return(db.Job{}, sql.ErrConnDone)
 				store.EXPECT().
+					DeleteJobSkillsByJobID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
 					DeleteJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					GetDocumentIDByJobID(gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					DeleteJobDocument(gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -582,7 +631,7 @@ func TestDeleteJobAPI(t *testing.T) {
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
@@ -592,9 +641,156 @@ func TestDeleteJobAPI(t *testing.T) {
 					Times(1).
 					Return(job, nil)
 				store.EXPECT().
+					DeleteJobSkillsByJobID(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(nil)
+				store.EXPECT().
 					DeleteJob(gomock.Any(), gomock.Any()).
 					Times(1).
 					Return(sql.ErrConnDone)
+				client.EXPECT().
+					GetDocumentIDByJobID(gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					DeleteJobDocument(gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:  "Internal Server Error GetDocumentIDByJobID",
+			jobID: job.ID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetJob(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(job, nil)
+				store.EXPECT().
+					DeleteJobSkillsByJobID(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(nil)
+				store.EXPECT().
+					DeleteJob(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(nil)
+				client.EXPECT().
+					GetDocumentIDByJobID(gomock.Eq(int(job.ID))).
+					Times(1).
+					Return("", errors.New("some error"))
+				client.EXPECT().
+					DeleteJobDocument(gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:  "Internal Server Error DeleteJobDocument",
+			jobID: job.ID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetJob(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(job, nil)
+				store.EXPECT().
+					DeleteJobSkillsByJobID(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(nil)
+				store.EXPECT().
+					DeleteJob(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(nil)
+				documentID := strconv.Itoa(int(job.ID))
+				client.EXPECT().
+					GetDocumentIDByJobID(gomock.Eq(int(job.ID))).
+					Times(1).
+					Return(documentID, nil)
+				client.EXPECT().
+					DeleteJobDocument(gomock.Any()).
+					Times(1).
+					Return(errors.New("some error"))
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:  "Not Found",
+			jobID: job.ID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetJob(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(db.Job{}, sql.ErrNoRows)
+				store.EXPECT().
+					DeleteJobSkillsByJobID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					GetDocumentIDByJobID(gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					DeleteJobDocument(gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:  "Internal Server Error DeleteJobSkillsByJobID",
+			jobID: job.ID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore, client *mockesearch.MockESearchClient) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetJob(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(job, nil)
+				store.EXPECT().
+					DeleteJobSkillsByJobID(gomock.Any(), gomock.Eq(job.ID)).
+					Times(1).
+					Return(sql.ErrConnDone)
+				store.EXPECT().
+					DeleteJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					GetDocumentIDByJobID(gomock.Any()).
+					Times(0)
+				client.EXPECT().
+					DeleteJobDocument(gomock.Any()).
+					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -609,9 +805,10 @@ func TestDeleteJobAPI(t *testing.T) {
 			defer ctrl.Finish()
 
 			store := mockdb.NewMockStore(ctrl)
-			tc.buildStubs(store)
+			client := mockesearch.NewMockESearchClient(ctrl)
+			tc.buildStubs(store, client)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, client)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/api/v1/jobs/%d", tc.jobID)
