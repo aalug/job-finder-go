@@ -38,7 +38,8 @@ type SearchResponse struct {
 			Value int64 `json:"value"`
 		} `json:"total"`
 		Hits []*struct {
-			Source *Job `json:"_source"`
+			Source *Job   `json:"_source"`
+			ID     string `json:"_id"`
 		} `json:"hits"`
 	} `json:"hits"`
 }

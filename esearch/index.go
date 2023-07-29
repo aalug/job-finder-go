@@ -7,29 +7,26 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/esutil"
 )
 
 // IndexJobsAsDocuments index jobs as documents
-func IndexJobsAsDocuments(ctx context.Context) {
-
+func (client ESClient) IndexJobsAsDocuments(ctx context.Context) error {
 	jobs := ctx.Value(JobKey).([]Job)
-	client := ctx.Value(ClientKey).(*elasticsearch.Client)
 
 	bulkIndexer, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
 		Index:      "jobs",
-		Client:     client,
+		Client:     client.client,
 		NumWorkers: 5,
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	for documentID, document := range jobs {
 		body, err := readerToReadSeeker(esutil.NewJSONReader(document))
 		if err != nil {
-			panic(err)
+			return err
 		}
 		err = bulkIndexer.Add(
 			ctx,
@@ -40,19 +37,32 @@ func IndexJobsAsDocuments(ctx context.Context) {
 			},
 		)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 
 	bulkIndexer.Close(ctx)
 	biStats := bulkIndexer.Stats()
 	log.Printf("Jobs indexed on Elasticsearch: %d \n", biStats.NumIndexed)
+	return nil
 }
 
 // IndexJobAsDocument index one job as document
 func (client ESClient) IndexJobAsDocument(documentID int, job Job) error {
 	_, err := client.client.Index("jobs", esutil.NewJSONReader(job),
 		client.client.Index.WithDocumentID(strconv.Itoa(documentID)))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateJobDocument update one job document
+func (client ESClient) UpdateJobDocument(documentID int, updatedJob Job) error {
+	data := map[string]interface{}{
+		"doc": updatedJob,
+	}
+	_, err := client.client.Update("jobs", strconv.Itoa(documentID), esutil.NewJSONReader(data))
 	if err != nil {
 		return err
 	}
