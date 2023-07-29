@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"github.com/aalug/go-gin-job-search/api"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
@@ -25,18 +26,15 @@ func main() {
 	store := db.NewStore(conn)
 
 	// === Elasticsearch ===
-	//ctx := context.Background()
-	// TODO: for now, all jobs are indexed every time the server starts
-	// TODO: later on, we will index only new or updated jobs
-	//ctx = esearch.LoadJobsFromDB(ctx, store)
-	//esearch.IndexJobsAsDocuments(ctx)
-	// === elasticsearch ===
+	ctx := context.Background()
+	ctx = esearch.LoadJobsFromDB(ctx, store)
 	newClient, err := esearch.ConnectWithElasticsearch(config.ElasticSearchAddress)
 	if err != nil {
 		log.Fatal("cannot connect to the elasticsearch: ", err)
 	}
 
 	client := esearch.NewClient(newClient)
+	client.IndexJobsAsDocuments(ctx)
 
 	// === HTTP server ===
 	// @BasePath /api/v1

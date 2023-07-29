@@ -368,6 +368,37 @@ func (server *Server) updateJob(ctx *gin.Context) {
 		return
 	}
 
+	// get document id for the job to update the elasticsearch index
+	documentID, err := server.esDetails.client.GetDocumentIDByJobID(int(job.ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// convert job skills to slice of strings
+	var skills []string
+	for _, skill := range jobSkills {
+		skills = append(skills, skill.Skill)
+	}
+
+	esJob := esearch.Job{
+		Title:        job.Title,
+		Industry:     job.Industry,
+		Description:  job.Description,
+		Location:     job.Location,
+		SalaryMin:    job.SalaryMin,
+		SalaryMax:    job.SalaryMax,
+		Requirements: job.Requirements,
+		JobSkills:    skills,
+	}
+
+	// update elasticsearch index
+	err = server.esDetails.client.UpdateJobDocument(documentID, esJob)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
 	ctx.JSON(http.StatusOK, newJobResponse(job, jobSkills))
 }
 
