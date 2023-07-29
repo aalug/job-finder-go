@@ -14,7 +14,7 @@ type ESearchClient interface {
 	GetDocumentIDByJobID(jobID int) (string, error)
 	IndexJobAsDocument(documentID int, job Job) error
 	IndexJobsAsDocuments(ctx context.Context) error
-	UpdateJobDocument(documentID int, updatedJob Job) error
+	UpdateJobDocument(documentID string, updatedJob Job) error
 }
 
 type ESClient struct {

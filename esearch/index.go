@@ -58,11 +58,11 @@ func (client ESClient) IndexJobAsDocument(documentID int, job Job) error {
 }
 
 // UpdateJobDocument update one job document
-func (client ESClient) UpdateJobDocument(documentID int, updatedJob Job) error {
+func (client ESClient) UpdateJobDocument(documentID string, updatedJob Job) error {
 	data := map[string]interface{}{
 		"doc": updatedJob,
 	}
-	_, err := client.client.Update("jobs", strconv.Itoa(documentID), esutil.NewJSONReader(data))
+	_, err := client.client.Update("jobs", documentID, esutil.NewJSONReader(data))
 	if err != nil {
 		return err
 	}

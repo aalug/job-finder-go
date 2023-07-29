@@ -94,7 +94,7 @@ func (mr *MockESearchClientMockRecorder) SearchJobs(arg0, arg1, arg2, arg3 inter
 }
 
 // UpdateJobDocument mocks base method.
-func (m *MockESearchClient) UpdateJobDocument(arg0 int, arg1 esearch.Job) error {
+func (m *MockESearchClient) UpdateJobDocument(arg0 string, arg1 esearch.Job) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateJobDocument", arg0, arg1)
 	ret0, _ := ret[0].(error)

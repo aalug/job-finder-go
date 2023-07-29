@@ -10,7 +10,6 @@ import (
 	"github.com/aalug/go-gin-job-search/token"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 )
 
 var (
@@ -370,12 +369,7 @@ func (server *Server) updateJob(ctx *gin.Context) {
 	}
 
 	// get document id for the job to update the elasticsearch index
-	docID, err := server.esDetails.client.GetDocumentIDByJobID(int(job.ID))
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-	documentID, err := strconv.Atoi(docID)
+	documentID, err := server.esDetails.client.GetDocumentIDByJobID(int(job.ID))
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
