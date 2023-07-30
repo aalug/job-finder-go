@@ -15,6 +15,7 @@ type ESearchClient interface {
 	IndexJobAsDocument(documentID int, job Job) error
 	IndexJobsAsDocuments(ctx context.Context) error
 	UpdateJobDocument(documentID string, updatedJob Job) error
+	DeleteJobDocument(documentID string) error
 }
 
 type ESClient struct {

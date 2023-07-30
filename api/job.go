@@ -193,6 +193,10 @@ func (server *Server) deleteJob(ctx *gin.Context) {
 	// get job that is being deleted
 	job, err := server.store.GetJob(ctx, request.ID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -203,7 +207,30 @@ func (server *Server) deleteJob(ctx *gin.Context) {
 		return
 	}
 
+	// delete job skills first
+	err = server.store.DeleteJobSkillsByJobID(ctx, job.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// delete job
 	err = server.store.DeleteJob(ctx, request.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// delete the job from the elasticsearch index
+	// get document ID
+	documentID, err := server.esDetails.client.GetDocumentIDByJobID(int(job.ID))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// delete the document from the index
+	err = server.esDetails.client.DeleteJobDocument(documentID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
