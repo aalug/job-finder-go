@@ -21,8 +21,8 @@
 2. Go to the project's root directory
 3. Rename `app.env.sample` to `app.env` and replace the values
 4. Run in your terminal:
-     - `make migrate_up` - to run migrations
      - `docker-compose up` to run the database container
+     - `make migrate_up` - to run migrations
      - `make runserver` - to run HTTP server
 5. Now everything should be ready and server running on `SERVER_ADDRESS` specified in `app.env`
 <hr>
@@ -139,6 +139,12 @@ code and returns the created job in JSON format. If the request body is invalid,
 a `400 Bad Request` status code is returned. In case of any other error, a 
 `500 Internal Server Error `status code is returned.
 
++ `GET /jobs/search`: This endpoint searches for jobs with elasticsearch. 
+The request must contain the `page`, `page_size`, and `search` parameters in the 
+query. On success, the response has a `200 OK` status code and returns an array 
+of jobs that match the search query in JSON format. If the query is invalid, a 
+`400 Bad Request` status code is returned. In case of any other error, a `500 Internal Server Error` status code is returned.
+
 + `GET /jobs`: This endpoint filters and lists jobs based on the provided query 
 parameters. The `page` and `page_size` query parameters are required and specify
 the page number and page size, respectively. The `title`, `industry`, `job_location`, 
@@ -172,5 +178,5 @@ JSON format. In case of any error, a `500 Internal Server Error` status code is 
 
 + `DELETE /jobs/{id}`: This endpoint deletes the job with the given id. The id path parameter is 
 required and specifies the id of the job to delete. On success, the response has a `204 No Content` 
-status code. In case of any error, a `500 Internal Server Error` status code is returned.
+status code. In case the job is not found, returns `404 Not Found`, in case of any other error, a `500 Internal Server Error` status code is returned.
 

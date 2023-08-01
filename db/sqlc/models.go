@@ -5,8 +5,56 @@
 package db
 
 import (
+	"database/sql"
+	"database/sql/driver"
+	"fmt"
 	"time"
 )
+
+type ApplicationStatus string
+
+const (
+	ApplicationStatusApplied      ApplicationStatus = "Applied"
+	ApplicationStatusSeen         ApplicationStatus = "Seen"
+	ApplicationStatusInterviewing ApplicationStatus = "Interviewing"
+	ApplicationStatusOffered      ApplicationStatus = "Offered"
+	ApplicationStatusRejected     ApplicationStatus = "Rejected"
+)
+
+func (e *ApplicationStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ApplicationStatus(s)
+	case string:
+		*e = ApplicationStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ApplicationStatus: %T", src)
+	}
+	return nil
+}
+
+type NullApplicationStatus struct {
+	ApplicationStatus ApplicationStatus
+	Valid             bool // Valid is true if ApplicationStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullApplicationStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ApplicationStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ApplicationStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullApplicationStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ApplicationStatus), nil
+}
 
 type Company struct {
 	ID       int32  `json:"id"`
@@ -35,6 +83,16 @@ type Job struct {
 	SalaryMax    int32     `json:"salary_max"`
 	Requirements string    `json:"requirements"`
 	CreatedAt    time.Time `json:"created_at"`
+}
+
+type JobApplication struct {
+	ID        int32             `json:"id"`
+	UserID    int32             `json:"user_id"`
+	JobID     int32             `json:"job_id"`
+	Message   sql.NullString    `json:"message"`
+	Cv        []byte            `json:"cv"`
+	Status    ApplicationStatus `json:"status"`
+	AppliedAt time.Time         `json:"applied_at"`
 }
 
 type JobSkill struct {

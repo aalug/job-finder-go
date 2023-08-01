@@ -369,6 +369,56 @@ definitions:
       title:
         type: string
     type: object
+  db.ListJobsMatchingUserSkillsRow:
+    properties:
+      company_id:
+        type: integer
+      company_name:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      industry:
+        type: string
+      location:
+        type: string
+      requirements:
+        type: string
+      salary_max:
+        type: integer
+      salary_min:
+        type: integer
+      title:
+        type: string
+    type: object
+  esearch.Job:
+    properties:
+      company_name:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      industry:
+        type: string
+      job_skills:
+        items:
+          type: string
+        type: array
+      location:
+        type: string
+      requirements:
+        type: string
+      salary_max:
+        type: integer
+      salary_min:
+        type: integer
+      title:
+        type: string
+    type: object
 info:
   contact:
     email: a.a.gulczynski@gmail.com
@@ -568,11 +618,11 @@ paths:
         in: query
         name: job_location
         type: string
-      - description: Salary min - must be smaller than salary_max
+      - description: Salary min - must be smaller or equal salary_max
         in: query
         name: salary_min
         type: integer
-      - description: Salary max - must be greater than salary_min
+      - description: Salary max - must be greater or equal salary_min
         in: query
         name: salary_max
         type: integer
@@ -641,6 +691,10 @@ paths:
           description: No Content
           schema:
             type: "null"
+        "404":
+          description: Job not found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
           description: Any error
           schema:
@@ -767,6 +821,87 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: List jobs by company
+      tags:
+      - jobs
+  /jobs/match-skills:
+    get:
+      description: List jobs that match the authenticated users skills
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/db.ListJobsMatchingUserSkillsRow'
+              type: array
+            type: array
+        "400":
+          description: Invalid query
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Employer making the request - only users can access
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: List jobs by matching skills
+      tags:
+      - jobs
+  /jobs/search:
+    get:
+      description: Search for jobs with elasticsearch.
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: Search query
+        in: query
+        name: search
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/esearch.Job'
+              type: array
+            type: array
+        "400":
+          description: Invalid query
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Search jobs
       tags:
       - jobs
   /users:

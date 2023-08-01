@@ -12,6 +12,7 @@ type Querier interface {
 	CreateCompany(ctx context.Context, arg CreateCompanyParams) (Company, error)
 	CreateEmployer(ctx context.Context, arg CreateEmployerParams) (Employer, error)
 	CreateJob(ctx context.Context, arg CreateJobParams) (Job, error)
+	CreateJobApplication(ctx context.Context, arg CreateJobApplicationParams) (JobApplication, error)
 	CreateJobSkill(ctx context.Context, arg CreateJobSkillParams) (JobSkill, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserSkill(ctx context.Context, arg CreateUserSkillParams) (UserSkill, error)
@@ -19,6 +20,7 @@ type Querier interface {
 	DeleteCompany(ctx context.Context, id int32) error
 	DeleteEmployer(ctx context.Context, id int32) error
 	DeleteJob(ctx context.Context, id int32) error
+	DeleteJobApplication(ctx context.Context, id int32) error
 	DeleteJobSkill(ctx context.Context, id int32) error
 	DeleteJobSkillsByJobID(ctx context.Context, jobID int32) error
 	DeleteMultipleJobSkills(ctx context.Context, ids []int32) error
@@ -31,11 +33,17 @@ type Querier interface {
 	GetEmployerByEmail(ctx context.Context, email string) (Employer, error)
 	GetEmployerByID(ctx context.Context, id int32) (Employer, error)
 	GetJob(ctx context.Context, id int32) (Job, error)
+	// this function will be used by employers
+	GetJobApplicationForEmployer(ctx context.Context, id int32) (GetJobApplicationForEmployerRow, error)
+	// this function will be used by users only
+	GetJobApplicationForUser(ctx context.Context, id int32) (GetJobApplicationForUserRow, error)
 	GetJobDetails(ctx context.Context, id int32) (GetJobDetailsRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
 	ListAllJobSkillsByJobID(ctx context.Context, jobID int32) ([]string, error)
 	ListAllJobsForES(ctx context.Context) ([]ListAllJobsForESRow, error)
+	ListJobApplicationsForEmployer(ctx context.Context, arg ListJobApplicationsForEmployerParams) ([]ListJobApplicationsForEmployerRow, error)
+	ListJobApplicationsForUser(ctx context.Context, arg ListJobApplicationsForUserParams) ([]ListJobApplicationsForUserRow, error)
 	ListJobSkillsByJobID(ctx context.Context, arg ListJobSkillsByJobIDParams) ([]ListJobSkillsByJobIDRow, error)
 	ListJobsByCompanyExactName(ctx context.Context, arg ListJobsByCompanyExactNameParams) ([]ListJobsByCompanyExactNameRow, error)
 	ListJobsByCompanyID(ctx context.Context, arg ListJobsByCompanyIDParams) ([]ListJobsByCompanyIDRow, error)
@@ -52,6 +60,8 @@ type Querier interface {
 	UpdateEmployer(ctx context.Context, arg UpdateEmployerParams) (Employer, error)
 	UpdateEmployerPassword(ctx context.Context, arg UpdateEmployerPasswordParams) error
 	UpdateJob(ctx context.Context, arg UpdateJobParams) (Job, error)
+	UpdateJobApplication(ctx context.Context, arg UpdateJobApplicationParams) (JobApplication, error)
+	UpdateJobApplicationStatus(ctx context.Context, arg UpdateJobApplicationStatusParams) error
 	UpdateJobSkill(ctx context.Context, arg UpdateJobSkillParams) (JobSkill, error)
 	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
