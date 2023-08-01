@@ -172,6 +172,7 @@ type deleteJobRequest struct {
 // @Tags jobs
 // @param id path integer true "Job ID"
 // @Success 204 {null} null
+// @Failure 404 {object} ErrorResponse "Job not found"
 // @Failure 500 {object} ErrorResponse "Any error"
 // @Router /jobs/{id} [delete]
 // deleteJob handles deleting a job posting

@@ -80,6 +80,21 @@ func (mr *MockStoreMockRecorder) CreateJob(arg0, arg1 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJob", reflect.TypeOf((*MockStore)(nil).CreateJob), arg0, arg1)
 }
 
+// CreateJobApplication mocks base method.
+func (m *MockStore) CreateJobApplication(arg0 context.Context, arg1 db.CreateJobApplicationParams) (db.JobApplication, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateJobApplication", arg0, arg1)
+	ret0, _ := ret[0].(db.JobApplication)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateJobApplication indicates an expected call of CreateJobApplication.
+func (mr *MockStoreMockRecorder) CreateJobApplication(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJobApplication", reflect.TypeOf((*MockStore)(nil).CreateJobApplication), arg0, arg1)
+}
+
 // CreateJobSkill mocks base method.
 func (m *MockStore) CreateJobSkill(arg0 context.Context, arg1 db.CreateJobSkillParams) (db.JobSkill, error) {
 	m.ctrl.T.Helper()
@@ -208,6 +223,20 @@ func (m *MockStore) DeleteJob(arg0 context.Context, arg1 int32) error {
 func (mr *MockStoreMockRecorder) DeleteJob(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteJob", reflect.TypeOf((*MockStore)(nil).DeleteJob), arg0, arg1)
+}
+
+// DeleteJobApplication mocks base method.
+func (m *MockStore) DeleteJobApplication(arg0 context.Context, arg1 int32) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteJobApplication", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteJobApplication indicates an expected call of DeleteJobApplication.
+func (mr *MockStoreMockRecorder) DeleteJobApplication(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteJobApplication", reflect.TypeOf((*MockStore)(nil).DeleteJobApplication), arg0, arg1)
 }
 
 // DeleteJobPosting mocks base method.
@@ -398,6 +427,36 @@ func (mr *MockStoreMockRecorder) GetJob(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJob", reflect.TypeOf((*MockStore)(nil).GetJob), arg0, arg1)
 }
 
+// GetJobApplicationForEmployer mocks base method.
+func (m *MockStore) GetJobApplicationForEmployer(arg0 context.Context, arg1 int32) (db.GetJobApplicationForEmployerRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetJobApplicationForEmployer", arg0, arg1)
+	ret0, _ := ret[0].(db.GetJobApplicationForEmployerRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetJobApplicationForEmployer indicates an expected call of GetJobApplicationForEmployer.
+func (mr *MockStoreMockRecorder) GetJobApplicationForEmployer(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJobApplicationForEmployer", reflect.TypeOf((*MockStore)(nil).GetJobApplicationForEmployer), arg0, arg1)
+}
+
+// GetJobApplicationForUser mocks base method.
+func (m *MockStore) GetJobApplicationForUser(arg0 context.Context, arg1 int32) (db.GetJobApplicationForUserRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetJobApplicationForUser", arg0, arg1)
+	ret0, _ := ret[0].(db.GetJobApplicationForUserRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetJobApplicationForUser indicates an expected call of GetJobApplicationForUser.
+func (mr *MockStoreMockRecorder) GetJobApplicationForUser(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJobApplicationForUser", reflect.TypeOf((*MockStore)(nil).GetJobApplicationForUser), arg0, arg1)
+}
+
 // GetJobDetails mocks base method.
 func (m *MockStore) GetJobDetails(arg0 context.Context, arg1 int32) (db.GetJobDetailsRow, error) {
 	m.ctrl.T.Helper()
@@ -487,6 +546,36 @@ func (m *MockStore) ListAllJobsForES(arg0 context.Context) ([]db.ListAllJobsForE
 func (mr *MockStoreMockRecorder) ListAllJobsForES(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllJobsForES", reflect.TypeOf((*MockStore)(nil).ListAllJobsForES), arg0)
+}
+
+// ListJobApplicationsForEmployer mocks base method.
+func (m *MockStore) ListJobApplicationsForEmployer(arg0 context.Context, arg1 db.ListJobApplicationsForEmployerParams) ([]db.ListJobApplicationsForEmployerRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListJobApplicationsForEmployer", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListJobApplicationsForEmployerRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListJobApplicationsForEmployer indicates an expected call of ListJobApplicationsForEmployer.
+func (mr *MockStoreMockRecorder) ListJobApplicationsForEmployer(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListJobApplicationsForEmployer", reflect.TypeOf((*MockStore)(nil).ListJobApplicationsForEmployer), arg0, arg1)
+}
+
+// ListJobApplicationsForUser mocks base method.
+func (m *MockStore) ListJobApplicationsForUser(arg0 context.Context, arg1 db.ListJobApplicationsForUserParams) ([]db.ListJobApplicationsForUserRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListJobApplicationsForUser", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListJobApplicationsForUserRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListJobApplicationsForUser indicates an expected call of ListJobApplicationsForUser.
+func (mr *MockStoreMockRecorder) ListJobApplicationsForUser(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListJobApplicationsForUser", reflect.TypeOf((*MockStore)(nil).ListJobApplicationsForUser), arg0, arg1)
 }
 
 // ListJobSkillsByJobID mocks base method.
@@ -741,6 +830,35 @@ func (m *MockStore) UpdateJob(arg0 context.Context, arg1 db.UpdateJobParams) (db
 func (mr *MockStoreMockRecorder) UpdateJob(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateJob", reflect.TypeOf((*MockStore)(nil).UpdateJob), arg0, arg1)
+}
+
+// UpdateJobApplication mocks base method.
+func (m *MockStore) UpdateJobApplication(arg0 context.Context, arg1 db.UpdateJobApplicationParams) (db.JobApplication, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateJobApplication", arg0, arg1)
+	ret0, _ := ret[0].(db.JobApplication)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateJobApplication indicates an expected call of UpdateJobApplication.
+func (mr *MockStoreMockRecorder) UpdateJobApplication(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateJobApplication", reflect.TypeOf((*MockStore)(nil).UpdateJobApplication), arg0, arg1)
+}
+
+// UpdateJobApplicationStatus mocks base method.
+func (m *MockStore) UpdateJobApplicationStatus(arg0 context.Context, arg1 db.UpdateJobApplicationStatusParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateJobApplicationStatus", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateJobApplicationStatus indicates an expected call of UpdateJobApplicationStatus.
+func (mr *MockStoreMockRecorder) UpdateJobApplicationStatus(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateJobApplicationStatus", reflect.TypeOf((*MockStore)(nil).UpdateJobApplicationStatus), arg0, arg1)
 }
 
 // UpdateJobSkill mocks base method.
