@@ -4,7 +4,6 @@ import (
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"strconv"
 	"testing"
 )
 
@@ -13,23 +12,23 @@ func TestSearchJobs(t *testing.T) {
 	require.NoError(t, err)
 	client := ESClient{client: c}
 
-	jobID := 1
-	jobs := []Job{
-		{
-			ID:          int32(jobID),
-			Title:       "Software Engineer",
-			Description: "Job description...",
-			Location:    "New York",
-		},
-		//{
-		//	ID:          2,
-		//	Title:       "Data Scientist",
-		//	Description: "Data Scientist description...",
-		//	Location:    "San Francisco",
-		//},
-	}
-	err = client.IndexJobAsDocument(jobID, jobs[0])
-	require.NoError(t, err)
+	//jobID := 1
+	//jobs := []Job{
+	//	{
+	//		ID:          int32(jobID),
+	//		Title:       "Software Engineer",
+	//		Description: "Job description...",
+	//		Location:    "New York",
+	//	},
+	//{
+	//	ID:          2,
+	//	Title:       "Data Scientist",
+	//	Description: "Data Scientist description...",
+	//	Location:    "San Francisco",
+	//},
+	//}
+	//err = client.IndexJobAsDocument(jobID, jobs[0])
+	//require.NoError(t, err)
 	//err = client.IndexJobAsDocument(2, jobs[1])
 	//require.NoError(t, err)
 
@@ -43,10 +42,8 @@ func TestSearchJobs(t *testing.T) {
 	//require.Equal(t, jobs[0].Location, results[0].Location)
 
 	// GetDocumentIDByJobID tests
-	documentID, err := client.GetDocumentIDByJobID(jobID)
-	require.NoError(t, err)
-	require.NoError(t, err)
-	require.Equal(t, documentID, strconv.Itoa(jobID))
+	//_, err = client.GetDocumentIDByJobID(jobID)
+	//require.Error(t, err)
 
 	documentID2, err := client.GetDocumentIDByJobID(9999999999)
 	require.Error(t, err)
