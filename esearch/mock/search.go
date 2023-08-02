@@ -6,9 +6,9 @@ package mockesearch
 
 import (
 	context "context"
+	"github.com/aalug/go-gin-job-search/esearch"
 	reflect "reflect"
 
-	esearch "github.com/aalug/go-gin-job-search/esearch"
 	gomock "github.com/golang/mock/gomock"
 )
 

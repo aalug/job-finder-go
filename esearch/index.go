@@ -3,11 +3,10 @@ package esearch
 import (
 	"bytes"
 	"context"
+	"github.com/elastic/go-elasticsearch/v8/esutil"
 	"io"
 	"log"
 	"strconv"
-
-	"github.com/elastic/go-elasticsearch/v8/esutil"
 )
 
 // IndexJobsAsDocuments index jobs as documents
