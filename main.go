@@ -27,7 +27,10 @@ func main() {
 
 	// === Elasticsearch ===
 	ctx := context.Background()
-	ctx = esearch.LoadJobsFromDB(ctx, store)
+	ctx, err = esearch.LoadJobsFromDB(ctx, store)
+	if err != nil {
+		log.Fatal("cannot load jobs from db: ", err)
+	}
 	newClient, err := esearch.ConnectWithElasticsearch(config.ElasticSearchAddress)
 	if err != nil {
 		log.Fatal("cannot connect to the elasticsearch: ", err)

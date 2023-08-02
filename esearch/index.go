@@ -22,7 +22,7 @@ func (client ESClient) IndexJobsAsDocuments(ctx context.Context) error {
 		return err
 	}
 
-	for documentID, document := range jobs {
+	for _, document := range jobs {
 		body, err := readerToReadSeeker(esutil.NewJSONReader(document))
 		if err != nil {
 			return err
@@ -31,7 +31,7 @@ func (client ESClient) IndexJobsAsDocuments(ctx context.Context) error {
 			ctx,
 			esutil.BulkIndexerItem{
 				Action:     "index",
-				DocumentID: strconv.Itoa(documentID),
+				DocumentID: strconv.Itoa(int(document.ID)),
 				Body:       body,
 			},
 		)

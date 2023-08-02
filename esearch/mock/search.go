@@ -6,9 +6,9 @@ package mockesearch
 
 import (
 	context "context"
-	"github.com/aalug/go-gin-job-search/esearch"
 	reflect "reflect"
 
+	esearch "github.com/aalug/go-gin-job-search/esearch"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -90,6 +90,20 @@ func (m *MockESearchClient) IndexJobsAsDocuments(arg0 context.Context) error {
 func (mr *MockESearchClientMockRecorder) IndexJobsAsDocuments(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IndexJobsAsDocuments", reflect.TypeOf((*MockESearchClient)(nil).IndexJobsAsDocuments), arg0)
+}
+
+// QueryJobsByDocumentID mocks base method.
+func (m *MockESearchClient) QueryJobsByDocumentID(arg0 int) *esearch.Job {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueryJobsByDocumentID", arg0)
+	ret0, _ := ret[0].(*esearch.Job)
+	return ret0
+}
+
+// QueryJobsByDocumentID indicates an expected call of QueryJobsByDocumentID.
+func (mr *MockESearchClientMockRecorder) QueryJobsByDocumentID(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryJobsByDocumentID", reflect.TypeOf((*MockESearchClient)(nil).QueryJobsByDocumentID), arg0)
 }
 
 // SearchJobs mocks base method.
