@@ -27,30 +27,42 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      elasticsearch:
+        image: elasticsearch:7.17.9
+        env:
+          discovery.type: single-node
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Create .env file
-      run: |
-        echo "${{ secrets.ENV_FILE }}" > app.env
+      - name: Create .env file
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > app.env
 
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: ^1.20
-      id: go
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ^1.20
+        id: go
 
-    - name: Install golang-migrate
-      run: |
-        curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.1/migrate.linux-amd64.tar.gz  | tar xvz
-        sudo mv migrate /usr/bin/
-        which migrate
+      - name: Install golang-migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.1/migrate.linux-amd64.tar.gz  | tar xvz
+          sudo mv migrate /usr/bin/
+          which migrate
 
-    - name: Run migrations
-      run: make migrate_up
+      - name: Run migrations
+        run: make migrate_up
 
-    - name: Test
-      run: make test
+      - name: Test
+        run: make test
 
-    - name: Remove .env file
-      run: rm app.env
+      - name: Remove .env file
+        run: rm app.env

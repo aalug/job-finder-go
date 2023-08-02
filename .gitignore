@@ -27,6 +27,7 @@ dist/
 tmp/
 
 # log files
+log.*
 *.log
 *errors.log
 *error.log

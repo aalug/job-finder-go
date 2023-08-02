@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-func LoadJobsFromDB(ctx context.Context, store db.Store) context.Context {
+func LoadJobsFromDB(ctx context.Context, store db.Store) (context.Context, error) {
 	const (
 		concurrency = 5
 	)
@@ -22,7 +22,7 @@ func LoadJobsFromDB(ctx context.Context, store db.Store) context.Context {
 	// Fetch jobs from the database
 	jobsFromDB, err := store.ListAllJobsForES(ctx)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	// Populate the work queue with movies from the database.
@@ -64,5 +64,5 @@ func LoadJobsFromDB(ctx context.Context, store db.Store) context.Context {
 	waitGroup.Wait()
 
 	log.Printf("Jobs loaded from the database: %d\n", len(jobs))
-	return context.WithValue(ctx, JobKey, jobs)
+	return context.WithValue(ctx, JobKey, jobs), nil
 }

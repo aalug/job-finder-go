@@ -40,4 +40,9 @@ flush_db:
 	docker volume ls -qf dangling=true | xargs docker volume rm
 	docker-compose up -d
 
-.PHONY: generate_migrations, migrate_up, migrate_down, sqlc, mock, test, test_coverage, runserver, flush_db
+flush_es:
+	docker-compose stop elasticsearch
+	docker-compose rm -f elasticsearch
+	docker-compose up -d elasticsearch
+
+.PHONY: generate_migrations, migrate_up, migrate_down, sqlc, mock, test, test_coverage, runserver, flush_db, flush_es
