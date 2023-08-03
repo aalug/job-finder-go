@@ -11,6 +11,7 @@ import (
 	"github.com/aalug/go-gin-job-search/token"
 	"github.com/aalug/go-gin-job-search/utils"
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 	"io"
 	"mime/multipart"
@@ -206,6 +207,30 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Unique Constraint Violated",
+			body: body{
+				Message: message,
+				JobID:   job.ID,
+			},
+			cv: fakeFileData,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					CreateJobApplication(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.JobApplication{}, &pq.Error{Code: "23505"})
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusForbidden, recorder.Code)
 			},
 		},
 	}
