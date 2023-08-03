@@ -260,6 +260,69 @@
                 }
             }
         },
+        "/job-applications": {
+            "post": {
+                "description": "Create a job application. Only users can access this endpoint.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "job applications"
+                ],
+                "summary": "Create job application",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "CV file",
+                        "name": "cv",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Message for the employer",
+                        "name": "message",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Job ID",
+                        "name": "job_id",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.jobApplicationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Only users can access",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/jobs": {
             "get": {
                 "description": "Filter and list jobs",
@@ -1161,6 +1224,26 @@
                 }
             }
         },
+        "api.jobApplicationResponse": {
+            "type": "object",
+            "properties": {
+                "applied_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "job_id": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.ApplicationStatus"
+                }
+            }
+        },
         "api.jobResponse": {
             "type": "object",
             "properties": {
@@ -1439,6 +1522,23 @@
                     "type": "string"
                 }
             }
+        },
+        "db.ApplicationStatus": {
+            "type": "string",
+            "enum": [
+                "Applied",
+                "Seen",
+                "Interviewing",
+                "Offered",
+                "Rejected"
+            ],
+            "x-enum-varnames": [
+                "ApplicationStatusApplied",
+                "ApplicationStatusSeen",
+                "ApplicationStatusInterviewing",
+                "ApplicationStatusOffered",
+                "ApplicationStatusRejected"
+            ]
         },
         "db.ListJobSkillsByJobIDRow": {
             "type": "object",

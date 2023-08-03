@@ -107,6 +107,9 @@ func (server *Server) setupRouter() {
 	// for users, listing jobs that use user details
 	authRoutesV1.GET("/jobs/match-skills", server.listJobsByMatchingSkills)
 
+	// === job applications ===
+	authRoutesV1.POST("/job-applications", server.createJobApplication)
+
 	server.router = router
 }
 

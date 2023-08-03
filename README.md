@@ -180,3 +180,13 @@ JSON format. In case of any error, a `500 Internal Server Error` status code is 
 required and specifies the id of the job to delete. On success, the response has a `204 No Content` 
 status code. In case the job is not found, returns `404 Not Found`, in case of any other error, a `500 Internal Server Error` status code is returned.
 
+
+### Job Applications
+
++ `POST /job-applications`: This endpoint creates a new job application. Only users 
+can access this endpoint. The request must contain the CV file, job ID, and optionally 
+message for the employer in multipart/form-data format. On success, the response 
+has a `200 OK` status code and returns the created job application details in JSON 
+format. If the request body is invalid, a `400 Bad Request` status code is returned. 
+If the user is not authorized to access this endpoint, a `401 Unauthorized` status 
+code is returned. In case of any other error, a `500 Internal Server Error` status code is returned.

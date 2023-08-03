@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"github.com/aalug/go-gin-job-search/api"
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
@@ -26,18 +25,18 @@ func main() {
 	store := db.NewStore(conn)
 
 	// === Elasticsearch ===
-	ctx := context.Background()
-	ctx, err = esearch.LoadJobsFromDB(ctx, store)
-	if err != nil {
-		log.Fatal("cannot load jobs from db: ", err)
-	}
+	//ctx := context.Background()
+	//ctx, err = esearch.LoadJobsFromDB(ctx, store)
+	//if err != nil {
+	//	log.Fatal("cannot load jobs from db: ", err)
+	//}
 	newClient, err := esearch.ConnectWithElasticsearch(config.ElasticSearchAddress)
 	if err != nil {
 		log.Fatal("cannot connect to the elasticsearch: ", err)
 	}
 
 	client := esearch.NewClient(newClient)
-	client.IndexJobsAsDocuments(ctx)
+	//_ = client.IndexJobsAsDocuments(ctx)
 
 	// === HTTP server ===
 	// @BasePath /api/v1

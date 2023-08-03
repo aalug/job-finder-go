@@ -127,6 +127,19 @@ definitions:
       full_name:
         type: string
     type: object
+  api.jobApplicationResponse:
+    properties:
+      applied_at:
+        type: string
+      id:
+        type: integer
+      job_id:
+        type: integer
+      message:
+        type: string
+      status:
+        $ref: '#/definitions/db.ApplicationStatus'
+    type: object
   api.jobResponse:
     properties:
       description:
@@ -312,6 +325,20 @@ definitions:
       skills_description:
         type: string
     type: object
+  db.ApplicationStatus:
+    enum:
+    - Applied
+    - Seen
+    - Interviewing
+    - Offered
+    - Rejected
+    type: string
+    x-enum-varnames:
+    - ApplicationStatusApplied
+    - ApplicationStatusSeen
+    - ApplicationStatusInterviewing
+    - ApplicationStatusOffered
+    - ApplicationStatusRejected
   db.ListJobSkillsByJobIDRow:
     properties:
       id:
@@ -592,6 +619,48 @@ paths:
       summary: Update employer password
       tags:
       - employers
+  /job-applications:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a job application. Only users can access this endpoint.
+      parameters:
+      - description: CV file
+        in: formData
+        name: cv
+        required: true
+        type: file
+      - description: Message for the employer
+        in: formData
+        name: message
+        type: string
+      - description: Job ID
+        in: formData
+        name: job_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.jobApplicationResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized. Only users can access
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Create job application
+      tags:
+      - job applications
   /jobs:
     get:
       description: Filter and list jobs
