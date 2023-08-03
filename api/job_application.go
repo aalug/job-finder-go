@@ -6,6 +6,7 @@ import (
 	db "github.com/aalug/go-gin-job-search/db/sqlc"
 	"github.com/aalug/go-gin-job-search/token"
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 	"io"
 	"net/http"
 	"strconv"
@@ -102,6 +103,14 @@ func (server *Server) createJobApplication(ctx *gin.Context) {
 
 	jobApplication, err := server.store.CreateJobApplication(ctx, params)
 	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Code.Name() {
+			case "unique_violation":
+				err := fmt.Errorf("user with ID %d has already applied for this job", authUser.ID)
+				ctx.JSON(http.StatusForbidden, errorResponse(err))
+				return
+			}
+		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
