@@ -42,7 +42,7 @@ func newJobApplicationResponse(jobApplication db.JobApplication) jobApplicationR
 // @Produce json
 // @Success 200 {object} jobApplicationResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body"
-// @Failure 401 {object} ErrorResponse "Unauthorized. Only users can access"
+// @Failure 401 {object} ErrorResponse "Unauthorized. Only users can access, not employers."
 // @Failure 500 {object} ErrorResponse "Any other error"
 // @Router /job-applications [post]
 // createJobApplication creates a new job application
@@ -116,4 +116,95 @@ func (server *Server) createJobApplication(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, newJobApplicationResponse(jobApplication))
+}
+
+type getJobApplicationForUserRequest struct {
+	ID int32 `uri:"id" binding:"required,min=1"`
+}
+
+type getJobApplicationForUserResponse struct {
+	ApplicationID      int32                `json:"application_id"`
+	JobID              int32                `json:"job_id"`
+	JobTitle           string               `json:"job_title"`
+	CompanyName        string               `json:"company_name"`
+	ApplicationStatus  db.ApplicationStatus `json:"application_status"`
+	ApplicationDate    time.Time            `json:"application_date"`
+	ApplicationMessage string               `json:"application_message"`
+	UserCv             []byte               `json:"user_cv"`
+	UserID             int32                `json:"user_id"`
+}
+
+// @Schemes
+// @Summary Get job application for user
+// @Description Get job application for user. Only users can access this endpoint. It returns different details than getJobApplicationForEmployer.
+// @Tags job applications
+// @param id path int true "job application ID"
+// @Produce json
+// @Success 200 {object} getJobApplicationForUserResponse
+// @Failure 400 {object} ErrorResponse "Invalid ID"
+// @Failure 401 {object} ErrorResponse "Unauthorized. Only users can access, not employers."
+// @Failure 403 {object} ErrorResponse "Only the applicant (the owner) of the job application can access this endpoint."
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /job-applications/user/{id} [get]
+// getJobApplicationForUser gets a job application for a user.
+// Only users can access this endpoint and only the applicant (the owner)
+// of the job application will receive the success response.
+// It also returns different details than getJobApplicationForEmployer
+// (suitable for the user needs)
+func (server *Server) getJobApplicationForUser(ctx *gin.Context) {
+	var request getJobApplicationForUserRequest
+	if err := ctx.ShouldBindUri(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// check if the user is authenticated (and is a user, not employer)
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so it had to be made by the employer
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// get the job application from the database
+	jobApplication, err := server.store.GetJobApplicationForUser(ctx, request.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = fmt.Errorf("job application with ID %d does not exist", request.ID)
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// check if the authenticated user is the applicant
+	if authUser.ID != jobApplication.UserID {
+		err = fmt.Errorf("user with ID %d is not the applicant of this job application", authUser.ID)
+		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		return
+	}
+
+	// TODO: for now, CV is sent as []byte, but later it will be hosted in a file server
+	res := getJobApplicationForUserResponse{
+		ApplicationID:     jobApplication.ApplicationID,
+		JobID:             jobApplication.JobID,
+		JobTitle:          jobApplication.JobTitle,
+		CompanyName:       jobApplication.CompanyName,
+		ApplicationStatus: jobApplication.ApplicationStatus,
+		ApplicationDate:   jobApplication.ApplicationDate,
+		UserCv:            jobApplication.UserCv,
+	}
+	if jobApplication.ApplicationMessage.Valid {
+		res.ApplicationMessage = jobApplication.ApplicationMessage.String
+	}
+
+	ctx.JSON(http.StatusOK, res)
 }
