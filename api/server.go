@@ -109,6 +109,7 @@ func (server *Server) setupRouter() {
 
 	// === job applications ===
 	authRoutesV1.POST("/job-applications", server.createJobApplication)
+	authRoutesV1.GET("/job-applications/user/:id", server.getJobApplicationForUser)
 
 	server.router = router
 }
