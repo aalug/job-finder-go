@@ -411,3 +411,11 @@ func TestQueries_ListAllJobsForES(t *testing.T) {
 		require.NotEmpty(t, job.Requirements)
 	}
 }
+
+func TestGetCompanyIDOfJob(t *testing.T) {
+	company := createRandomCompany(t, "")
+	job := createRandomJob(t, &company, jobDetails{})
+	companyID, err := testQueries.GetCompanyIDOfJob(context.Background(), job.ID)
+	require.NoError(t, err)
+	require.Equal(t, company.ID, companyID)
+}
