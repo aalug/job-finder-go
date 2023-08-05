@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aalug/go-gin-job-search/internal/db/mock"
-	db2 "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/pkg/token"
 	"github.com/aalug/go-gin-job-search/pkg/utils"
 	"github.com/golang/mock/gomock"
@@ -33,7 +33,7 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 
 	message := utils.RandomString(5)
 
-	jobApplication := db2.JobApplication{
+	jobApplication := db.JobApplication{
 		ID:     utils.RandomInt(1, 1000),
 		UserID: user.ID,
 		JobID:  job.ID,
@@ -42,7 +42,7 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 			Valid:  len(message) > 0,
 		},
 		Cv:        fakeFileData,
-		Status:    db2.ApplicationStatusApplied,
+		Status:    db.ApplicationStatusApplied,
 		AppliedAt: time.Now(),
 	}
 
@@ -74,7 +74,7 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
 					Return(user, nil)
-				params := db2.CreateJobApplicationParams{
+				params := db.CreateJobApplicationParams{
 					UserID: user.ID,
 					JobID:  job.ID,
 					Message: sql.NullString{
@@ -107,7 +107,7 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
-					Return(db2.User{}, sql.ErrNoRows)
+					Return(db.User{}, sql.ErrNoRows)
 				store.EXPECT().
 					CreateJobApplication(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -130,7 +130,7 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
-					Return(db2.User{}, sql.ErrConnDone)
+					Return(db.User{}, sql.ErrConnDone)
 				store.EXPECT().
 					CreateJobApplication(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -203,7 +203,7 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 				store.EXPECT().
 					CreateJobApplication(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.JobApplication{}, sql.ErrConnDone)
+					Return(db.JobApplication{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -227,7 +227,7 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 				store.EXPECT().
 					CreateJobApplication(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.JobApplication{}, &pq.Error{Code: "23505"})
+					Return(db.JobApplication{}, &pq.Error{Code: "23505"})
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusForbidden, recorder.Code)
@@ -287,19 +287,19 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 	user, _ := generateRandomUser(t)
 	employer, _, company := generateRandomEmployerAndCompany(t)
 	job := generateRandomJob()
-	var JobApplicationID int32 = 1
+	var jobApplicationID int32 = 1
 
 	fakeFileSize := 10 * 1024
 	fakeFileData := make([]byte, fakeFileSize)
 	_, err := rand.Read(fakeFileData)
 	require.NoError(t, err)
 
-	getJobApplicationForUserRow := db2.GetJobApplicationForUserRow{
-		ApplicationID:      JobApplicationID,
+	getJobApplicationForUserRow := db.GetJobApplicationForUserRow{
+		ApplicationID:      jobApplicationID,
 		JobID:              job.ID,
 		JobTitle:           job.Title,
 		CompanyName:        company.Name,
-		ApplicationStatus:  db2.ApplicationStatusApplied,
+		ApplicationStatus:  db.ApplicationStatusApplied,
 		ApplicationDate:    time.Now(),
 		ApplicationMessage: sql.NullString{},
 		UserCv:             fakeFileData,
@@ -315,7 +315,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 	}{
 		{
 			name:             "OK",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
 			},
@@ -327,7 +327,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 				getJobApplicationForUserRow.ApplicationMessage.Valid = true
 				getJobApplicationForUserRow.ApplicationMessage.String = utils.RandomString(5)
 				store.EXPECT().
-					GetJobApplicationForUser(gomock.Any(), gomock.Eq(JobApplicationID)).
+					GetJobApplicationForUser(gomock.Any(), gomock.Eq(jobApplicationID)).
 					Times(1).
 					Return(getJobApplicationForUserRow, nil)
 			},
@@ -356,7 +356,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 		},
 		{
 			name:             "Unauthorized",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
@@ -364,7 +364,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
-					Return(db2.User{}, sql.ErrNoRows)
+					Return(db.User{}, sql.ErrNoRows)
 				store.EXPECT().
 					GetJobApplicationForUser(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -375,7 +375,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 		},
 		{
 			name:             "Internal Server Error GetUserByEmail",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
 			},
@@ -383,7 +383,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
-					Return(db2.User{}, sql.ErrConnDone)
+					Return(db.User{}, sql.ErrConnDone)
 				store.EXPECT().
 					GetJobApplicationForUser(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -394,7 +394,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 		},
 		{
 			name:             "Not Found",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
 			},
@@ -406,7 +406,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 				store.EXPECT().
 					GetJobApplicationForUser(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.GetJobApplicationForUserRow{}, sql.ErrNoRows)
+					Return(db.GetJobApplicationForUserRow{}, sql.ErrNoRows)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -414,7 +414,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 		},
 		{
 			name:             "Internal Server Error GetJobApplicationForUser",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
 			},
@@ -426,7 +426,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 				store.EXPECT().
 					GetJobApplicationForUser(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.GetJobApplicationForUserRow{}, sql.ErrConnDone)
+					Return(db.GetJobApplicationForUserRow{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -434,7 +434,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 		},
 		{
 			name:             "Internal Server Error GetJobApplicationForUser",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
 			},
@@ -446,7 +446,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 				store.EXPECT().
 					GetJobApplicationForUser(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.GetJobApplicationForUserRow{}, sql.ErrConnDone)
+					Return(db.GetJobApplicationForUserRow{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -454,7 +454,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 		},
 		{
 			name:             "Forbidden Not Owner",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
 			},
@@ -499,6 +499,24 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 			server.router.ServeHTTP(recorder, req)
 
 			tc.checkResponse(recorder)
+
+			if tc.name == "OK" {
+				rec := httptest.NewRecorder()
+				url := fmt.Sprintf("/assets/cvs/cv_%d.pdf", jobApplicationID)
+				req, err := http.NewRequest(http.MethodGet, url, nil)
+				require.NoError(t, err)
+
+				server.router.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+
+				contentType := rec.Header().Get("Content-Type")
+				require.Equal(t, "application/pdf", contentType)
+
+				contentDisposition := rec.Header().Get("Content-Disposition")
+				expectedContentDisposition := fmt.Sprintf("inline; filename=cv_%d.pdf", jobApplicationID)
+				require.Equal(t, expectedContentDisposition, contentDisposition)
+			}
 		})
 	}
 }
@@ -507,18 +525,18 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 	user, _ := generateRandomUser(t)
 	employer, _, company := generateRandomEmployerAndCompany(t)
 	job := generateRandomJob()
-	var JobApplicationID int32 = 1
+	var jobApplicationID int32 = 1
 
 	fakeFileSize := 10 * 1024
 	fakeFileData := make([]byte, fakeFileSize)
 	_, err := rand.Read(fakeFileData)
 	require.NoError(t, err)
 
-	getJobApplicationForEmployerRow := db2.GetJobApplicationForEmployerRow{
-		ApplicationID:      JobApplicationID,
+	getJobApplicationForEmployerRow := db.GetJobApplicationForEmployerRow{
+		ApplicationID:      jobApplicationID,
 		JobTitle:           job.Title,
 		JobID:              job.ID,
-		ApplicationStatus:  db2.ApplicationStatusApplied,
+		ApplicationStatus:  db.ApplicationStatusSeen,
 		ApplicationDate:    time.Now(),
 		ApplicationMessage: sql.NullString{},
 		UserCv:             fakeFileData,
@@ -538,7 +556,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 	}{
 		{
 			name:             "OK",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
@@ -549,17 +567,18 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 					Return(employer, nil)
 				getJobApplicationForEmployerRow.ApplicationMessage.Valid = true
 				getJobApplicationForEmployerRow.ApplicationMessage.String = utils.RandomString(5)
+				getJobApplicationForEmployerRow.ApplicationStatus = db.ApplicationStatusApplied
 				store.EXPECT().
-					GetJobApplicationForEmployer(gomock.Any(), gomock.Eq(JobApplicationID)).
+					GetJobApplicationForEmployer(gomock.Any(), gomock.Eq(jobApplicationID)).
 					Times(1).
 					Return(getJobApplicationForEmployerRow, nil)
 				store.EXPECT().
 					GetCompanyIDOfJob(gomock.Any(), gomock.Eq(job.ID)).
 					Times(1).
 					Return(company.ID, nil)
-				params := db2.UpdateJobApplicationStatusParams{
-					ID:     JobApplicationID,
-					Status: db2.ApplicationStatusSeen,
+				params := db.UpdateJobApplicationStatusParams{
+					ID:     jobApplicationID,
+					Status: db.ApplicationStatusSeen,
 				}
 				store.EXPECT().
 					UpdateJobApplicationStatus(gomock.Any(), gomock.Eq(params)).
@@ -599,7 +618,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 		},
 		{
 			name:             "Unauthorized",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
@@ -607,7 +626,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrNoRows)
+					Return(db.Employer{}, sql.ErrNoRows)
 				store.EXPECT().
 					GetJobApplicationForEmployer(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -624,7 +643,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 		},
 		{
 			name:             "Internal Server Error GetEmployerByEmail",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
@@ -632,7 +651,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrConnDone)
+					Return(db.Employer{}, sql.ErrConnDone)
 				store.EXPECT().
 					GetJobApplicationForEmployer(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -649,7 +668,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 		},
 		{
 			name:             "Not Found",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
@@ -661,7 +680,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetJobApplicationForEmployer(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.GetJobApplicationForEmployerRow{}, sql.ErrNoRows)
+					Return(db.GetJobApplicationForEmployerRow{}, sql.ErrNoRows)
 				store.EXPECT().
 					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -675,7 +694,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 		},
 		{
 			name:             "Internal Server Error GetJobApplicationForEmployer",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
@@ -685,9 +704,9 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 					Times(1).
 					Return(employer, nil)
 				store.EXPECT().
-					GetJobApplicationForEmployer(gomock.Any(), gomock.Eq(JobApplicationID)).
+					GetJobApplicationForEmployer(gomock.Any(), gomock.Eq(jobApplicationID)).
 					Times(1).
-					Return(db2.GetJobApplicationForEmployerRow{}, sql.ErrConnDone)
+					Return(db.GetJobApplicationForEmployerRow{}, sql.ErrConnDone)
 				store.EXPECT().
 					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -701,7 +720,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 		},
 		{
 			name:             "Forbidden Only Owner",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
@@ -711,7 +730,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 					Times(1).
 					Return(employer, nil)
 				store.EXPECT().
-					GetJobApplicationForEmployer(gomock.Any(), gomock.Eq(JobApplicationID)).
+					GetJobApplicationForEmployer(gomock.Any(), gomock.Eq(jobApplicationID)).
 					Times(1).
 					Return(getJobApplicationForEmployerRow, nil)
 				store.EXPECT().
@@ -729,7 +748,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 		},
 		{
 			name:             "Internal Server Error GetCompanyIDOfJob",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
@@ -739,7 +758,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 					Times(1).
 					Return(employer, nil)
 				store.EXPECT().
-					GetJobApplicationForEmployer(gomock.Any(), gomock.Eq(JobApplicationID)).
+					GetJobApplicationForEmployer(gomock.Any(), gomock.Eq(jobApplicationID)).
 					Times(1).
 					Return(getJobApplicationForEmployerRow, nil)
 				store.EXPECT().
@@ -756,7 +775,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 		},
 		{
 			name:             "Internal Server Error UpdateJobApplicationStatus",
-			JobApplicationID: JobApplicationID,
+			JobApplicationID: jobApplicationID,
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
 			},
@@ -765,8 +784,9 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
 					Return(employer, nil)
+				getJobApplicationForEmployerRow.ApplicationStatus = db.ApplicationStatusApplied
 				store.EXPECT().
-					GetJobApplicationForEmployer(gomock.Any(), gomock.Eq(JobApplicationID)).
+					GetJobApplicationForEmployer(gomock.Any(), gomock.Eq(jobApplicationID)).
 					Times(1).
 					Return(getJobApplicationForEmployerRow, nil)
 				store.EXPECT().
@@ -806,6 +826,24 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 			server.router.ServeHTTP(recorder, req)
 
 			tc.checkResponse(recorder)
+
+			if tc.name == "OK" {
+				rec := httptest.NewRecorder()
+				url := fmt.Sprintf("/assets/cvs/cv_%d.pdf", jobApplicationID)
+				req, err := http.NewRequest(http.MethodGet, url, nil)
+				require.NoError(t, err)
+
+				server.router.ServeHTTP(rec, req)
+
+				require.Equal(t, http.StatusOK, rec.Code)
+
+				contentType := rec.Header().Get("Content-Type")
+				require.Equal(t, "application/pdf", contentType)
+
+				contentDisposition := rec.Header().Get("Content-Disposition")
+				expectedContentDisposition := fmt.Sprintf("inline; filename=cv_%d.pdf", jobApplicationID)
+				require.Equal(t, expectedContentDisposition, contentDisposition)
+			}
 		})
 	}
 }
@@ -815,7 +853,7 @@ func requireBodyMatchJobApplication(t *testing.T, body *bytes.Buffer, jobApplica
 	require.NoError(t, err)
 
 	switch ja := jobApplication.(type) {
-	case db2.JobApplication:
+	case db.JobApplication:
 		var response jobApplicationResponse
 		err = json.Unmarshal(data, &response)
 		require.NoError(t, err)
@@ -831,7 +869,7 @@ func requireBodyMatchJobApplication(t *testing.T, body *bytes.Buffer, jobApplica
 		if ja.Message.Valid {
 			require.Equal(t, response.Message, ja.Message.String)
 		}
-	case db2.GetJobApplicationForUserRow:
+	case db.GetJobApplicationForUserRow:
 		var response getJobApplicationForUserResponse
 		err = json.Unmarshal(data, &response)
 		require.NoError(t, err)
@@ -845,7 +883,7 @@ func requireBodyMatchJobApplication(t *testing.T, body *bytes.Buffer, jobApplica
 		if ja.ApplicationMessage.Valid {
 			require.Equal(t, response.ApplicationMessage, ja.ApplicationMessage.String)
 		}
-	case db2.GetJobApplicationForEmployerRow:
+	case db.GetJobApplicationForEmployerRow:
 		var response getJobApplicationForEmployerResponse
 		err = json.Unmarshal(data, &response)
 		require.NoError(t, err)
@@ -857,7 +895,6 @@ func requireBodyMatchJobApplication(t *testing.T, body *bytes.Buffer, jobApplica
 		require.Equal(t, response.UserEmail, ja.UserEmail)
 		require.Equal(t, response.UserLocation, ja.UserLocation)
 		require.Equal(t, response.UserID, ja.UserID)
-		require.Equal(t, response.ApplicationStatus, ja.ApplicationStatus)
 		require.WithinDuration(t, response.ApplicationDate, ja.ApplicationDate, 1*time.Second)
 		if ja.ApplicationMessage.Valid {
 			require.Equal(t, response.ApplicationMessage, ja.ApplicationMessage.String)

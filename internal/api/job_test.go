@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aalug/go-gin-job-search/internal/db/mock"
-	db2 "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/internal/esearch"
 	mockesearch "github.com/aalug/go-gin-job-search/internal/esearch/mock"
 	"github.com/aalug/go-gin-job-search/pkg/token"
@@ -29,9 +29,9 @@ func TestCreateJobAPI(t *testing.T) {
 	job := generateRandomJob()
 
 	requiredSkills := []string{"skill1", "skill2"}
-	var jobSkills []db2.ListJobSkillsByJobIDRow
+	var jobSkills []db.ListJobSkillsByJobIDRow
 	for _, skill := range requiredSkills {
-		js := db2.ListJobSkillsByJobIDRow{
+		js := db.ListJobSkillsByJobIDRow{
 			ID:    utils.RandomInt(1, 1000),
 			Skill: skill,
 		}
@@ -67,7 +67,7 @@ func TestCreateJobAPI(t *testing.T) {
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
 					Return(employer, nil)
-				params := db2.CreateJobParams{
+				params := db.CreateJobParams{
 					Title:        job.Title,
 					Industry:     job.Industry,
 					CompanyID:    employer.CompanyID,
@@ -85,7 +85,7 @@ func TestCreateJobAPI(t *testing.T) {
 					CreateMultipleJobSkills(gomock.Any(), gomock.Eq(requiredSkills), gomock.Eq(job.ID)).
 					Times(1).
 					Return(nil)
-				listSkillsParams := db2.ListJobSkillsByJobIDParams{
+				listSkillsParams := db.ListJobSkillsByJobIDParams{
 					JobID:  job.ID,
 					Limit:  10,
 					Offset: 0,
@@ -131,7 +131,7 @@ func TestCreateJobAPI(t *testing.T) {
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
 					Return(employer, nil)
-				params := db2.CreateJobParams{
+				params := db.CreateJobParams{
 					Title:        job.Title,
 					Industry:     job.Industry,
 					CompanyID:    employer.CompanyID,
@@ -152,7 +152,7 @@ func TestCreateJobAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return([]db2.ListJobSkillsByJobIDRow{}, sql.ErrConnDone)
+					Return([]db.ListJobSkillsByJobIDRow{}, sql.ErrConnDone)
 				store.EXPECT().
 					GetCompanyNameByID(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -175,7 +175,7 @@ func TestCreateJobAPI(t *testing.T) {
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
 					Return(employer, nil)
-				params := db2.CreateJobParams{
+				params := db.CreateJobParams{
 					Title:        job.Title,
 					Industry:     job.Industry,
 					CompanyID:    employer.CompanyID,
@@ -221,7 +221,7 @@ func TestCreateJobAPI(t *testing.T) {
 				store.EXPECT().
 					CreateJob(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Job{}, sql.ErrConnDone)
+					Return(db.Job{}, sql.ErrConnDone)
 				store.EXPECT().
 					CreateMultipleJobSkills(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
@@ -249,7 +249,7 @@ func TestCreateJobAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrConnDone)
+					Return(db.Employer{}, sql.ErrConnDone)
 				store.EXPECT().
 					CreateJob(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -506,7 +506,7 @@ func TestDeleteJobAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq("unauthorized@example.com")).
 					Times(1).
-					Return(db2.Employer{
+					Return(db.Employer{
 						ID:        employer.ID + 1,
 						CompanyID: employer.CompanyID + 1,
 						Email:     "unauthorized@example.com",
@@ -572,7 +572,7 @@ func TestDeleteJobAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrConnDone)
+					Return(db.Employer{}, sql.ErrConnDone)
 				store.EXPECT().
 					GetJob(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -607,7 +607,7 @@ func TestDeleteJobAPI(t *testing.T) {
 				store.EXPECT().
 					GetJob(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Job{}, sql.ErrConnDone)
+					Return(db.Job{}, sql.ErrConnDone)
 				store.EXPECT().
 					DeleteJobSkillsByJobID(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -745,7 +745,7 @@ func TestDeleteJobAPI(t *testing.T) {
 				store.EXPECT().
 					GetJob(gomock.Any(), gomock.Eq(job.ID)).
 					Times(1).
-					Return(db2.Job{}, sql.ErrNoRows)
+					Return(db.Job{}, sql.ErrNoRows)
 				store.EXPECT().
 					DeleteJobSkillsByJobID(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -832,7 +832,7 @@ func TestGetJobAPI(t *testing.T) {
 	// so that the job belongs to the employer
 	job.CompanyID = employer.CompanyID
 
-	getJobRow := db2.GetJobDetailsRow{
+	getJobRow := db.GetJobDetailsRow{
 		ID:               job.ID,
 		Title:            job.Title,
 		Industry:         job.Industry,
@@ -878,7 +878,7 @@ func TestGetJobAPI(t *testing.T) {
 				store.EXPECT().
 					GetJobDetails(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.GetJobDetailsRow{}, sql.ErrNoRows)
+					Return(db.GetJobDetailsRow{}, sql.ErrNoRows)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -891,7 +891,7 @@ func TestGetJobAPI(t *testing.T) {
 				store.EXPECT().
 					GetJobDetails(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.GetJobDetailsRow{}, sql.ErrConnDone)
+					Return(db.GetJobDetailsRow{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -936,7 +936,7 @@ func TestGetJobAPI(t *testing.T) {
 
 func TestFilterAndListJobsAPI(t *testing.T) {
 	_, _, company := generateRandomEmployerAndCompany(t)
-	var jobs []db2.ListJobsByFiltersRow
+	var jobs []db.ListJobsByFiltersRow
 	title := utils.RandomString(5)
 	industry := utils.RandomString(4)
 	jobLocation := utils.RandomString(6)
@@ -968,7 +968,7 @@ func TestFilterAndListJobsAPI(t *testing.T) {
 		if i%2 == 0 {
 			j = job2
 		}
-		row := db2.ListJobsByFiltersRow{
+		row := db.ListJobsByFiltersRow{
 			ID:           j.ID,
 			Title:        j.Title,
 			Industry:     j.Industry,
@@ -1009,7 +1009,7 @@ func TestFilterAndListJobsAPI(t *testing.T) {
 				jobLocation: jobLocation2,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
-				params := db2.ListJobsByFiltersParams{
+				params := db.ListJobsByFiltersParams{
 					Limit:  10,
 					Offset: 0,
 					Title: sql.NullString{
@@ -1120,7 +1120,7 @@ func TestFilterAndListJobsAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobsByFilters(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return([]db2.ListJobsByFiltersRow{}, sql.ErrConnDone)
+					Return([]db.ListJobsByFiltersRow{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -1166,7 +1166,7 @@ func TestListJobsByMatchingSkillsAPI(t *testing.T) {
 	user, _ := generateRandomUser(t)
 	employer, _, _ := generateRandomEmployerAndCompany(t)
 	_, _, company := generateRandomEmployerAndCompany(t)
-	var jobs []db2.ListJobsMatchingUserSkillsRow
+	var jobs []db.ListJobsMatchingUserSkillsRow
 	title := utils.RandomString(5)
 	industry := utils.RandomString(4)
 	jobLocation := utils.RandomString(6)
@@ -1182,7 +1182,7 @@ func TestListJobsByMatchingSkillsAPI(t *testing.T) {
 	)
 
 	for i := 0; i < 10; i++ {
-		row := db2.ListJobsMatchingUserSkillsRow{
+		row := db.ListJobsMatchingUserSkillsRow{
 			ID:           job.ID,
 			Title:        job.Title,
 			Industry:     job.Industry,
@@ -1224,7 +1224,7 @@ func TestListJobsByMatchingSkillsAPI(t *testing.T) {
 					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
 					Return(user, nil)
-				params := db2.ListJobsMatchingUserSkillsParams{
+				params := db.ListJobsMatchingUserSkillsParams{
 					UserID: user.ID,
 					Limit:  10,
 					Offset: 0,
@@ -1253,7 +1253,7 @@ func TestListJobsByMatchingSkillsAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
-					Return(db2.User{}, sql.ErrNoRows)
+					Return(db.User{}, sql.ErrNoRows)
 				store.EXPECT().
 					ListJobsMatchingUserSkills(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1275,7 +1275,7 @@ func TestListJobsByMatchingSkillsAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserByEmail(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.User{}, sql.ErrConnDone)
+					Return(db.User{}, sql.ErrConnDone)
 				store.EXPECT().
 					ListJobsMatchingUserSkills(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1301,7 +1301,7 @@ func TestListJobsByMatchingSkillsAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobsMatchingUserSkills(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return([]db2.ListJobsMatchingUserSkillsRow{}, sql.ErrConnDone)
+					Return([]db.ListJobsMatchingUserSkillsRow{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -1449,7 +1449,7 @@ func TestUpdateJobAPI(t *testing.T) {
 		"required_skills_to_add":       requiredSkillsToAdd,
 		"required_skill_ids_to_remove": requiredSkillIDsToRemove,
 	}
-	listedSkills := []db2.ListJobSkillsByJobIDRow{
+	listedSkills := []db.ListJobSkillsByJobIDRow{
 		{
 			ID:    utils.RandomInt(1, 100),
 			Skill: utils.RandomString(5),
@@ -1492,7 +1492,7 @@ func TestUpdateJobAPI(t *testing.T) {
 					CreateMultipleJobSkills(gomock.Any(), gomock.Eq(requiredSkillsToAdd), gomock.Eq(newJob.ID)).
 					Times(1).
 					Return(nil)
-				listSkillsParams := db2.ListJobSkillsByJobIDParams{
+				listSkillsParams := db.ListJobSkillsByJobIDParams{
 					JobID:  newJob.ID,
 					Limit:  10,
 					Offset: 0,
@@ -1530,7 +1530,7 @@ func TestUpdateJobAPI(t *testing.T) {
 				store.EXPECT().
 					GetJob(gomock.Any(), gomock.Eq(job.ID)).
 					Times(1).
-					Return(db2.Job{}, sql.ErrNoRows)
+					Return(db.Job{}, sql.ErrNoRows)
 				store.EXPECT().
 					UpdateJob(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1569,7 +1569,7 @@ func TestUpdateJobAPI(t *testing.T) {
 				store.EXPECT().
 					GetJob(gomock.Any(), gomock.Eq(job.ID)).
 					Times(1).
-					Return(db2.Job{}, sql.ErrConnDone)
+					Return(db.Job{}, sql.ErrConnDone)
 				store.EXPECT().
 					UpdateJob(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1604,7 +1604,7 @@ func TestUpdateJobAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrConnDone)
+					Return(db.Employer{}, sql.ErrConnDone)
 				store.EXPECT().
 					GetJob(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1650,7 +1650,7 @@ func TestUpdateJobAPI(t *testing.T) {
 				store.EXPECT().
 					UpdateJob(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Job{}, sql.ErrConnDone)
+					Return(db.Job{}, sql.ErrConnDone)
 				store.EXPECT().
 					DeleteMultipleJobSkills(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1793,7 +1793,7 @@ func TestUpdateJobAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return([]db2.ListJobSkillsByJobIDRow{}, sql.ErrConnDone)
+					Return([]db.ListJobSkillsByJobIDRow{}, sql.ErrConnDone)
 				client.EXPECT().
 					GetDocumentIDByJobID(gomock.Any()).
 					Times(0)
@@ -1974,7 +1974,7 @@ func TestUpdateJobAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrNoRows)
+					Return(db.Employer{}, sql.ErrNoRows)
 				store.EXPECT().
 					GetJob(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -2032,7 +2032,7 @@ func TestUpdateJobAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return([]db2.ListJobSkillsByJobIDRow{}, nil)
+					Return([]db.ListJobSkillsByJobIDRow{}, nil)
 				client.EXPECT().
 					GetDocumentIDByJobID(gomock.Any()).
 					Times(1).
@@ -2076,7 +2076,7 @@ func TestUpdateJobAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobSkillsByJobID(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return([]db2.ListJobSkillsByJobIDRow{}, nil)
+					Return([]db.ListJobSkillsByJobIDRow{}, nil)
 				client.EXPECT().
 					GetDocumentIDByJobID(gomock.Any()).
 					Times(1).
@@ -2123,9 +2123,9 @@ func TestUpdateJobAPI(t *testing.T) {
 
 func TestListJobsByCompanyAPI(t *testing.T) {
 	_, _, company := generateRandomEmployerAndCompany(t)
-	var jobsByExactName []db2.ListJobsByCompanyExactNameRow
-	var jobByName []db2.ListJobsByCompanyNameRow
-	var jobByID []db2.ListJobsByCompanyIDRow
+	var jobsByExactName []db.ListJobsByCompanyExactNameRow
+	var jobByName []db.ListJobsByCompanyNameRow
+	var jobByID []db.ListJobsByCompanyIDRow
 	title := utils.RandomString(5)
 	industry := utils.RandomString(4)
 	jobLocation := utils.RandomString(6)
@@ -2141,7 +2141,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 	)
 
 	for i := 0; i < 5; i++ {
-		row := db2.ListJobsByCompanyExactNameRow{
+		row := db.ListJobsByCompanyExactNameRow{
 			ID:           job.ID,
 			Title:        job.Title,
 			Industry:     job.Industry,
@@ -2156,7 +2156,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 		}
 		jobsByExactName = append(jobsByExactName, row)
 
-		row2 := db2.ListJobsByCompanyNameRow{
+		row2 := db.ListJobsByCompanyNameRow{
 			ID:           job.ID,
 			Title:        job.Title,
 			Industry:     job.Industry,
@@ -2171,7 +2171,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 		}
 		jobByName = append(jobByName, row2)
 
-		row3 := db2.ListJobsByCompanyIDRow{
+		row3 := db.ListJobsByCompanyIDRow{
 			ID:           job.ID,
 			Title:        job.Title,
 			Industry:     job.Industry,
@@ -2212,7 +2212,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobsByCompanyID(gomock.Any(), gomock.Any()).
 					Times(0)
-				params := db2.ListJobsByCompanyExactNameParams{
+				params := db.ListJobsByCompanyExactNameParams{
 					Name:   company.Name,
 					Limit:  10,
 					Offset: 0,
@@ -2238,7 +2238,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 				id:       company.ID,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
-				params := db2.ListJobsByCompanyIDParams{
+				params := db.ListJobsByCompanyIDParams{
 					CompanyID: company.ID,
 					Limit:     10,
 					Offset:    0,
@@ -2273,7 +2273,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
 					Times(0)
-				params := db2.ListJobsByCompanyNameParams{
+				params := db.ListJobsByCompanyNameParams{
 					Name:   company.Name[1:3],
 					Limit:  10,
 					Offset: 0,
@@ -2387,7 +2387,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobsByCompanyID(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return([]db2.ListJobsByCompanyIDRow{}, sql.ErrConnDone)
+					Return([]db.ListJobsByCompanyIDRow{}, sql.ErrConnDone)
 				store.EXPECT().
 					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -2413,7 +2413,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobsByCompanyExactName(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return([]db2.ListJobsByCompanyExactNameRow{}, sql.ErrConnDone)
+					Return([]db.ListJobsByCompanyExactNameRow{}, sql.ErrConnDone)
 				store.EXPECT().
 					ListJobsByCompanyName(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -2439,7 +2439,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 				store.EXPECT().
 					ListJobsByCompanyName(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return([]db2.ListJobsByCompanyNameRow{}, sql.ErrConnDone)
+					Return([]db.ListJobsByCompanyNameRow{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -2669,8 +2669,8 @@ func TestSearchJobsAPI(t *testing.T) {
 	}
 }
 
-func generateJob(title, industry, jobLocation string, salaryMin, salaryMax int32) db2.Job {
-	return db2.Job{
+func generateJob(title, industry, jobLocation string, salaryMin, salaryMax int32) db.Job {
+	return db.Job{
 		ID:           utils.RandomInt(1, 1000),
 		Title:        title,
 		Industry:     industry,
@@ -2682,8 +2682,8 @@ func generateJob(title, industry, jobLocation string, salaryMin, salaryMax int32
 	}
 }
 
-func generateRandomJob() db2.Job {
-	return db2.Job{
+func generateRandomJob() db.Job {
+	return db.Job{
 		ID:           utils.RandomInt(1, 1000),
 		Title:        utils.RandomString(4),
 		Industry:     utils.RandomString(2),
@@ -2695,7 +2695,7 @@ func generateRandomJob() db2.Job {
 	}
 }
 
-func requireBodyMatchJob(t *testing.T, body *bytes.Buffer, job db2.Job, skills []db2.ListJobSkillsByJobIDRow) {
+func requireBodyMatchJob(t *testing.T, body *bytes.Buffer, job db.Job, skills []db.ListJobSkillsByJobIDRow) {
 	data, err := io.ReadAll(body)
 	require.NoError(t, err)
 
@@ -2713,11 +2713,11 @@ func requireBodyMatchJob(t *testing.T, body *bytes.Buffer, job db2.Job, skills [
 	require.Equal(t, skills, gotJob.RequiredSkills)
 }
 
-func requireBodyMatchJobDetails(t *testing.T, body *bytes.Buffer, row db2.GetJobDetailsRow) {
+func requireBodyMatchJobDetails(t *testing.T, body *bytes.Buffer, row db.GetJobDetailsRow) {
 	data, err := io.ReadAll(body)
 	require.NoError(t, err)
 
-	var gotJobRow db2.GetJobDetailsRow
+	var gotJobRow db.GetJobDetailsRow
 	err = json.Unmarshal(data, &gotJobRow)
 	require.NoError(t, err)
 	require.Equal(t, row, gotJobRow)
@@ -2728,40 +2728,40 @@ func requireBodyMatchJobs(t *testing.T, body *bytes.Buffer, jobs interface{}) {
 	require.NoError(t, err)
 
 	switch j := jobs.(type) {
-	case []db2.ListJobsByFiltersRow:
-		var gotJobRows []db2.ListJobsByFiltersRow
+	case []db.ListJobsByFiltersRow:
+		var gotJobRows []db.ListJobsByFiltersRow
 		err = json.Unmarshal(data, &gotJobRows)
 		require.NoError(t, err)
 
 		for i := 0; i < len(j); i++ {
 			require.Equal(t, j[i], gotJobRows[i])
 		}
-	case []db2.ListJobsMatchingUserSkillsRow:
-		var gotJobRows []db2.ListJobsMatchingUserSkillsRow
+	case []db.ListJobsMatchingUserSkillsRow:
+		var gotJobRows []db.ListJobsMatchingUserSkillsRow
 		err = json.Unmarshal(data, &gotJobRows)
 		require.NoError(t, err)
 
 		for i := 0; i < len(j); i++ {
 			require.Equal(t, j[i], gotJobRows[i])
 		}
-	case []db2.ListJobsByCompanyExactNameRow:
-		var gotJobRows []db2.ListJobsByCompanyExactNameRow
+	case []db.ListJobsByCompanyExactNameRow:
+		var gotJobRows []db.ListJobsByCompanyExactNameRow
 		err = json.Unmarshal(data, &gotJobRows)
 		require.NoError(t, err)
 
 		for i := 0; i < len(j); i++ {
 			require.Equal(t, j[i], gotJobRows[i])
 		}
-	case []db2.ListJobsByCompanyNameRow:
-		var gotJobRows []db2.ListJobsByCompanyNameRow
+	case []db.ListJobsByCompanyNameRow:
+		var gotJobRows []db.ListJobsByCompanyNameRow
 		err = json.Unmarshal(data, &gotJobRows)
 		require.NoError(t, err)
 
 		for i := 0; i < len(j); i++ {
 			require.Equal(t, j[i], gotJobRows[i])
 		}
-	case []db2.ListJobsByCompanyIDRow:
-		var gotJobRows []db2.ListJobsByCompanyIDRow
+	case []db.ListJobsByCompanyIDRow:
+		var gotJobRows []db.ListJobsByCompanyIDRow
 		err = json.Unmarshal(data, &gotJobRows)
 		require.NoError(t, err)
 

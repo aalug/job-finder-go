@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	db2 "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/pkg/token"
 	"github.com/aalug/go-gin-job-search/pkg/utils"
 	"github.com/aalug/go-gin-job-search/pkg/validation"
@@ -49,7 +49,7 @@ type userResponse struct {
 }
 
 // newUserResponse converts db.User to userResponse
-func newUserResponse(user db2.User, skills []db2.UserSkill) userResponse {
+func newUserResponse(user db.User, skills []db.UserSkill) userResponse {
 	var userSkills []Skill
 	for _, skill := range skills {
 		userSkills = append(userSkills, Skill{
@@ -107,7 +107,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	params := db2.CreateUserParams{
+	params := db.CreateUserParams{
 		FullName:         request.FullName,
 		Email:            request.Email,
 		HashedPassword:   hashedPassword,
@@ -136,11 +136,11 @@ func (server *Server) createUser(ctx *gin.Context) {
 	}
 
 	// Create user skills
-	var userSkills []db2.UserSkill
+	var userSkills []db.UserSkill
 	if len(request.Skills) > 0 {
-		var skillsParams []db2.CreateMultipleUserSkillsParams
+		var skillsParams []db.CreateMultipleUserSkillsParams
 		for _, skill := range request.Skills {
-			skillsParams = append(skillsParams, db2.CreateMultipleUserSkillsParams{
+			skillsParams = append(skillsParams, db.CreateMultipleUserSkillsParams{
 				Skill:      skill.SkillName,
 				Experience: skill.YearsOfExperience,
 			})
@@ -215,7 +215,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	}
 
 	// get user skills
-	params := db2.ListUserSkillsParams{
+	params := db.ListUserSkillsParams{
 		UserID: user.ID,
 		Limit:  10,
 		Offset: 0,
@@ -318,7 +318,7 @@ func (server *Server) updateUser(ctx *gin.Context) {
 		return
 	}
 
-	params := db2.UpdateUserParams{
+	params := db.UpdateUserParams{
 		ID:               authUser.ID,
 		FullName:         request.FullName,
 		Email:            request.Email,
@@ -361,9 +361,9 @@ func (server *Server) updateUser(ctx *gin.Context) {
 	}
 
 	if len(request.SkillsToAdd) > 0 {
-		var params []db2.CreateMultipleUserSkillsParams
+		var params []db.CreateMultipleUserSkillsParams
 		for _, skill := range request.SkillsToAdd {
-			prm := db2.CreateMultipleUserSkillsParams{
+			prm := db.CreateMultipleUserSkillsParams{
 				Skill:      skill.SkillName,
 				Experience: skill.YearsOfExperience,
 			}
@@ -386,7 +386,7 @@ func (server *Server) updateUser(ctx *gin.Context) {
 	}
 
 	// get all user skills after update
-	userSkills, err := server.store.ListUserSkills(ctx, db2.ListUserSkillsParams{
+	userSkills, err := server.store.ListUserSkills(ctx, db.ListUserSkillsParams{
 		UserID: authUser.ID,
 		Limit:  10,
 		Offset: 0,
@@ -448,7 +448,7 @@ func (server *Server) updateUserPassword(ctx *gin.Context) {
 		return
 	}
 
-	params := db2.UpdatePasswordParams{
+	params := db.UpdatePasswordParams{
 		ID:             authUser.ID,
 		HashedPassword: hashedPassword,
 	}

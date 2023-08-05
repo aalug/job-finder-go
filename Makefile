@@ -32,7 +32,7 @@ test_coverage:
 	go test $(p) -coverprofile=coverage.out && go tool cover -html=coverage.out
 
 runserver:
-	go run cmd/gin-job-search/main.go
+	go run cmd/main.go
 
 # flush db and restart it
 flush_db:
