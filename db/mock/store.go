@@ -367,6 +367,21 @@ func (mr *MockStoreMockRecorder) GetCompanyByName(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCompanyByName", reflect.TypeOf((*MockStore)(nil).GetCompanyByName), arg0, arg1)
 }
 
+// GetCompanyIDOfJob mocks base method.
+func (m *MockStore) GetCompanyIDOfJob(arg0 context.Context, arg1 int32) (int32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCompanyIDOfJob", arg0, arg1)
+	ret0, _ := ret[0].(int32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCompanyIDOfJob indicates an expected call of GetCompanyIDOfJob.
+func (mr *MockStoreMockRecorder) GetCompanyIDOfJob(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCompanyIDOfJob", reflect.TypeOf((*MockStore)(nil).GetCompanyIDOfJob), arg0, arg1)
+}
+
 // GetCompanyNameByID mocks base method.
 func (m *MockStore) GetCompanyNameByID(arg0 context.Context, arg1 int32) (string, error) {
 	m.ctrl.T.Helper()

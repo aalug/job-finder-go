@@ -119,3 +119,8 @@ SELECT j.id,
        j.requirements
 FROM jobs j
          JOIN companies c ON j.company_id = c.id;
+
+-- name: GetCompanyIDOfJob :one
+SELECT company_id
+FROM jobs
+WHERE id = $1;

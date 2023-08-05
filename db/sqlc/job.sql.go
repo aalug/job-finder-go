@@ -72,6 +72,19 @@ func (q *Queries) DeleteJob(ctx context.Context, id int32) error {
 	return err
 }
 
+const getCompanyIDOfJob = `-- name: GetCompanyIDOfJob :one
+SELECT company_id
+FROM jobs
+WHERE id = $1
+`
+
+func (q *Queries) GetCompanyIDOfJob(ctx context.Context, id int32) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getCompanyIDOfJob, id)
+	var company_id int32
+	err := row.Scan(&company_id)
+	return company_id, err
+}
+
 const getJob = `-- name: GetJob :one
 SELECT id, title, industry, company_id, description, location, salary_min, salary_max, requirements, created_at
 FROM jobs

@@ -136,7 +136,7 @@ type getJobApplicationForUserResponse struct {
 
 // @Schemes
 // @Summary Get job application for user
-// @Description Get job application for user. Only users can access this endpoint. It returns different details than getJobApplicationForEmployer.
+// @Description Get job application for a user. Only users can access this endpoint. It returns different details than getJobApplicationForEmployer.
 // @Tags job applications
 // @param id path int true "job application ID"
 // @Produce json
@@ -163,7 +163,7 @@ func (server *Server) getJobApplicationForUser(ctx *gin.Context) {
 	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// but middleware did not stop the request, so it had to be made by the employer
+			// but middleware did not stop the request, so it had to be made by an employer
 			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
 			return
 		}
@@ -204,6 +204,124 @@ func (server *Server) getJobApplicationForUser(ctx *gin.Context) {
 	}
 	if jobApplication.ApplicationMessage.Valid {
 		res.ApplicationMessage = jobApplication.ApplicationMessage.String
+	}
+
+	ctx.JSON(http.StatusOK, res)
+}
+
+type getJobApplicationForEmployerRequest struct {
+	ID int32 `uri:"id" binding:"required,min=1"`
+}
+
+type getJobApplicationForEmployerResponse struct {
+	ApplicationID      int32                `json:"application_id"`
+	JobTitle           string               `json:"job_title"`
+	JobID              int32                `json:"job_id"`
+	ApplicationStatus  db.ApplicationStatus `json:"application_status"`
+	ApplicationDate    time.Time            `json:"application_date"`
+	ApplicationMessage string               `json:"application_message"`
+	UserCv             []byte               `json:"user_cv"`
+	UserID             int32                `json:"user_id"`
+	UserEmail          string               `json:"user_email"`
+	UserFullName       string               `json:"user_full_name"`
+	UserLocation       string               `json:"user_location"`
+}
+
+// @Schemes
+// @Summary Get job application for employer
+// @Description Get job application for an employer. Only employers can access this endpoint. It returns different details than getJobApplicationForUser.
+// @Tags job applications
+// @param id path int true "job application ID"
+// @Produce json
+// @Success 200 {object} getJobApplicationForEmployerResponse
+// @Failure 400 {object} ErrorResponse "Invalid ID"
+// @Failure 401 {object} ErrorResponse "Unauthorized. Only employers can access, not users."
+// @Failure 403 {object} ErrorResponse "Only an employer that is part of the company that created this application can access this endpoint.
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Router /job-applications/employer/{id} [get]
+// getJobApplicationForEmployer gets a job application for an employer.
+// Only employers can access this endpoint and only employers that are part
+// of the company will receive the success response.
+// It also returns different details than getJobApplicationForUser
+// (suitable for the employer needs)
+func (server *Server) getJobApplicationForEmployer(ctx *gin.Context) {
+	var request getJobApplicationForEmployerRequest
+	if err := ctx.ShouldBindUri(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// check if the employer is authenticated (and is an employer, not user)
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so it had to be made by a user
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// get the job application from the database
+	jobApplication, err := server.store.GetJobApplicationForEmployer(ctx, request.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = fmt.Errorf("job application with ID %d does not exist", request.ID)
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// check if the authenticated employer is part of the company
+	// that created this application
+	companyID, err := server.store.GetCompanyIDOfJob(ctx, jobApplication.JobID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if companyID != authEmployer.CompanyID {
+		err = fmt.Errorf("employer with ID %d is not part of the company that created this job", authEmployer.ID)
+		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		return
+	}
+
+	res := getJobApplicationForEmployerResponse{
+		ApplicationID:     jobApplication.ApplicationID,
+		JobTitle:          jobApplication.JobTitle,
+		JobID:             jobApplication.JobID,
+		ApplicationStatus: jobApplication.ApplicationStatus,
+		ApplicationDate:   jobApplication.ApplicationDate,
+		UserCv:            jobApplication.UserCv,
+		UserID:            jobApplication.UserID,
+		UserEmail:         jobApplication.UserEmail,
+		UserFullName:      jobApplication.UserFullName,
+		UserLocation:      jobApplication.UserLocation,
+	}
+
+	// TODO: for now, CV is sent as []byte, but later it will be hosted in a file server
+
+	if jobApplication.ApplicationMessage.Valid {
+		res.ApplicationMessage = jobApplication.ApplicationMessage.String
+	}
+
+	// if the application status was 'Applied', change it to `Seen`
+	if jobApplication.ApplicationStatus == db.ApplicationStatusApplied {
+		err = server.store.UpdateJobApplicationStatus(ctx, db.UpdateJobApplicationStatusParams{
+			ID:     jobApplication.ApplicationID,
+			Status: db.ApplicationStatusSeen,
+		})
+
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
 	}
 
 	ctx.JSON(http.StatusOK, res)
