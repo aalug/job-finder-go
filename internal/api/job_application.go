@@ -130,7 +130,7 @@ type getJobApplicationForUserResponse struct {
 	ApplicationStatus  db.ApplicationStatus `json:"application_status"`
 	ApplicationDate    time.Time            `json:"application_date"`
 	ApplicationMessage string               `json:"application_message"`
-	UserCv             []byte               `json:"user_cv"`
+	CvLink             string               `json:"cv_link"`
 	UserID             int32                `json:"user_id"`
 }
 
@@ -192,7 +192,17 @@ func (server *Server) getJobApplicationForUser(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: for now, CV is sent as []byte, but later it will be hosted in a file server
+	// serve the CV as a pdf file
+	fileName := fmt.Sprintf("cv_%d.pdf", jobApplication.ApplicationID)
+	url := fmt.Sprintf("assets/cvs/%s", fileName)
+	server.router.GET(url, func(c *gin.Context) {
+		// Set the appropriate response headers to indicate it's a PDF
+		c.Header("Content-Type", "application/pdf")
+		c.Header("Content-Disposition", fmt.Sprintf("inline; filename=%s", fileName))
+
+		c.Data(http.StatusOK, "application/pdf", jobApplication.UserCv)
+	})
+
 	res := getJobApplicationForUserResponse{
 		ApplicationID:     jobApplication.ApplicationID,
 		JobID:             jobApplication.JobID,
@@ -200,7 +210,7 @@ func (server *Server) getJobApplicationForUser(ctx *gin.Context) {
 		CompanyName:       jobApplication.CompanyName,
 		ApplicationStatus: jobApplication.ApplicationStatus,
 		ApplicationDate:   jobApplication.ApplicationDate,
-		UserCv:            jobApplication.UserCv,
+		CvLink:            fmt.Sprintf("%s/%s", server.config.ServerAddress, url),
 	}
 	if jobApplication.ApplicationMessage.Valid {
 		res.ApplicationMessage = jobApplication.ApplicationMessage.String
@@ -220,11 +230,11 @@ type getJobApplicationForEmployerResponse struct {
 	ApplicationStatus  db.ApplicationStatus `json:"application_status"`
 	ApplicationDate    time.Time            `json:"application_date"`
 	ApplicationMessage string               `json:"application_message"`
-	UserCv             []byte               `json:"user_cv"`
 	UserID             int32                `json:"user_id"`
 	UserEmail          string               `json:"user_email"`
 	UserFullName       string               `json:"user_full_name"`
 	UserLocation       string               `json:"user_location"`
+	CvLink             string               `json:"cv_link"`
 }
 
 // @Schemes
@@ -257,7 +267,7 @@ func (server *Server) getJobApplicationForEmployer(ctx *gin.Context) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// but middleware did not stop the request, so it had to be made by a user
-			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyEmployersAccessError))
 			return
 		}
 
@@ -298,14 +308,11 @@ func (server *Server) getJobApplicationForEmployer(ctx *gin.Context) {
 		JobID:             jobApplication.JobID,
 		ApplicationStatus: jobApplication.ApplicationStatus,
 		ApplicationDate:   jobApplication.ApplicationDate,
-		UserCv:            jobApplication.UserCv,
 		UserID:            jobApplication.UserID,
 		UserEmail:         jobApplication.UserEmail,
 		UserFullName:      jobApplication.UserFullName,
 		UserLocation:      jobApplication.UserLocation,
 	}
-
-	// TODO: for now, CV is sent as []byte, but later it will be hosted in a file server
 
 	if jobApplication.ApplicationMessage.Valid {
 		res.ApplicationMessage = jobApplication.ApplicationMessage.String
@@ -317,12 +324,25 @@ func (server *Server) getJobApplicationForEmployer(ctx *gin.Context) {
 			ID:     jobApplication.ApplicationID,
 			Status: db.ApplicationStatusSeen,
 		})
+		res.ApplicationStatus = db.ApplicationStatusSeen
 
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 			return
 		}
 	}
+
+	// serve the CV as a pdf file
+	fileName := fmt.Sprintf("cv_%d.pdf", jobApplication.ApplicationID)
+	url := fmt.Sprintf("assets/cvs/%s", fileName)
+	server.router.GET(url, func(c *gin.Context) {
+		// Set the appropriate response headers to indicate it's a PDF
+		c.Header("Content-Type", "application/pdf")
+		c.Header("Content-Disposition", fmt.Sprintf("inline; filename=%s", fileName))
+
+		c.Data(http.StatusOK, "application/pdf", jobApplication.UserCv)
+	})
+	res.CvLink = fmt.Sprintf("%s/%s", server.config.ServerAddress, url)
 
 	ctx.JSON(http.StatusOK, res)
 }

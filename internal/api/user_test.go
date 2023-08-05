@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aalug/go-gin-job-search/internal/db/mock"
-	db2 "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/pkg/token"
 	utils2 "github.com/aalug/go-gin-job-search/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -22,12 +22,12 @@ import (
 )
 
 type eqCreateUserParamsMatcher struct {
-	params   db2.CreateUserParams
+	params   db.CreateUserParams
 	password string
 }
 
 func (e eqCreateUserParamsMatcher) Matches(arg interface{}) bool {
-	params, ok := arg.(db2.CreateUserParams)
+	params, ok := arg.(db.CreateUserParams)
 	if !ok {
 		return false
 	}
@@ -45,7 +45,7 @@ func (e eqCreateUserParamsMatcher) String() string {
 	return fmt.Sprintf("matches arg %v and password %v", e.params, e.password)
 }
 
-func EqCreateUserParams(arg db2.CreateUserParams, password string) gomock.Matcher {
+func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
 	return eqCreateUserParamsMatcher{arg, password}
 }
 
@@ -53,8 +53,8 @@ func TestCreateUserAPI(t *testing.T) {
 	user, password := generateRandomUser(t)
 
 	var skills []Skill
-	var userSkills []db2.UserSkill
-	var createUserSkills []db2.CreateMultipleUserSkillsParams
+	var userSkills []db.UserSkill
+	var createUserSkills []db.CreateMultipleUserSkillsParams
 	skills, userSkills, createUserSkills = generateSkills(user.ID)
 
 	requestBody := gin.H{
@@ -81,7 +81,7 @@ func TestCreateUserAPI(t *testing.T) {
 			name: "OK",
 			body: requestBody,
 			buildStubs: func(store *mockdb.MockStore) {
-				params := db2.CreateUserParams{
+				params := db.CreateUserParams{
 					FullName:         user.FullName,
 					Email:            user.Email,
 					HashedPassword:   user.HashedPassword,
@@ -115,7 +115,7 @@ func TestCreateUserAPI(t *testing.T) {
 				store.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.User{}, sql.ErrConnDone)
+					Return(db.User{}, sql.ErrConnDone)
 				store.EXPECT().
 					CreateMultipleUserSkills(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
@@ -128,7 +128,7 @@ func TestCreateUserAPI(t *testing.T) {
 			name: "Internal Server Error CreateMultipleUserSkills",
 			body: requestBody,
 			buildStubs: func(store *mockdb.MockStore) {
-				params := db2.CreateUserParams{
+				params := db.CreateUserParams{
 					FullName:         user.FullName,
 					Email:            user.Email,
 					HashedPassword:   user.HashedPassword,
@@ -160,7 +160,7 @@ func TestCreateUserAPI(t *testing.T) {
 				store.EXPECT().
 					CreateUser(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.User{}, &pq.Error{Code: "23505"})
+					Return(db.User{}, &pq.Error{Code: "23505"})
 				store.EXPECT().
 					CreateMultipleUserSkills(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
@@ -298,7 +298,7 @@ func TestCreateUserAPI(t *testing.T) {
 
 func TestLoginUserAPI(t *testing.T) {
 	user, password := generateRandomUser(t)
-	var userSkills []db2.UserSkill
+	var userSkills []db.UserSkill
 	_, userSkills, _ = generateSkills(user.ID)
 
 	testCases := []struct {
@@ -318,7 +318,7 @@ func TestLoginUserAPI(t *testing.T) {
 					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
 					Return(user, nil)
-				params := db2.ListUserSkillsParams{
+				params := db.ListUserSkillsParams{
 					UserID: user.ID,
 					Limit:  10,
 					Offset: 0,
@@ -342,7 +342,7 @@ func TestLoginUserAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserByEmail(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.User{}, sql.ErrNoRows)
+					Return(db.User{}, sql.ErrNoRows)
 				store.EXPECT().
 					ListUserSkills(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -361,7 +361,7 @@ func TestLoginUserAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserByEmail(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.User{}, sql.ErrConnDone)
+					Return(db.User{}, sql.ErrConnDone)
 				store.EXPECT().
 					ListUserSkills(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -384,7 +384,7 @@ func TestLoginUserAPI(t *testing.T) {
 				store.EXPECT().
 					ListUserSkills(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return([]db2.UserSkill{}, sql.ErrConnDone)
+					Return([]db.UserSkill{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -507,7 +507,7 @@ func TestGetUserAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserDetailsByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
-					Return(db2.User{}, []db2.UserSkill{}, sql.ErrConnDone)
+					Return(db.User{}, []db.UserSkill{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -544,7 +544,7 @@ func TestUpdateUserAPI(t *testing.T) {
 	user, _ := generateRandomUser(t)
 	skills, userSkills, createUserSkills := generateSkills(user.ID)
 	skillIDsToRemove := []int32{userSkills[0].ID}
-	newDetails := db2.UpdateUserParams{
+	newDetails := db.UpdateUserParams{
 		ID:               user.ID,
 		FullName:         utils2.RandomString(5),
 		Email:            user.Email,
@@ -557,7 +557,7 @@ func TestUpdateUserAPI(t *testing.T) {
 		Experience:       user.Experience,
 	}
 
-	updatedUser := db2.User{
+	updatedUser := db.User{
 		ID:               user.ID,
 		FullName:         utils2.RandomString(5),
 		Email:            user.Email,
@@ -608,7 +608,7 @@ func TestUpdateUserAPI(t *testing.T) {
 					DeleteMultipleUserSkills(gomock.Any(), gomock.Eq(skillIDsToRemove)).
 					Times(1).
 					Return(nil)
-				listSkillsParams := db2.ListUserSkillsParams{
+				listSkillsParams := db.ListUserSkillsParams{
 					UserID: user.ID,
 					Limit:  10,
 					Offset: 0,
@@ -639,7 +639,7 @@ func TestUpdateUserAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
-					Return(db2.User{}, sql.ErrConnDone)
+					Return(db.User{}, sql.ErrConnDone)
 				store.EXPECT().
 					UpdateUser(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -677,7 +677,7 @@ func TestUpdateUserAPI(t *testing.T) {
 				store.EXPECT().
 					UpdateUser(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.User{}, sql.ErrConnDone)
+					Return(db.User{}, sql.ErrConnDone)
 				store.EXPECT().
 					CreateMultipleUserSkills(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
@@ -716,7 +716,7 @@ func TestUpdateUserAPI(t *testing.T) {
 				store.EXPECT().
 					CreateMultipleUserSkills(gomock.Any(), gomock.Eq(createUserSkills), gomock.Eq(user.ID)).
 					Times(1).
-					Return([]db2.UserSkill{}, sql.ErrConnDone)
+					Return([]db.UserSkill{}, sql.ErrConnDone)
 				store.EXPECT().
 					DeleteMultipleUserSkills(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -793,7 +793,7 @@ func TestUpdateUserAPI(t *testing.T) {
 					DeleteMultipleUserSkills(gomock.Any(), gomock.Eq(skillIDsToRemove)).
 					Times(1).
 					Return(nil)
-				listSkillsParams := db2.ListUserSkillsParams{
+				listSkillsParams := db.ListUserSkillsParams{
 					UserID: user.ID,
 					Limit:  10,
 					Offset: 0,
@@ -801,7 +801,7 @@ func TestUpdateUserAPI(t *testing.T) {
 				store.EXPECT().
 					ListUserSkills(gomock.Any(), gomock.Eq(listSkillsParams)).
 					Times(1).
-					Return([]db2.UserSkill{}, sql.ErrConnDone)
+					Return([]db.UserSkill{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -1037,7 +1037,7 @@ func TestUpdateUserPasswordAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
-					Return(db2.User{}, sql.ErrConnDone)
+					Return(db.User{}, sql.ErrConnDone)
 				store.EXPECT().
 					UpdatePassword(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1139,7 +1139,7 @@ func TestDeleteUserAPI(t *testing.T) {
 				store.EXPECT().
 					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
-					Return(db2.User{}, sql.ErrConnDone)
+					Return(db.User{}, sql.ErrConnDone)
 				store.EXPECT().
 					DeleteAllUserSkills(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1224,12 +1224,12 @@ func TestDeleteUserAPI(t *testing.T) {
 }
 
 // generateRandomUser generates a random user and returns it with the password
-func generateRandomUser(t *testing.T) (db2.User, string) {
+func generateRandomUser(t *testing.T) (db.User, string) {
 	password := utils2.RandomString(6)
 	hashedPassword, err := utils2.HashPassword(password)
 	require.NoError(t, err)
 
-	user := db2.User{
+	user := db.User{
 		ID:               utils2.RandomInt(1, 1000),
 		FullName:         utils2.RandomString(6),
 		Email:            utils2.RandomEmail(),
@@ -1248,7 +1248,7 @@ func generateRandomUser(t *testing.T) (db2.User, string) {
 }
 
 // requireBodyMatchUser checks if the body of the response matches the user
-func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db2.User, skills []db2.UserSkill) {
+func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db.User, skills []db.UserSkill) {
 	data, err := io.ReadAll(body)
 	require.NoError(t, err)
 
@@ -1290,10 +1290,10 @@ func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db2.User, skill
 	}
 }
 
-func generateSkills(userID int32) ([]Skill, []db2.UserSkill, []db2.CreateMultipleUserSkillsParams) {
+func generateSkills(userID int32) ([]Skill, []db.UserSkill, []db.CreateMultipleUserSkillsParams) {
 	var skills []Skill
-	var userSkills []db2.UserSkill
-	var createUserSkills []db2.CreateMultipleUserSkillsParams
+	var userSkills []db.UserSkill
+	var createUserSkills []db.CreateMultipleUserSkillsParams
 	for i := 0; i < 2; i++ {
 		name := utils2.RandomString(3)
 		experience := utils2.RandomInt(1, 5)
@@ -1301,11 +1301,11 @@ func generateSkills(userID int32) ([]Skill, []db2.UserSkill, []db2.CreateMultipl
 			SkillName:         name,
 			YearsOfExperience: experience,
 		})
-		createUserSkills = append(createUserSkills, db2.CreateMultipleUserSkillsParams{
+		createUserSkills = append(createUserSkills, db.CreateMultipleUserSkillsParams{
 			Skill:      name,
 			Experience: experience,
 		})
-		userSkills = append(userSkills, db2.UserSkill{
+		userSkills = append(userSkills, db.UserSkill{
 			ID:         utils2.RandomInt(1, 100),
 			UserID:     userID,
 			Skill:      name,

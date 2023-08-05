@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	db2 "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/pkg/token"
 	"github.com/aalug/go-gin-job-search/pkg/utils"
 	"github.com/aalug/go-gin-job-search/pkg/validation"
@@ -35,7 +35,7 @@ type employerResponse struct {
 }
 
 // newEmployerResponse creates a new employer response from a db.Employer and db.Company
-func newEmployerResponse(employer db2.Employer, company db2.Company) employerResponse {
+func newEmployerResponse(employer db.Employer, company db.Company) employerResponse {
 	return employerResponse{
 		EmployerID:        employer.ID,
 		FullName:          employer.FullName,
@@ -69,7 +69,7 @@ func (server *Server) createEmployer(ctx *gin.Context) {
 	}
 
 	// create a company
-	companyParams := db2.CreateCompanyParams{
+	companyParams := db.CreateCompanyParams{
 		Name:     request.CompanyName,
 		Industry: request.CompanyIndustry,
 		Location: request.CompanyLocation,
@@ -97,7 +97,7 @@ func (server *Server) createEmployer(ctx *gin.Context) {
 	}
 
 	// Create an employer
-	employerParams := db2.CreateEmployerParams{
+	employerParams := db.CreateEmployerParams{
 		CompanyID:      company.ID,
 		FullName:       request.FullName,
 		Email:          request.Email,
@@ -275,7 +275,7 @@ func (server *Server) updateEmployer(ctx *gin.Context) {
 	}
 
 	// update the company details
-	companyParams := db2.UpdateCompanyParams{
+	companyParams := db.UpdateCompanyParams{
 		ID:       company.ID,
 		Name:     company.Name,
 		Industry: company.Industry,
@@ -304,7 +304,7 @@ func (server *Server) updateEmployer(ctx *gin.Context) {
 			return
 		}
 
-		employerParams := db2.UpdateEmployerParams{
+		employerParams := db.UpdateEmployerParams{
 			ID:        authEmployer.ID,
 			CompanyID: authEmployer.CompanyID,
 			FullName:  authEmployer.FullName,
@@ -383,7 +383,7 @@ func (server *Server) updateEmployerPassword(ctx *gin.Context) {
 		return
 	}
 
-	params := db2.UpdateEmployerPasswordParams{
+	params := db.UpdateEmployerPasswordParams{
 		ID:             authEmployer.ID,
 		HashedPassword: hashedPassword,
 	}
