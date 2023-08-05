@@ -320,7 +320,113 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized. Only users can access",
+                        "description": "Unauthorized. Only users can access, not employers.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/job-applications/employer/{id}": {
+            "get": {
+                "description": "Get job application for an employer. Only employers can access this endpoint. It returns different details than getJobApplicationForUser.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "job applications"
+                ],
+                "summary": "Get job application for employer",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "job application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.getJobApplicationForEmployerResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Only employers can access, not users.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Only an employer that is part of the company that created this application can access this endpoint.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/job-applications/user/{id}": {
+            "get": {
+                "description": "Get job application for a user. Only users can access this endpoint. It returns different details than getJobApplicationForEmployer.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "job applications"
+                ],
+                "summary": "Get job application for user",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "job application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.getJobApplicationForUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Only users can access, not employers.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Only the applicant (the owner) of the job application can access this endpoint.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1235,6 +1341,82 @@ const docTemplate = `{
                 }
             }
         },
+        "api.getJobApplicationForEmployerResponse": {
+            "type": "object",
+            "properties": {
+                "application_date": {
+                    "type": "string"
+                },
+                "application_id": {
+                    "type": "integer"
+                },
+                "application_message": {
+                    "type": "string"
+                },
+                "application_status": {
+                    "$ref": "#/definitions/db.ApplicationStatus"
+                },
+                "job_id": {
+                    "type": "integer"
+                },
+                "job_title": {
+                    "type": "string"
+                },
+                "user_cv": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "user_email": {
+                    "type": "string"
+                },
+                "user_full_name": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "user_location": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.getJobApplicationForUserResponse": {
+            "type": "object",
+            "properties": {
+                "application_date": {
+                    "type": "string"
+                },
+                "application_id": {
+                    "type": "integer"
+                },
+                "application_message": {
+                    "type": "string"
+                },
+                "application_status": {
+                    "$ref": "#/definitions/db.ApplicationStatus"
+                },
+                "company_name": {
+                    "type": "string"
+                },
+                "job_id": {
+                    "type": "integer"
+                },
+                "job_title": {
+                    "type": "string"
+                },
+                "user_cv": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "api.jobApplicationResponse": {
             "type": "object",
             "properties": {
@@ -1721,7 +1903,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "",
 	Host:             "",
-	BasePath:         "/api/v1",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "",
 	Description:      "",

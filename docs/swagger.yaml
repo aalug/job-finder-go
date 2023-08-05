@@ -1,4 +1,3 @@
-basePath: /api/v1
 definitions:
   api.ErrorResponse:
     properties:
@@ -126,6 +125,56 @@ definitions:
         type: integer
       full_name:
         type: string
+    type: object
+  api.getJobApplicationForEmployerResponse:
+    properties:
+      application_date:
+        type: string
+      application_id:
+        type: integer
+      application_message:
+        type: string
+      application_status:
+        $ref: '#/definitions/db.ApplicationStatus'
+      job_id:
+        type: integer
+      job_title:
+        type: string
+      user_cv:
+        items:
+          type: integer
+        type: array
+      user_email:
+        type: string
+      user_full_name:
+        type: string
+      user_id:
+        type: integer
+      user_location:
+        type: string
+    type: object
+  api.getJobApplicationForUserResponse:
+    properties:
+      application_date:
+        type: string
+      application_id:
+        type: integer
+      application_message:
+        type: string
+      application_status:
+        $ref: '#/definitions/db.ApplicationStatus'
+      company_name:
+        type: string
+      job_id:
+        type: integer
+      job_title:
+        type: string
+      user_cv:
+        items:
+          type: integer
+        type: array
+      user_id:
+        type: integer
     type: object
   api.jobApplicationResponse:
     properties:
@@ -651,7 +700,7 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Unauthorized. Only users can access
+          description: Unauthorized. Only users can access, not employers.
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "500":
@@ -659,6 +708,80 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Create job application
+      tags:
+      - job applications
+  /job-applications/employer/{id}:
+    get:
+      description: Get job application for an employer. Only employers can access
+        this endpoint. It returns different details than getJobApplicationForUser.
+      parameters:
+      - description: job application ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.getJobApplicationForEmployerResponse'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized. Only employers can access, not users.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Only an employer that is part of the company that created this
+            application can access this endpoint.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get job application for employer
+      tags:
+      - job applications
+  /job-applications/user/{id}:
+    get:
+      description: Get job application for a user. Only users can access this endpoint.
+        It returns different details than getJobApplicationForEmployer.
+      parameters:
+      - description: job application ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.getJobApplicationForUserResponse'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized. Only users can access, not employers.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Only the applicant (the owner) of the job application can access
+            this endpoint.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get job application for user
       tags:
       - job applications
   /jobs:
