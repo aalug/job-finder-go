@@ -16,11 +16,11 @@ sqlc:
 
 # generate mock db for testing
 mock:
-	mockgen -package mockdb -destination db/mock/store.go github.com/aalug/go-gin-job-search/db/sqlc Store
+	mockgen -package mockdb -destination internal/db/mock/store.go github.com/aalug/go-gin-job-search/internal/db/sqlc Store
 
 # generate mock functions for elasticsearch based functions
 mock_es:
-	mockgen -package mockesearch -destination esearch/mock/search.go github.com/aalug/go-gin-job-search/esearch ESearchClient
+	mockgen -package mockesearch -destination internal/esearch/mock/search.go github.com/aalug/go-gin-job-search/internal/esearch ESearchClient
 
 
 # run all tests
@@ -32,7 +32,7 @@ test_coverage:
 	go test $(p) -coverprofile=coverage.out && go tool cover -html=coverage.out
 
 runserver:
-	go run main.go
+	go run cmd/gin-job-search/main.go
 
 # flush db and restart it
 flush_db:

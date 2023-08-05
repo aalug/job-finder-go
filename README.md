@@ -19,7 +19,7 @@
 ## Getting started
 1. Clone the repository
 2. Go to the project's root directory
-3. Rename `app.env.sample` to `app.env` and replace the values
+3. Rename `app.env.example` to `app.env` and replace the values
 4. Run in your terminal:
      - `docker-compose up` to run the database container
      - `make migrate_up` - to run migrations
