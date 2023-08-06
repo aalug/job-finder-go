@@ -48,6 +48,13 @@ func main() {
 		log.Fatal("cannot create server: ", err)
 	}
 
+	// @contact.name aalug
+	// @contact.url https://github.com/aalug
+	// @contact.email a.a.gulczynski@gmail.com
+	// @securityDefinitions.apikey ApiKeyAuth
+	// @in header
+	// @name Authorization
+	// @description Use 'bearer {token}' without quotes.
 	err = server.Start(cfg.ServerAddress)
 	if err != nil {
 		log.Fatal("cannot start the server:", err)

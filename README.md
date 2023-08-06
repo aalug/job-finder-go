@@ -1,4 +1,12 @@
 # Go job search
+<hr>
+
+A **REST API** that allows registering as users and employers, where both
+account types have access to different endpoints and are allowed to perform
+different actions (e.g. only employers can create job offers, and only users
+can create job applications).
+Search functionality is implemented both with Postgres and Elasticsearch (depending on search complexity).
+<hr>
 
 ### Built in Go 1.20
 
@@ -12,7 +20,7 @@
 - [testify](https://github.com/stretchr/testify)
 - [PASETO Security Tokens](github.com/o1egl/paseto)
 - [Viper](https://github.com/spf13/viper)
-- [gin-swagger](https://github.com/swaggo/gin-swagger) for generating docs
+- [gin-swagger](https://github.com/swaggo/gin-swagger)
 
 <hr>
 
@@ -31,10 +39,12 @@
 1. Run the postgres container (`docker-compose up`)
 2. Run in your terminal:
     - `make test` to run all tests
+
    or
     - `make test_coverage p={PATH}` - to get the coverage in the HTML format - where `{PATH}` is the path to the target directory for which you want to generate test coverage. The `{PATH}` should be replaced with the actual path you want to use. For example `./api`
+
    or
-    - use standard `go test` commands (e.g. `go test -v ./api`)
+    - use standard `go test` commands (e.g. `go test -v ./internal/api`)
 <hr>
 
 ## API endpoints
@@ -42,6 +52,10 @@ This API provides a set of endpoints for managing:
 - users
 - employers
 - jobs
+- job applications
+
+(and indirectly: user skills and job skills)
+
 
 After running the server, the Swagger documentation is available at http://localhost:8080/swagger/index.html. 
 You can find there detailed information about the API endpoints, including their parameters, 

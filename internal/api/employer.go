@@ -207,6 +207,7 @@ func (server *Server) loginEmployer(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} employerResponse
 // @Failure 500 {object} ErrorResponse "Internal error"
+// @Security ApiKeyAuth
 // @Router /employers [get]
 // getEmployer get details of the authenticated employer
 func (server *Server) getEmployer(ctx *gin.Context) {
@@ -244,6 +245,7 @@ type updateEmployerRequest struct {
 // @Success 200 {object} employerResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body"
 // @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
 // @Router /employers [patch]
 // updateEmployer handles update of an employer details
 func (server *Server) updateEmployer(ctx *gin.Context) {
@@ -354,6 +356,7 @@ type updateEmployerPasswordResponse struct {
 // @Failure 400 {object} ErrorResponse "Invalid request body"
 // @Failure 401 {object} ErrorResponse "Incorrect password"
 // @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
 // @Router /employers/password [patch]
 // updateEmployerPassword handles user password update
 func (server *Server) updateEmployerPassword(ctx *gin.Context) {
@@ -403,6 +406,7 @@ func (server *Server) updateEmployerPassword(ctx *gin.Context) {
 // @Tags employers
 // @Success 204 {null} null
 // @Failure 500 {object} ErrorResponse "Any error"
+// @Security ApiKeyAuth
 // @Router /employers [delete]
 // deleteEmployer handles deleting employer
 func (server *Server) deleteEmployer(ctx *gin.Context) {

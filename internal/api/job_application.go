@@ -44,6 +44,7 @@ func newJobApplicationResponse(jobApplication db.JobApplication) jobApplicationR
 // @Failure 400 {object} ErrorResponse "Invalid request body"
 // @Failure 401 {object} ErrorResponse "Unauthorized. Only users can access, not employers."
 // @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
 // @Router /job-applications [post]
 // createJobApplication creates a new job application
 func (server *Server) createJobApplication(ctx *gin.Context) {
@@ -145,6 +146,7 @@ type getJobApplicationForUserResponse struct {
 // @Failure 401 {object} ErrorResponse "Unauthorized. Only users can access, not employers."
 // @Failure 403 {object} ErrorResponse "Only the applicant (the owner) of the job application can access this endpoint."
 // @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
 // @Router /job-applications/user/{id} [get]
 // getJobApplicationForUser gets a job application for a user.
 // Only users can access this endpoint and only the applicant (the owner)
@@ -246,8 +248,9 @@ type getJobApplicationForEmployerResponse struct {
 // @Success 200 {object} getJobApplicationForEmployerResponse
 // @Failure 400 {object} ErrorResponse "Invalid ID"
 // @Failure 401 {object} ErrorResponse "Unauthorized. Only employers can access, not users."
-// @Failure 403 {object} ErrorResponse "Only an employer that is part of the company that created this application can access this endpoint.
+// @Failure 403 {object} ErrorResponse "Only an employer that is part of the company that created the job that this application is for can access this endpoint.
 // @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
 // @Router /job-applications/employer/{id} [get]
 // getJobApplicationForEmployer gets a job application for an employer.
 // Only employers can access this endpoint and only employers that are part
@@ -343,6 +346,104 @@ func (server *Server) getJobApplicationForEmployer(ctx *gin.Context) {
 		c.Data(http.StatusOK, "application/pdf", jobApplication.UserCv)
 	})
 	res.CvLink = fmt.Sprintf("%s/%s", server.config.ServerAddress, url)
+
+	ctx.JSON(http.StatusOK, res)
+}
+
+type changeJobApplicationStatusUriRequest struct {
+	ID int32 `uri:"id" binding:"required,min=1"`
+}
+
+type changeJobApplicationStatusRequest struct {
+	NewStatus db.ApplicationStatus `json:"new_status" binding:"required,oneof=Interviewing Offered Rejected"`
+}
+
+type changeJobApplicationStatusResponse struct {
+	ApplicationID int32                `json:"application_id"`
+	Status        db.ApplicationStatus `json:"status"`
+	Message       string               `json:"message"`
+}
+
+// @Schemes
+// @Summary Reject job application (employer)
+// @Description Change job application status as an employer. Only employers can access this endpoint.
+// @Tags job applications
+// @param id path int true "job application ID"
+// @param new_status body changeJobApplicationStatusRequest true "new status"
+// @Produce json
+// @Success 200 {object} changeJobApplicationStatusResponse
+// @Failure 400 {object} ErrorResponse "Invalid status or job application ID"
+// @Failure 401 {object} ErrorResponse "Unauthorized. Only employers can access, not users."
+// @Failure 403 {object} ErrorResponse "Only an employer that is part of the company that created the job that this application is for can access this endpoint.
+// @Failure 405 {object} ErrorResponse "Job application with given ID does not exist"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
+// @Router /job-applications/employer/{id}/status [patch]
+// rejectJobApplication allows employer to reject a job application - change status to Rejected
+func (server *Server) changeJobApplicationStatus(ctx *gin.Context) {
+	var uriRequest changeJobApplicationStatusUriRequest
+	if err := ctx.ShouldBindUri(&uriRequest); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	var request changeJobApplicationStatusRequest
+	if err := ctx.ShouldBindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// check if the employer is authenticated (and is an employer, not user)
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so it had to be made by a user
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyEmployersAccessError))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// check if the employer is part of the company that created job for which the application was made
+	// get company ID
+	companyID, err := server.store.GetCompanyIDOfJob(ctx, uriRequest.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = fmt.Errorf("job application with ID %d does not exist", uriRequest.ID)
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// compare companyID and employers company id
+	if companyID != authEmployer.CompanyID {
+		err = fmt.Errorf("employer with ID %d is not part of the company that created this job", authEmployer.ID)
+		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		return
+	}
+
+	// update the job application status
+	err = server.store.UpdateJobApplicationStatus(ctx, db.UpdateJobApplicationStatusParams{
+		ID:     uriRequest.ID,
+		Status: request.NewStatus,
+	})
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	res := changeJobApplicationStatusResponse{
+		ApplicationID: uriRequest.ID,
+		Status:        request.NewStatus,
+		Message:       "Status updated successfully",
+	}
 
 	ctx.JSON(http.StatusOK, res)
 }
