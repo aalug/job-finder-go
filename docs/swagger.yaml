@@ -13,6 +13,27 @@ definitions:
       years_of_experience:
         type: integer
     type: object
+  api.changeJobApplicationStatusRequest:
+    properties:
+      new_status:
+        allOf:
+        - $ref: '#/definitions/db.ApplicationStatus'
+        enum:
+        - Interviewing
+        - Offered
+        - Rejected
+    required:
+    - new_status
+    type: object
+  api.changeJobApplicationStatusResponse:
+    properties:
+      application_id:
+        type: integer
+      message:
+        type: string
+      status:
+        $ref: '#/definitions/db.ApplicationStatus'
+    type: object
   api.createEmployerRequest:
     properties:
       company_industry:
@@ -136,14 +157,12 @@ definitions:
         type: string
       application_status:
         $ref: '#/definitions/db.ApplicationStatus'
+      cv_link:
+        type: string
       job_id:
         type: integer
       job_title:
         type: string
-      user_cv:
-        items:
-          type: integer
-        type: array
       user_email:
         type: string
       user_full_name:
@@ -165,14 +184,12 @@ definitions:
         $ref: '#/definitions/db.ApplicationStatus'
       company_name:
         type: string
+      cv_link:
+        type: string
       job_id:
         type: integer
       job_title:
         type: string
-      user_cv:
-        items:
-          type: integer
-        type: array
       user_id:
         type: integer
     type: object
@@ -513,6 +530,8 @@ paths:
           description: Any error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Delete employer
       tags:
       - employers
@@ -529,6 +548,8 @@ paths:
           description: Internal error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Get employer
       tags:
       - employers
@@ -558,6 +579,8 @@ paths:
           description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Update employer
       tags:
       - employers
@@ -665,6 +688,8 @@ paths:
           description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Update employer password
       tags:
       - employers
@@ -707,6 +732,8 @@ paths:
           description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Create job application
       tags:
       - job applications
@@ -736,15 +763,66 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "403":
-          description: Only an employer that is part of the company that created this
-            application can access this endpoint.
+          description: Only an employer that is part of the company that created the
+            job that this application is for can access this endpoint.
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "500":
           description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Get job application for employer
+      tags:
+      - job applications
+  /job-applications/employer/{id}/status:
+    patch:
+      description: Change job application status as an employer. Only employers can
+        access this endpoint.
+      parameters:
+      - description: job application ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: new status
+        in: body
+        name: new_status
+        required: true
+        schema:
+          $ref: '#/definitions/api.changeJobApplicationStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.changeJobApplicationStatusResponse'
+        "400":
+          description: Invalid status or job application ID
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized. Only employers can access, not users.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Only an employer that is part of the company that created the
+            job that this application is for can access this endpoint.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "405":
+          description: Job application with given ID does not exist
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Reject job application (employer)
       tags:
       - job applications
   /job-applications/user/{id}:
@@ -781,6 +859,8 @@ paths:
           description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Get job application for user
       tags:
       - job applications
@@ -866,6 +946,8 @@ paths:
           description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Create job
       tags:
       - jobs
@@ -891,6 +973,8 @@ paths:
           description: Any error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Delete job
       tags:
       - jobs
@@ -964,6 +1048,8 @@ paths:
           description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Update job
       tags:
       - jobs
@@ -1108,6 +1194,8 @@ paths:
           description: Any error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Delete user
       tags:
       - users
@@ -1124,6 +1212,8 @@ paths:
           description: Any error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Get user
       tags:
       - users
@@ -1153,6 +1243,8 @@ paths:
           description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Update user
       tags:
       - users
@@ -1258,7 +1350,15 @@ paths:
           description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Update user password
       tags:
       - users
+securityDefinitions:
+  ApiKeyAuth:
+    description: Use 'bearer {token}' without quotes.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

@@ -68,9 +68,6 @@ func (server *Server) setupRouter() {
 	// Swagger docs
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	docs.SwaggerInfo.BasePath = "/api/v1"
-	// @contact.name aalug
-	// @contact.url https://github.com/aalug
-	// @contact.email a.a.gulczynski@gmail.com
 
 	// === users ===
 	routerV1.POST("/users", server.createUser)
@@ -111,9 +108,13 @@ func (server *Server) setupRouter() {
 	authRoutesV1.GET("/jobs/match-skills", server.listJobsByMatchingSkills)
 
 	// === job applications ===
+	// for users, job applications CRUD
 	authRoutesV1.POST("/job-applications", server.createJobApplication)
 	authRoutesV1.GET("/job-applications/user/:id", server.getJobApplicationForUser)
+
+	// for employers, reading, changing statuses (rejecting, offering)
 	authRoutesV1.GET("/job-applications/employer/:id", server.getJobApplicationForEmployer)
+	authRoutesV1.PATCH("/job-applications/employer/:id/status", server.changeJobApplicationStatus)
 
 	server.router = router
 }

@@ -45,4 +45,7 @@ flush_es:
 	docker-compose rm -f elasticsearch
 	docker-compose up -d elasticsearch
 
-.PHONY: generate_migrations, migrate_up, migrate_down, sqlc, mock, test, test_coverage, runserver, flush_db, flush_es
+swag:
+	swag init -g cmd/main.go
+
+.PHONY: generate_migrations, migrate_up, migrate_down, sqlc, mock, test, test_coverage, runserver, flush_db, flush_es, swag

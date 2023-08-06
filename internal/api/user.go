@@ -241,6 +241,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 // @Produce json
 // @Success 200 {object} userResponse
 // @Failure 500 {object} ErrorResponse "Any error"
+// @Security ApiKeyAuth
 // @Router /users [get]
 // getUser handles getting user details
 func (server *Server) getUser(ctx *gin.Context) {
@@ -278,6 +279,7 @@ type updateUserRequest struct {
 // @Success 200 {object} userResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body"
 // @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
 // @Router /users [patch]
 // updateUser handles user update
 func (server *Server) updateUser(ctx *gin.Context) {
@@ -419,6 +421,7 @@ type updateUserPasswordResponse struct {
 // @Failure 400 {object} ErrorResponse "Invalid request body"
 // @Failure 401 {object} ErrorResponse "Incorrect password"
 // @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
 // @Router /users/password [patch]
 // updateUserPassword handles user password update
 func (server *Server) updateUserPassword(ctx *gin.Context) {
@@ -468,6 +471,7 @@ func (server *Server) updateUserPassword(ctx *gin.Context) {
 // @Tags users
 // @Success 204 {null} null
 // @Failure 500 {object} ErrorResponse "Any error"
+// @Security ApiKeyAuth
 // @Router /users [delete]
 // deleteUser handles deleting users
 func (server *Server) deleteUser(ctx *gin.Context) {

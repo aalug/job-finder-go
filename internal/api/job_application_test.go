@@ -10,6 +10,7 @@ import (
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/pkg/token"
 	"github.com/aalug/go-gin-job-search/pkg/utils"
+	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
@@ -844,6 +845,296 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 				expectedContentDisposition := fmt.Sprintf("inline; filename=cv_%d.pdf", jobApplicationID)
 				require.Equal(t, expectedContentDisposition, contentDisposition)
 			}
+		})
+	}
+}
+
+func TestChangeJobApplicationStatusAPI(t *testing.T) {
+	user, _ := generateRandomUser(t)
+	employer, _, company := generateRandomEmployerAndCompany(t)
+	var jobApplicationID int32 = 1
+
+	testCases := []struct {
+		name             string
+		JobApplicationID int32
+		body             gin.H
+		setupAuth        func(t *testing.T, r *http.Request, maker token.Maker)
+		buildStubs       func(store *mockdb.MockStore)
+		checkResponse    func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:             "OK",
+			JobApplicationID: jobApplicationID,
+			body: gin.H{
+				"new_status": "Rejected",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(company.ID, nil)
+				params := db.UpdateJobApplicationStatusParams{
+					ID:     jobApplicationID,
+					Status: db.ApplicationStatusRejected,
+				}
+				store.EXPECT().
+					UpdateJobApplicationStatus(gomock.Any(), gomock.Eq(params)).
+					Times(1).
+					Return(nil)
+
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				data, err := io.ReadAll(recorder.Body)
+				require.NoError(t, err)
+				var response changeJobApplicationStatusResponse
+				err = json.Unmarshal(data, &response)
+				require.NoError(t, err)
+				require.Equal(t, response.ApplicationID, jobApplicationID)
+				require.Equal(t, db.ApplicationStatusRejected, response.Status)
+				require.Equal(t, "Status updated successfully", response.Message)
+			},
+		},
+		{
+			name:             "Invalid Status",
+			JobApplicationID: jobApplicationID,
+			body: gin.H{
+				"new_status": "Invalid",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateJobApplicationStatus(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:             "Invalid Job Application ID",
+			JobApplicationID: 0,
+			body: gin.H{
+				"new_status": "Rejected",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateJobApplicationStatus(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:             "Unauthorized",
+			JobApplicationID: jobApplicationID,
+			body: gin.H{
+				"new_status": "Rejected",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db.Employer{}, sql.ErrNoRows)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateJobApplicationStatus(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name:             "Internal Server Error GetEmployerByEmail",
+			JobApplicationID: jobApplicationID,
+			body: gin.H{
+				"new_status": "Rejected",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.Employer{}, sql.ErrConnDone)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateJobApplicationStatus(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:             "Job Application Not Found",
+			JobApplicationID: jobApplicationID,
+			body: gin.H{
+				"new_status": "Rejected",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(int32(0), sql.ErrNoRows)
+				store.EXPECT().
+					UpdateJobApplicationStatus(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:             "Internal Server Error GetCompanyIDOfJob",
+			JobApplicationID: jobApplicationID,
+			body: gin.H{
+				"new_status": "Rejected",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(int32(0), sql.ErrConnDone)
+				store.EXPECT().
+					UpdateJobApplicationStatus(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:             "Forbidden Employer Not Job Owner",
+			JobApplicationID: jobApplicationID,
+			body: gin.H{
+				"new_status": "Rejected",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(company.ID+1, nil)
+				store.EXPECT().
+					UpdateJobApplicationStatus(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusForbidden, recorder.Code)
+			},
+		},
+		{
+			name:             "Forbidden Employer Not Job Owner",
+			JobApplicationID: jobApplicationID,
+			body: gin.H{
+				"new_status": "Rejected",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(company.ID, nil)
+				params := db.UpdateJobApplicationStatusParams{
+					ID:     jobApplicationID,
+					Status: db.ApplicationStatusRejected,
+				}
+				store.EXPECT().
+					UpdateJobApplicationStatus(gomock.Any(), gomock.Eq(params)).
+					Times(1).
+					Return(sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store, nil)
+			recorder := httptest.NewRecorder()
+
+			data, err := json.Marshal(tc.body)
+			require.NoError(t, err)
+
+			url := fmt.Sprintf("/api/v1/job-applications/employer/%d/status", tc.JobApplicationID)
+			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
+			require.NoError(t, err)
+
+			tc.setupAuth(t, req, server.tokenMaker)
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
 		})
 	}
 }

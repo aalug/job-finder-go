@@ -22,6 +22,11 @@ const docTemplate = `{
     "paths": {
         "/employers": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get the details of the authenticated employer",
                 "produces": [
                     "application/json"
@@ -96,6 +101,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete the logged-in employer",
                 "tags": [
                     "employers"
@@ -117,6 +127,11 @@ const docTemplate = `{
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Update the details of the authenticated employer",
                 "consumes": [
                     "application/json"
@@ -221,6 +236,11 @@ const docTemplate = `{
         },
         "/employers/password": {
             "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Update/change logged-in employer password",
                 "consumes": [
                     "application/json"
@@ -273,6 +293,11 @@ const docTemplate = `{
         },
         "/job-applications": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Create a job application. Only users can access this endpoint.",
                 "consumes": [
                     "multipart/form-data"
@@ -336,6 +361,11 @@ const docTemplate = `{
         },
         "/job-applications/employer/{id}": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get job application for an employer. Only employers can access this endpoint. It returns different details than getJobApplicationForUser.",
                 "produces": [
                     "application/json"
@@ -373,7 +403,80 @@ const docTemplate = `{
                         }
                     },
                     "403": {
-                        "description": "Only an employer that is part of the company that created this application can access this endpoint.",
+                        "description": "Only an employer that is part of the company that created the job that this application is for can access this endpoint.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/job-applications/employer/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Change job application status as an employer. Only employers can access this endpoint.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "job applications"
+                ],
+                "summary": "Reject job application (employer)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "job application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "new status",
+                        "name": "new_status",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.changeJobApplicationStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.changeJobApplicationStatusResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid status or job application ID",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Only employers can access, not users.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Only an employer that is part of the company that created the job that this application is for can access this endpoint.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "405": {
+                        "description": "Job application with given ID does not exist",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -389,6 +492,11 @@ const docTemplate = `{
         },
         "/job-applications/user/{id}": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get job application for a user. Only users can access this endpoint. It returns different details than getJobApplicationForEmployer.",
                 "produces": [
                     "application/json"
@@ -524,6 +632,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Create a new job",
                 "consumes": [
                     "application/json"
@@ -808,6 +921,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete the job with the given id",
                 "tags": [
                     "jobs"
@@ -844,6 +962,11 @@ const docTemplate = `{
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "update the job with the given id",
                 "consumes": [
                     "application/json"
@@ -909,6 +1032,11 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get details of the logged in user",
                 "produces": [
                     "application/json"
@@ -983,6 +1111,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Delete the logged-in user",
                 "tags": [
                     "users"
@@ -1004,6 +1137,11 @@ const docTemplate = `{
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Update the logged-in user details",
                 "consumes": [
                     "application/json"
@@ -1108,6 +1246,11 @@ const docTemplate = `{
         },
         "/users/password": {
             "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Change / update password of the logged-in user",
                 "consumes": [
                     "application/json"
@@ -1179,6 +1322,40 @@ const docTemplate = `{
                 },
                 "years_of_experience": {
                     "type": "integer"
+                }
+            }
+        },
+        "api.changeJobApplicationStatusRequest": {
+            "type": "object",
+            "required": [
+                "new_status"
+            ],
+            "properties": {
+                "new_status": {
+                    "enum": [
+                        "Interviewing",
+                        "Offered",
+                        "Rejected"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/db.ApplicationStatus"
+                        }
+                    ]
+                }
+            }
+        },
+        "api.changeJobApplicationStatusResponse": {
+            "type": "object",
+            "properties": {
+                "application_id": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/db.ApplicationStatus"
                 }
             }
         },
@@ -1356,17 +1533,14 @@ const docTemplate = `{
                 "application_status": {
                     "$ref": "#/definitions/db.ApplicationStatus"
                 },
+                "cv_link": {
+                    "type": "string"
+                },
                 "job_id": {
                     "type": "integer"
                 },
                 "job_title": {
                     "type": "string"
-                },
-                "user_cv": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
                 },
                 "user_email": {
                     "type": "string"
@@ -1400,17 +1574,14 @@ const docTemplate = `{
                 "company_name": {
                     "type": "string"
                 },
+                "cv_link": {
+                    "type": "string"
+                },
                 "job_id": {
                     "type": "integer"
                 },
                 "job_title": {
                     "type": "string"
-                },
-                "user_cv": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
                 },
                 "user_id": {
                     "type": "integer"
@@ -1895,6 +2066,14 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "description": "Use 'bearer {token}' without quotes.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

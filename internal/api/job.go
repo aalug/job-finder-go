@@ -65,6 +65,7 @@ type createJobRequest struct {
 // @Success 201 {object} jobResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body"
 // @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
 // @Router /jobs [post]
 // createJob handles creating a job posting - job with job skills
 func (server *Server) createJob(ctx *gin.Context) {
@@ -174,6 +175,7 @@ type deleteJobRequest struct {
 // @Success 204 {null} null
 // @Failure 404 {object} ErrorResponse "Job not found"
 // @Failure 500 {object} ErrorResponse "Any error"
+// @Security ApiKeyAuth
 // @Router /jobs/{id} [delete]
 // deleteJob handles deleting a job posting
 func (server *Server) deleteJob(ctx *gin.Context) {
@@ -269,6 +271,7 @@ type updateJobRequest struct {
 // @Failure 401 {object} ErrorResponse "User making the request not an employer or employer not the owner of the job"
 // @Failure 404 {object} ErrorResponse "Job not found"
 // @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
 // @Router /jobs/{id} [patch]
 // updateJob handles updating a job posting - job and job skills
 func (server *Server) updateJob(ctx *gin.Context) {
