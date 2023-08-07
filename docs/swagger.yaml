@@ -699,7 +699,7 @@ paths:
       - multipart/form-data
       description: Create a job application. Only users can access this endpoint.
       parameters:
-      - description: CV file
+      - description: CV file (.pdf)
         in: formData
         name: cv
         required: true
@@ -812,7 +812,7 @@ paths:
             job that this application is for can access this endpoint.
           schema:
             $ref: '#/definitions/api.ErrorResponse'
-        "405":
+        "404":
           description: Job application with given ID does not exist
           schema:
             $ref: '#/definitions/api.ErrorResponse'
@@ -822,7 +822,7 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
       security:
       - ApiKeyAuth: []
-      summary: Reject job application (employer)
+      summary: Change job application status (employer)
       tags:
       - job applications
   /job-applications/user/{id}:
@@ -862,6 +862,62 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get job application for user
+      tags:
+      - job applications
+    patch:
+      description: Update job application details (message, cv) but only if the status
+        is 'Applied' (the application was not seen by the employer). Only users can
+        access this endpoint.
+      parameters:
+      - description: job application ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: CV file (.pdf)
+        in: formData
+        name: cv
+        type: file
+      - description: was CV file provided
+        in: formData
+        name: cv_provided
+        required: true
+        type: boolean
+      - description: Message for the employer
+        in: formData
+        name: message
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.jobApplicationResponse'
+        "400":
+          description: Invalid data or job application ID
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized. Only users can access, not employers.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Only a user that created this job application can access this
+            endpoint.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Job application with given ID does not exist
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update job application (user)
       tags:
       - job applications
   /jobs:

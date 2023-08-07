@@ -312,7 +312,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "file",
-                        "description": "CV file",
+                        "description": "CV file (.pdf)",
                         "name": "cv",
                         "in": "formData",
                         "required": true
@@ -431,7 +431,7 @@ const docTemplate = `{
                 "tags": [
                     "job applications"
                 ],
-                "summary": "Reject job application (employer)",
+                "summary": "Change job application status (employer)",
                 "parameters": [
                     {
                         "type": "integer",
@@ -475,7 +475,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
-                    "405": {
+                    "404": {
                         "description": "Job application with given ID does not exist",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
@@ -535,6 +535,87 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Only the applicant (the owner) of the job application can access this endpoint.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update job application details (message, cv) but only if the status is 'Applied' (the application was not seen by the employer). Only users can access this endpoint.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "job applications"
+                ],
+                "summary": "Update job application (user)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "job application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "CV file (.pdf)",
+                        "name": "cv",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "was CV file provided",
+                        "name": "cv_provided",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Message for the employer",
+                        "name": "message",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.jobApplicationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid data or job application ID",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Only users can access, not employers.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Only a user that created this job application can access this endpoint.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Job application with given ID does not exist",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }

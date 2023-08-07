@@ -78,9 +78,9 @@ WHERE ja.id = $1
 type GetJobApplicationForEmployerRow struct {
 	ApplicationID      int32             `json:"application_id"`
 	JobTitle           string            `json:"job_title"`
-	JobID             int32             `json:"job_id"`
-	ApplicationStatus ApplicationStatus `json:"application_status"`
-	ApplicationDate   time.Time         `json:"application_date"`
+	JobID              int32             `json:"job_id"`
+	ApplicationStatus  ApplicationStatus `json:"application_status"`
+	ApplicationDate    time.Time         `json:"application_date"`
 	ApplicationMessage sql.NullString    `json:"application_message"`
 	UserCv             []byte            `json:"user_cv"`
 	UserID             int32             `json:"user_id"`
@@ -131,9 +131,9 @@ type GetJobApplicationForUserRow struct {
 	ApplicationID      int32             `json:"application_id"`
 	JobID              int32             `json:"job_id"`
 	JobTitle           string            `json:"job_title"`
-	CompanyName       string            `json:"company_name"`
-	ApplicationStatus ApplicationStatus `json:"application_status"`
-	ApplicationDate   time.Time         `json:"application_date"`
+	CompanyName        string            `json:"company_name"`
+	ApplicationStatus  ApplicationStatus `json:"application_status"`
+	ApplicationDate    time.Time         `json:"application_date"`
 	ApplicationMessage sql.NullString    `json:"application_message"`
 	UserCv             []byte            `json:"user_cv"`
 	UserID             int32             `json:"user_id"`
@@ -154,6 +154,24 @@ func (q *Queries) GetJobApplicationForUser(ctx context.Context, id int32) (GetJo
 		&i.UserCv,
 		&i.UserID,
 	)
+	return i, err
+}
+
+const getJobApplicationUserIDAndStatus = `-- name: GetJobApplicationUserIDAndStatus :one
+SELECT user_id, status
+FROM job_applications
+WHERE id = $1
+`
+
+type GetJobApplicationUserIDAndStatusRow struct {
+	UserID int32             `json:"user_id"`
+	Status ApplicationStatus `json:"status"`
+}
+
+func (q *Queries) GetJobApplicationUserIDAndStatus(ctx context.Context, id int32) (GetJobApplicationUserIDAndStatusRow, error) {
+	row := q.db.QueryRowContext(ctx, getJobApplicationUserIDAndStatus, id)
+	var i GetJobApplicationUserIDAndStatusRow
+	err := row.Scan(&i.UserID, &i.Status)
 	return i, err
 }
 

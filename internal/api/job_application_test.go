@@ -146,7 +146,7 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 				Message: message,
 				JobID:   job.ID,
 			},
-			cv: nil,
+			cv: []byte{},
 			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
 				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
 			},
@@ -262,10 +262,11 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 			require.NoError(t, err)
 
 			// Add the CV file
-			if tc.cv != nil {
+			if len(tc.cv) > 0 {
 				part, err := writer.CreateFormFile("cv", "test_file.pdf")
 				require.NoError(t, err)
-				part.Write(tc.cv)
+				_, err = part.Write(tc.cv)
+				require.NoError(t, err)
 			}
 			writer.Close()
 
@@ -1129,6 +1130,364 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 			url := fmt.Sprintf("/api/v1/job-applications/employer/%d/status", tc.JobApplicationID)
 			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
+
+			tc.setupAuth(t, req, server.tokenMaker)
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
+func TestUpdateJobApplicationAPI(t *testing.T) {
+	user, _ := generateRandomUser(t)
+	employer, _, _ := generateRandomEmployerAndCompany(t)
+	job := generateRandomJob()
+
+	fakeFileSize := 10 * 1024
+	fakeFileData := make([]byte, fakeFileSize)
+	_, err := rand.Read(fakeFileData)
+	require.NoError(t, err)
+
+	message := utils.RandomString(5)
+
+	jobApplication := db.JobApplication{
+		ID:     utils.RandomInt(1, 1000),
+		UserID: user.ID,
+		JobID:  job.ID,
+		Message: sql.NullString{
+			String: message,
+			Valid:  true,
+		},
+		Cv:        fakeFileData,
+		Status:    db.ApplicationStatusApplied,
+		AppliedAt: time.Now(),
+	}
+
+	getJobApplicationUserIDAndStatusRow := db.GetJobApplicationUserIDAndStatusRow{
+		UserID: user.ID,
+		Status: db.ApplicationStatusApplied,
+	}
+
+	testCases := []struct {
+		name             string
+		JobApplicationID int32
+		message          string
+		cv               []byte
+		cvProvided       string
+		setupAuth        func(t *testing.T, r *http.Request, maker token.Maker)
+		buildStubs       func(store *mockdb.MockStore)
+		checkResponse    func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:             "OK",
+			JobApplicationID: jobApplication.ID,
+			message:          message,
+			cv:               fakeFileData,
+			cvProvided:       "true",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserIDAndStatus(gomock.Any(), gomock.Eq(jobApplication.ID)).
+					Times(1).
+					Return(getJobApplicationUserIDAndStatusRow, nil)
+				store.EXPECT().
+					UpdateJobApplication(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(jobApplication, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchJobApplication(t, recorder.Body, jobApplication)
+			},
+		},
+		{
+			name:             "Invalid Job Application ID",
+			JobApplicationID: 0,
+			message:          message,
+			cv:               fakeFileData,
+			cvProvided:       "true",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					GetJobApplicationUserIDAndStatus(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:             "Unauthorized Only Users Can Access",
+			JobApplicationID: jobApplication.ID,
+			message:          message,
+			cv:               fakeFileData,
+			cvProvided:       "1",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrNoRows)
+				store.EXPECT().
+					GetJobApplicationUserIDAndStatus(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name:             "Internal Server Error GetUserByEmail",
+			JobApplicationID: jobApplication.ID,
+			message:          message,
+			cvProvided:       "false",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrConnDone)
+				store.EXPECT().
+					GetJobApplicationUserIDAndStatus(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:             "Job Application Not Found",
+			JobApplicationID: jobApplication.ID,
+			message:          message,
+			cv:               fakeFileData,
+			cvProvided:       "1",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserIDAndStatus(gomock.Any(), gomock.Eq(jobApplication.ID)).
+					Times(1).
+					Return(db.GetJobApplicationUserIDAndStatusRow{}, sql.ErrNoRows)
+				store.EXPECT().
+					UpdateJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:             "Internal Server Error GetJobApplicationUserIDAndStatus",
+			JobApplicationID: jobApplication.ID,
+			message:          message,
+			cv:               fakeFileData,
+			cvProvided:       "1",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserIDAndStatus(gomock.Any(), gomock.Eq(jobApplication.ID)).
+					Times(1).
+					Return(db.GetJobApplicationUserIDAndStatusRow{}, sql.ErrConnDone)
+				store.EXPECT().
+					UpdateJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:             "Forbidden Application Seen",
+			JobApplicationID: jobApplication.ID,
+			message:          message,
+			cv:               fakeFileData,
+			cvProvided:       "1",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserIDAndStatus(gomock.Any(), gomock.Eq(jobApplication.ID)).
+					Times(1).
+					Return(db.GetJobApplicationUserIDAndStatusRow{
+						UserID: user.ID,
+						Status: db.ApplicationStatusSeen,
+					}, nil)
+				store.EXPECT().
+					UpdateJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusForbidden, recorder.Code)
+			},
+		},
+		{
+			name:             "Forbidden User Not Application Owner",
+			JobApplicationID: jobApplication.ID,
+			message:          message,
+			cv:               fakeFileData,
+			cvProvided:       "1",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserIDAndStatus(gomock.Any(), gomock.Eq(jobApplication.ID)).
+					Times(1).
+					Return(db.GetJobApplicationUserIDAndStatusRow{
+						UserID: user.ID + 1,
+						Status: db.ApplicationStatusApplied,
+					}, nil)
+				store.EXPECT().
+					UpdateJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusForbidden, recorder.Code)
+			},
+		},
+		{
+			name:             "Internal Server Error UpdateJobApplication",
+			JobApplicationID: jobApplication.ID,
+			message:          message,
+			cvProvided:       "0",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserIDAndStatus(gomock.Any(), gomock.Eq(jobApplication.ID)).
+					Times(1).
+					Return(getJobApplicationUserIDAndStatusRow, nil)
+				store.EXPECT().
+					UpdateJobApplication(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.JobApplication{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:             "CV Provided True But No File",
+			JobApplicationID: jobApplication.ID,
+			message:          message,
+			cvProvided:       "1",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserIDAndStatus(gomock.Any(), gomock.Eq(jobApplication.ID)).
+					Times(1).
+					Return(getJobApplicationUserIDAndStatusRow, nil)
+				store.EXPECT().
+					UpdateJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store, nil)
+			recorder := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/api/v1/job-applications/user/%d", tc.JobApplicationID)
+			formData := &bytes.Buffer{}
+
+			writer := multipart.NewWriter(formData)
+
+			if tc.message != "" {
+				// Add the message field to the request body.
+				err := writer.WriteField("message", tc.message)
+				require.NoError(t, err)
+			}
+			if tc.cvProvided == "true" || tc.cvProvided == "1" {
+				err := writer.WriteField("cv_provided", tc.cvProvided)
+				require.NoError(t, err)
+
+				// Add the CV file
+				// additional check to test error that is returned
+				// when cv_provided is true, but no file was provided
+				if len(tc.cv) > 0 {
+					part, err := writer.CreateFormFile("cv", "test_file.pdf")
+					require.NoError(t, err)
+
+					_, err = part.Write(tc.cv)
+					require.NoError(t, err)
+				}
+			}
+			writer.Close()
+
+			// Create the HTTP request with the updated request body.
+			req, err := http.NewRequest(http.MethodPatch, url, formData)
+			require.NoError(t, err)
+
+			req.Header.Set("Content-Type", writer.FormDataContentType())
 
 			tc.setupAuth(t, req, server.tokenMaker)
 

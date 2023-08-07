@@ -35,7 +35,7 @@ func newJobApplicationResponse(jobApplication db.JobApplication) jobApplicationR
 // @Summary Create job application
 // @Description Create a job application. Only users can access this endpoint.
 // @Tags job applications
-// @param cv formData file true "CV file"
+// @param cv formData file true "CV file (.pdf)"
 // @param message formData string false "Message for the employer"
 // @param job_id formData int true "Job ID"
 // @Accept multipart/form-data
@@ -365,7 +365,7 @@ type changeJobApplicationStatusResponse struct {
 }
 
 // @Schemes
-// @Summary Reject job application (employer)
+// @Summary Change job application status (employer)
 // @Description Change job application status as an employer. Only employers can access this endpoint.
 // @Tags job applications
 // @param id path int true "job application ID"
@@ -375,11 +375,11 @@ type changeJobApplicationStatusResponse struct {
 // @Failure 400 {object} ErrorResponse "Invalid status or job application ID"
 // @Failure 401 {object} ErrorResponse "Unauthorized. Only employers can access, not users."
 // @Failure 403 {object} ErrorResponse "Only an employer that is part of the company that created the job that this application is for can access this endpoint.
-// @Failure 405 {object} ErrorResponse "Job application with given ID does not exist"
+// @Failure 404 {object} ErrorResponse "Job application with given ID does not exist"
 // @Failure 500 {object} ErrorResponse "Any other error"
 // @Security ApiKeyAuth
 // @Router /job-applications/employer/{id}/status [patch]
-// rejectJobApplication allows employer to reject a job application - change status to Rejected
+// changeJobApplicationStatus allows employer to change the status of a job application.
 func (server *Server) changeJobApplicationStatus(ctx *gin.Context) {
 	var uriRequest changeJobApplicationStatusUriRequest
 	if err := ctx.ShouldBindUri(&uriRequest); err != nil {
@@ -446,4 +446,131 @@ func (server *Server) changeJobApplicationStatus(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, res)
+}
+
+type updateJobApplicationRequest struct {
+	ID int32 `uri:"id" binding:"required,min=1"`
+}
+
+// @Schemes
+// @Summary Update job application (user)
+// @Description Update job application details (message, cv) but only if the status is 'Applied' (the application was not seen by the employer). Only users can access this endpoint.
+// @Tags job applications
+// @param id path int true "job application ID"
+// @param cv formData file false "CV file (.pdf)"
+// @param cv_provided formData boolean true "was CV file provided"
+// @param message formData string false "Message for the employer"
+// @Produce json
+// @Success 200 {object} jobApplicationResponse
+// @Failure 400 {object} ErrorResponse "Invalid data or job application ID"
+// @Failure 401 {object} ErrorResponse "Unauthorized. Only users can access, not employers."
+// @Failure 403 {object} ErrorResponse "Only a user that created this job application can access this endpoint.
+// @Failure 404 {object} ErrorResponse "Job application with given ID does not exist"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
+// @Router /job-applications/user/{id} [patch]
+// updateJobApplication allows users to update a job application.
+func (server *Server) updateJobApplication(ctx *gin.Context) {
+	var request updateJobApplicationRequest
+	if err := ctx.ShouldBindUri(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// check if the user is authenticated (and is a user, not an employer)
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so it had to be made by an employer
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// get the job application and check if the user created it
+	applicationDetails, err := server.store.GetJobApplicationUserIDAndStatus(ctx, request.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = fmt.Errorf("job application with ID %d does not exist", request.ID)
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// check if the status is 'Applied' - the application was not seen by the employer
+	if applicationDetails.Status != db.ApplicationStatusApplied {
+		err = fmt.Errorf("job application with ID %d was seen by the employer and cannot be updated anymore", request.ID)
+		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		return
+	}
+
+	// compare userID and users ID to check if the user created the job application
+	if applicationDetails.UserID != authUser.ID {
+		err = fmt.Errorf("user with ID %d is not the owner of this job application", authUser.ID)
+		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		return
+	}
+
+	// get message and/or cv from the form data
+
+	wasCvProvided := ctx.Request.FormValue("cv_provided")
+	var cvData []byte
+	if wasCvProvided == "true" || wasCvProvided == "1" {
+		// get the CV file
+		file, header, err := ctx.Request.FormFile("cv")
+		if err != nil {
+			// cv_provided was set to true but no actual file was provided
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return
+		}
+		defer file.Close()
+
+		// Read the file data and convert it to a byte slice
+		if header != nil {
+			cvData, err = io.ReadAll(file)
+			if err != nil {
+				err = fmt.Errorf("failed to read the CV file: %w", err)
+				ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+				return
+			}
+		}
+	}
+
+	params := db.UpdateJobApplicationParams{
+		ID: request.ID,
+	}
+
+	// get the message
+	message := ctx.Request.FormValue("message")
+
+	// check if the message was provided
+	// if it was, set it in the params
+	if message != "" {
+		params.Message = sql.NullString{
+			String: message,
+			Valid:  true,
+		}
+	}
+
+	// check if the CV was provided
+	// if it was, set it in the params
+	if len(cvData) > 0 {
+		params.Cv = cvData
+	}
+
+	// update the job application
+	jobApplication, err := server.store.UpdateJobApplication(ctx, params)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newJobApplicationResponse(jobApplication))
 }
