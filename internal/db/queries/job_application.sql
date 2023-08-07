@@ -82,6 +82,11 @@ DELETE
 FROM job_applications
 WHERE id = $1;
 
+-- name: GetJobApplicationUserIDAndStatus :one
+SELECT user_id, status
+FROM job_applications
+WHERE id = $1;
+
 
 
 

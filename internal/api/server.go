@@ -111,6 +111,7 @@ func (server *Server) setupRouter() {
 	// for users, job applications CRUD
 	authRoutesV1.POST("/job-applications", server.createJobApplication)
 	authRoutesV1.GET("/job-applications/user/:id", server.getJobApplicationForUser)
+	authRoutesV1.PATCH("/job-applications/user/:id", server.updateJobApplication)
 
 	// for employers, reading, changing statuses (rejecting, offering)
 	authRoutesV1.GET("/job-applications/employer/:id", server.getJobApplicationForEmployer)
