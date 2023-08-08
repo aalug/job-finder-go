@@ -13,6 +13,21 @@ import (
 	"time"
 )
 
+// jobApplicationDoesNotExistError return job application does not exist error
+func jobApplicationDoesNotExistError(id int32) error {
+	return fmt.Errorf("job application with ID %d does not exist", id)
+}
+
+// employerNotPartOfCompanyError return employer is not part of the company error
+func employerNotPartOfCompanyError(employerID int32) error {
+	return fmt.Errorf("employer with ID %d is not part of the company that created this job", employerID)
+}
+
+// userNotOwnerOfApplicationError return user is not the owner of the job application error
+func userNotOwnerOfApplicationError(userID int32) error {
+	return fmt.Errorf("user with ID %d is not the owner of this job application", userID)
+}
+
 type jobApplicationResponse struct {
 	ID        int32                `json:"id"`
 	JobID     int32                `json:"job_id"`
@@ -178,8 +193,9 @@ func (server *Server) getJobApplicationForUser(ctx *gin.Context) {
 	jobApplication, err := server.store.GetJobApplicationForUser(ctx, request.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			err = fmt.Errorf("job application with ID %d does not exist", request.ID)
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			ctx.JSON(http.StatusNotFound, errorResponse(
+				jobApplicationDoesNotExistError(request.ID),
+			))
 			return
 		}
 
@@ -282,8 +298,9 @@ func (server *Server) getJobApplicationForEmployer(ctx *gin.Context) {
 	jobApplication, err := server.store.GetJobApplicationForEmployer(ctx, request.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			err = fmt.Errorf("job application with ID %d does not exist", request.ID)
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			ctx.JSON(http.StatusNotFound, errorResponse(
+				jobApplicationDoesNotExistError(request.ID),
+			))
 			return
 		}
 
@@ -300,8 +317,9 @@ func (server *Server) getJobApplicationForEmployer(ctx *gin.Context) {
 	}
 
 	if companyID != authEmployer.CompanyID {
-		err = fmt.Errorf("employer with ID %d is not part of the company that created this job", authEmployer.ID)
-		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		ctx.JSON(http.StatusForbidden, errorResponse(
+			employerNotPartOfCompanyError(authEmployer.ID),
+		))
 		return
 	}
 
@@ -412,8 +430,9 @@ func (server *Server) changeJobApplicationStatus(ctx *gin.Context) {
 	companyID, err := server.store.GetCompanyIDOfJob(ctx, uriRequest.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			err = fmt.Errorf("job application with ID %d does not exist", uriRequest.ID)
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			ctx.JSON(http.StatusNotFound, errorResponse(
+				jobApplicationDoesNotExistError(uriRequest.ID),
+			))
 			return
 		}
 
@@ -423,8 +442,9 @@ func (server *Server) changeJobApplicationStatus(ctx *gin.Context) {
 
 	// compare companyID and employers company id
 	if companyID != authEmployer.CompanyID {
-		err = fmt.Errorf("employer with ID %d is not part of the company that created this job", authEmployer.ID)
-		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		ctx.JSON(http.StatusForbidden, errorResponse(
+			employerNotPartOfCompanyError(authEmployer.ID),
+		))
 		return
 	}
 
@@ -495,8 +515,9 @@ func (server *Server) updateJobApplication(ctx *gin.Context) {
 	applicationDetails, err := server.store.GetJobApplicationUserIDAndStatus(ctx, request.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			err = fmt.Errorf("job application with ID %d does not exist", request.ID)
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			ctx.JSON(http.StatusNotFound, errorResponse(
+				jobApplicationDoesNotExistError(request.ID),
+			))
 			return
 		}
 
@@ -513,8 +534,9 @@ func (server *Server) updateJobApplication(ctx *gin.Context) {
 
 	// compare userID and users ID to check if the user created the job application
 	if applicationDetails.UserID != authUser.ID {
-		err = fmt.Errorf("user with ID %d is not the owner of this job application", authUser.ID)
-		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		ctx.JSON(http.StatusForbidden, errorResponse(
+			userNotOwnerOfApplicationError(authUser.ID),
+		))
 		return
 	}
 
@@ -619,8 +641,9 @@ func (server *Server) deleteJobApplication(ctx *gin.Context) {
 	userID, err := server.store.GetJobApplicationUserID(ctx, request.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			err = fmt.Errorf("job application with ID %d does not exist", request.ID)
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			ctx.JSON(http.StatusNotFound, errorResponse(
+				jobApplicationDoesNotExistError(request.ID),
+			))
 			return
 		}
 
@@ -630,8 +653,9 @@ func (server *Server) deleteJobApplication(ctx *gin.Context) {
 
 	//  check if the user created the job application
 	if userID != authUser.ID {
-		err = fmt.Errorf("user with ID %d is not the owner of this job application", authUser.ID)
-		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		ctx.JSON(http.StatusForbidden, errorResponse(
+			userNotOwnerOfApplicationError(authUser.ID),
+		))
 		return
 	}
 
