@@ -157,6 +157,19 @@ func (q *Queries) GetJobApplicationForUser(ctx context.Context, id int32) (GetJo
 	return i, err
 }
 
+const getJobApplicationUserID = `-- name: GetJobApplicationUserID :one
+SELECT user_id
+FROM job_applications
+WHERE id = $1
+`
+
+func (q *Queries) GetJobApplicationUserID(ctx context.Context, id int32) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getJobApplicationUserID, id)
+	var user_id int32
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const getJobApplicationUserIDAndStatus = `-- name: GetJobApplicationUserIDAndStatus :one
 SELECT user_id, status
 FROM job_applications

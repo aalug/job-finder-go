@@ -289,7 +289,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 	user, _ := generateRandomUser(t)
 	employer, _, company := generateRandomEmployerAndCompany(t)
 	job := generateRandomJob()
-	var jobApplicationID int32 = 1
+	jobApplicationID := utils.RandomInt(1, 1000)
 
 	fakeFileSize := 10 * 1024
 	fakeFileData := make([]byte, fakeFileSize)
@@ -527,7 +527,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 	user, _ := generateRandomUser(t)
 	employer, _, company := generateRandomEmployerAndCompany(t)
 	job := generateRandomJob()
-	var jobApplicationID int32 = 1
+	jobApplicationID := utils.RandomInt(1, 1000)
 
 	fakeFileSize := 10 * 1024
 	fakeFileData := make([]byte, fakeFileSize)
@@ -853,7 +853,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 func TestChangeJobApplicationStatusAPI(t *testing.T) {
 	user, _ := generateRandomUser(t)
 	employer, _, company := generateRandomEmployerAndCompany(t)
-	var jobApplicationID int32 = 1
+	jobApplicationID := utils.RandomInt(1, 1000)
 
 	testCases := []struct {
 		name             string
@@ -1488,6 +1488,228 @@ func TestUpdateJobApplicationAPI(t *testing.T) {
 			require.NoError(t, err)
 
 			req.Header.Set("Content-Type", writer.FormDataContentType())
+
+			tc.setupAuth(t, req, server.tokenMaker)
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
+func TestDeleteJobApplicationAPI(t *testing.T) {
+	user, _ := generateRandomUser(t)
+	employer, _, _ := generateRandomEmployerAndCompany(t)
+	jobApplicationID := utils.RandomInt(1, 1000)
+
+	testCases := []struct {
+		name             string
+		JobApplicationID int32
+		setupAuth        func(t *testing.T, r *http.Request, maker token.Maker)
+		buildStubs       func(store *mockdb.MockStore)
+		checkResponse    func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:             "OK",
+			JobApplicationID: jobApplicationID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserID(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(user.ID, nil)
+				store.EXPECT().
+					DeleteJobApplication(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNoContent, recorder.Code)
+			},
+		},
+		{
+			name:             "Invalid Job Application ID",
+			JobApplicationID: 0,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					GetJobApplicationUserID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:             "Unauthorized Only User Access",
+			JobApplicationID: jobApplicationID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrNoRows)
+				store.EXPECT().
+					GetJobApplicationUserID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name:             "Internal Server Error GetUserByEmail",
+			JobApplicationID: jobApplicationID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrConnDone)
+				store.EXPECT().
+					GetJobApplicationUserID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:             "Job Application Not Found",
+			JobApplicationID: jobApplicationID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserID(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(int32(0), sql.ErrNoRows)
+				store.EXPECT().
+					DeleteJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:             "Internal Server Error GetJobApplicationUserID",
+			JobApplicationID: jobApplicationID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserID(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(int32(0), sql.ErrConnDone)
+				store.EXPECT().
+					DeleteJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:             "Forbidden User Not Owner",
+			JobApplicationID: jobApplicationID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserID(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(user.ID+1, nil)
+				store.EXPECT().
+					DeleteJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusForbidden, recorder.Code)
+			},
+		},
+		{
+			name:             "Internal Server Error DeleteJobApplication",
+			JobApplicationID: jobApplicationID,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					GetJobApplicationUserID(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(user.ID, nil)
+				store.EXPECT().
+					DeleteJobApplication(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store, nil)
+			recorder := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/api/v1/job-applications/user/%d", tc.JobApplicationID)
+
+			req, err := http.NewRequest(http.MethodDelete, url, nil)
+			require.NoError(t, err)
 
 			tc.setupAuth(t, req, server.tokenMaker)
 

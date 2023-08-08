@@ -112,6 +112,7 @@ func (server *Server) setupRouter() {
 	authRoutesV1.POST("/job-applications", server.createJobApplication)
 	authRoutesV1.GET("/job-applications/user/:id", server.getJobApplicationForUser)
 	authRoutesV1.PATCH("/job-applications/user/:id", server.updateJobApplication)
+	authRoutesV1.DELETE("/job-applications/user/:id", server.deleteJobApplication)
 
 	// for employers, reading, changing statuses (rejecting, offering)
 	authRoutesV1.GET("/job-applications/employer/:id", server.getJobApplicationForEmployer)

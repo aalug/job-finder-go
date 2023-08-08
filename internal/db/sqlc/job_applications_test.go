@@ -182,3 +182,20 @@ func TestQueries_UpdateJobApplicationStatus(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, jobApplication2.ApplicationStatus, status)
 }
+
+func TestQueries_GetJobApplicationUserID(t *testing.T) {
+	jobApplication := createRandomJobApplication(t, 0, 0)
+
+	userID, err := testQueries.GetJobApplicationUserID(context.Background(), jobApplication.ID)
+	require.NoError(t, err)
+	require.Equal(t, userID, jobApplication.UserID)
+}
+
+func TestQueries_GetJobApplicationUserIDAndStatus(t *testing.T) {
+	jobApplication := createRandomJobApplication(t, 0, 0)
+
+	details, err := testQueries.GetJobApplicationUserIDAndStatus(context.Background(), jobApplication.ID)
+	require.NoError(t, err)
+	require.Equal(t, details.UserID, jobApplication.UserID)
+	require.Equal(t, details.Status, jobApplication.Status)
+}
