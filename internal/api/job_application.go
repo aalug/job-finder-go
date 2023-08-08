@@ -574,3 +574,72 @@ func (server *Server) updateJobApplication(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, newJobApplicationResponse(jobApplication))
 }
+
+type deleteJobApplicationRequest struct {
+	ID int32 `uri:"id" binding:"required,min=1"`
+}
+
+// @Schemes
+// @Summary Delete job application (user)
+// @Description Delete a job application. Only users can access this endpoint, and only owners of the job application can delete it.
+// @Tags job applications
+// @param id path int true "job application ID"
+// @Success 204 {null} null
+// @Failure 400 {object} ErrorResponse "Invalid job application ID"
+// @Failure 401 {object} ErrorResponse "Unauthorized. Only users can access, not employers."
+// @Failure 403 {object} ErrorResponse "Only a user that created this job application can access this endpoint.
+// @Failure 404 {object} ErrorResponse "Job application with given ID does not exist"
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
+// @Router /job-applications/user/{id} [delete]
+// deleteJobApplication delete a job application if the user making
+// the request is the owner of the job application
+func (server *Server) deleteJobApplication(ctx *gin.Context) {
+	var request deleteJobApplicationRequest
+	if err := ctx.ShouldBindUri(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// check if the user is authenticated (and is a user, not an employer)
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so it had to be made by an employer
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// get the userID of the job application and check if the user created it
+	userID, err := server.store.GetJobApplicationUserID(ctx, request.ID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = fmt.Errorf("job application with ID %d does not exist", request.ID)
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	//  check if the user created the job application
+	if userID != authUser.ID {
+		err = fmt.Errorf("user with ID %d is not the owner of this job application", authUser.ID)
+		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		return
+	}
+
+	err = server.store.DeleteJobApplication(ctx, request.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusNoContent, nil)
+}

@@ -204,3 +204,46 @@ has a `200 OK` status code and returns the created job application details in JS
 format. If the request body is invalid, a `400 Bad Request` status code is returned. 
 If the user is not authorized to access this endpoint, a `401 Unauthorized` status 
 code is returned. In case of any other error, a `500 Internal Server Error` status code is returned.
+
++ `GET /job-applications/employer/{id}`: This endpoint retrieves the details of the job application 
+for an employer with the given id. The id path parameter is required and specifies the id of the job 
+application to retrieve. On success, the response has a `200 OK` status code and returns the job application 
+details in JSON format. If the request query is invalid, a `400 Bad Request` code is returned. If the employer 
+is not authorized (does not have an account or is a user, not employer), a `401 Unauthorized` status code is returned. 
+If the employer is not part of the company that created the job this application is for, a `403 Forbidden` status 
+code is returned. In case of any other error, a `500 Internal Server Error` status code is returned.
+
++ `PATCH /job-applications/employer/{id}/status`: This endpoint changes the status of the job application with 
+the given id. The id path parameter is required and specifies the id of the job application to update. 
+The `new_status` body parameter is required and specifies the new status of the job application. On success, 
+the response has a `200 OK` status code and returns the updated job application details in JSON format. 
+If the request query is invalid, a `400 Bad Request` code is returned. If the user is not authorized (does not have an account or is a user, not employer), 
+a `401 Unauthorized` status code is returned. If the employer is not part of the company that created the job this application is for, a `403 Forbidden`
+status code is returned. If the job application with the given id is not found, a `404 Not Found` status code 
+is returned. In case of any other error, a `500 Internal Server Error` status code is returned.
+
++ `GET /job-applications/user/{id}`: This endpoint retrieves the details of the job application for a user. 
+The id path parameter is required and specifies the id of the job application to retrieve. On success, 
+the response has a `200 OK` status code and returns the job application details in JSON format. If the 
+request query is invalid, a `400 Bad Request` code is returned. If the user is not authorized (does not have an account or is an employer, not user)
+, a `401 Unauthorized` status code is returned. If the user is not the creator of this job application, a `403 Forbidden` status code is 
+returned. In case of any other error, a `500 Internal Server Error` status code is returned. 
+
++ `PATCH /job-applications/user/{id}`: This endpoint updates the details of the job application for a user. 
+The id path parameter is required and specifies the id of the job application to update. The `cv` formData 
+parameter is optional and specifies the CV file (.pdf) to update. The `cv_provided` formData parameter is 
+required and specifies whether a CV file was provided. The `message` formData parameter is optional and 
+specifies the message for the employer to update. On success, the response has a `200 OK` status code and 
+returns the updated job application details in JSON format. If the request query is invalid, a `400 Bad Request` 
+code is returned. If the user is not authorized (does not have an account or is an employer, not user), 
+a `401 Unauthorized` status code is returned. If the user is not the creator of this job application, 
+a `403 Forbidden` status code is returned. If the job application with the given id is not found, a 
+`404 Not Found` status code is returned. In case of any other error, a `500 Internal Server Error` status code is returned.
+
++ `DELETE /job-applications/user/{id}`: This endpoint deletes the job application for a user. The id path parameter 
+is required and specifies the id of the job application to delete. On success, the response has a `204 No Content` 
+status code. If the provided id is invalid, a `400 Bad Request` code is returned. If the user is not authorized
+(does not have an account or is an employer, not user), a `401 Unauthorized` status code is returned. 
+If the user is not the creator of this job application, a `403 Forbidden` status code is returned. If the 
+job application with the given id is not found, a `404 Not Found` status code is returned. In case of any 
+other error, a `500 Internal Server Error` status code is returned.

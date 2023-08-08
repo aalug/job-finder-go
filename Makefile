@@ -14,10 +14,6 @@ migrate_down:
 sqlc:
 	cmd.exe /c "docker run --rm -v ${PWD}:/src -w /src kjconroy/sqlc generate"
 
-sqlc2:
-	cmd.exe /c "docker run --rm -v ${PWD}:/src -w /src -v ${PWD}/internal/db/migrations:/src/db/migrations kjconroy/sqlc generate"
-
-
 # generate mock db for testing
 mock:
 	mockgen -package mockdb -destination internal/db/mock/store.go github.com/aalug/go-gin-job-search/internal/db/sqlc Store
@@ -25,7 +21,6 @@ mock:
 # generate mock functions for elasticsearch based functions
 mock_es:
 	mockgen -package mockesearch -destination internal/esearch/mock/search.go github.com/aalug/go-gin-job-search/internal/esearch ESearchClient
-
 
 # run all tests
 test:
