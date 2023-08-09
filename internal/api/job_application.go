@@ -667,3 +667,85 @@ func (server *Server) deleteJobApplication(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusNoContent, nil)
 }
+
+type listJobApplicationsForUser struct {
+	Page     int32                `form:"page" binding:"required,min=1"`
+	PageSize int32                `form:"page_size" binding:"required,min=5,max=15"`
+	Sort     string               `form:"sort" binding:"omitempty,oneof=date-asc date-desc"`
+	Status   db.ApplicationStatus `form:"status" binding:"omitempty,oneof=Applied Seen Interviewing Offered Rejected"`
+}
+
+// @Schemes
+// @Summary List job applications (user)
+// @Description List job applications. Only users can access this endpoint. Returns a list of job applications that authenticated user created. Results are paginated based on page and page_size query parameters.
+// @Tags job applications
+// @param page query int true "page number"
+// @param page_size query int true "page size"
+// @param sort query string false "sort by date ('date-asc' or 'date-desc')"
+// @param status query string false "filter by status ('Applied', 'Seen', 'Interviewing', 'Offered', 'Rejected')"
+// @Success 200 {object} db.ListJobApplicationsForUserParams
+// @Failure 400 {object} ErrorResponse "Invalid query parameters"
+// @Failure 401 {object} ErrorResponse "Unauthorized. Only users can access, not employers."
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
+// @Router /job-applications/user [get]
+// listJobApplicationsForUser lists all job applications that authenticated
+// user created. Results are paginated based on page and page_size query parameters.
+func (server *Server) listJobApplicationsForUser(ctx *gin.Context) {
+	var request listJobApplicationsForUser
+	if err := ctx.ShouldBindQuery(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// check if the user is authenticated (and is a user, not an employer)
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so it had to be made by an employer
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// get the job applications
+	params := db.ListJobApplicationsForUserParams{
+		UserID: authUser.ID,
+		Limit:  request.PageSize,
+		Offset: (request.Page - 1) * request.PageSize,
+
+		// this value does not matter if the FilterStatus is false
+		// it just needs to be set to one of the values from the
+		// db.ApplicationStatus enum
+		Status:       db.ApplicationStatusApplied,
+		FilterStatus: false,
+	}
+
+	// set ordering of the results
+	switch request.Sort {
+	case "date-asc":
+		params.AppliedAtAsc = true
+	default:
+		// by default applications will be returned
+		// from the newest to the oldest
+		params.AppliedAtDesc = true
+	}
+
+	// set (if provided) status of the results
+	if request.Status != "" {
+		params.FilterStatus = true
+		params.Status = request.Status
+	}
+
+	jobApplications, err := server.store.ListJobApplicationsForUser(ctx, params)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, jobApplications)
+}

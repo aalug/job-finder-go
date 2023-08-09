@@ -51,6 +51,10 @@ FROM job_applications ja
          JOIN jobs j ON ja.job_id = j.id
          JOIN companies c ON j.company_id = c.id
 WHERE ja.user_id = $1
+  AND (@filter_status::bool = TRUE AND ja.status = @status OR @filter_status::bool = FALSE)
+ORDER BY CASE WHEN @applied_at_asc::bool THEN ja.applied_at END ASC,
+         CASE WHEN @applied_at_desc::bool THEN ja.applied_at END DESC,
+         ja.applied_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListJobApplicationsForEmployer :many

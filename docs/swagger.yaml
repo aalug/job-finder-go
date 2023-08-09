@@ -405,6 +405,23 @@ definitions:
     - ApplicationStatusInterviewing
     - ApplicationStatusOffered
     - ApplicationStatusRejected
+  db.ListJobApplicationsForUserParams:
+    properties:
+      applied_at_asc:
+        type: boolean
+      applied_at_desc:
+        type: boolean
+      filter_status:
+        type: boolean
+      limit:
+        type: integer
+      offset:
+        type: integer
+      status:
+        $ref: '#/definitions/db.ApplicationStatus'
+      user_id:
+        type: integer
+    type: object
   db.ListJobSkillsByJobIDRow:
     properties:
       id:
@@ -823,6 +840,53 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Change job application status (employer)
+      tags:
+      - job applications
+  /job-applications/user:
+    get:
+      description: List job applications. Only users can access this endpoint. Returns
+        a list of job applications that authenticated user created. Results are paginated
+        based on page and page_size query parameters.
+      parameters:
+      - description: page number
+        in: query
+        name: page
+        required: true
+        type: integer
+      - description: page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      - description: sort by date ('date-asc' or 'date-desc')
+        in: query
+        name: sort
+        type: string
+      - description: filter by status ('Applied', 'Seen', 'Interviewing', 'Offered',
+          'Rejected')
+        in: query
+        name: status
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.ListJobApplicationsForUserParams'
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Unauthorized. Only users can access, not employers.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: List job applications (user)
       tags:
       - job applications
   /job-applications/user/{id}:
