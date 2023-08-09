@@ -100,9 +100,13 @@ func TestQueries_ListJobApplicationsForUser(t *testing.T) {
 	}
 
 	params := ListJobApplicationsForUserParams{
-		UserID: user.ID,
-		Limit:  5,
-		Offset: 0,
+		UserID:        user.ID,
+		Limit:         5,
+		Offset:        0,
+		FilterStatus:  false,
+		Status:        ApplicationStatusSeen,
+		AppliedAtAsc:  false,
+		AppliedAtDesc: false,
 	}
 
 	jobApplications, err := testQueries.ListJobApplicationsForUser(context.Background(), params)
@@ -114,6 +118,31 @@ func TestQueries_ListJobApplicationsForUser(t *testing.T) {
 		require.Equal(t, jobApplication.UserID, params.UserID)
 		require.NotZero(t, jobApplication.ApplicationDate)
 		require.NotEmpty(t, jobApplication.ApplicationStatus)
+		require.Equal(t, ApplicationStatusApplied, jobApplication.ApplicationStatus)
+	}
+
+	params = ListJobApplicationsForUserParams{
+		UserID:        user.ID,
+		Limit:         5,
+		Offset:        0,
+		FilterStatus:  true,
+		Status:        ApplicationStatusApplied,
+		AppliedAtAsc:  true,
+		AppliedAtDesc: false,
+	}
+
+	jobApplications, err = testQueries.ListJobApplicationsForUser(context.Background(), params)
+	require.NoError(t, err)
+	require.Len(t, jobApplications, 5)
+	for _, jobApplication := range jobApplications {
+		require.NotEmpty(t, jobApplication)
+		require.NotZero(t, jobApplication.ApplicationID)
+		require.Equal(t, jobApplication.UserID, params.UserID)
+		require.NotZero(t, jobApplication.ApplicationDate)
+		require.Equal(t, ApplicationStatusApplied, jobApplication.ApplicationStatus)
+	}
+	for i := 1; i < len(jobApplications); i++ {
+		require.True(t, jobApplications[i].ApplicationDate.After(jobApplications[i-1].ApplicationDate))
 	}
 }
 

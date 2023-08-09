@@ -222,6 +222,16 @@ a `401 Unauthorized` status code is returned. If the employer is not part of the
 status code is returned. If the job application with the given id is not found, a `404 Not Found` status code 
 is returned. In case of any other error, a `500 Internal Server Error` status code is returned.
 
++ `GET /job-applications/user`: This endpoint lists the job applications that the authenticated 
+user created. The results are paginated based on the `page` and `page_size` query parameters, 
+which are both required. The `sort` query parameter is optional and can be used to sort 
+the results by date in ascending or descending order. The `status` query parameter is also 
+optional and can be used to filter the results by status (‘Applied’, ‘Seen’, ‘Interviewing’, ‘Offered’, ‘Rejected’). 
+On success, the response has a `200 OK` status code and returns a list of job applications 
+in JSON format. If the request query is invalid, a `400 Bad Request` code is returned. 
+If the user is not authorized (does not have an account or is an employer, not user), a 
+`401 Unauthorized` status code is returned. In case of any other error, a `500 Internal Server Error` status code is returned.
+
 + `GET /job-applications/user/{id}`: This endpoint retrieves the details of the job application for a user. 
 The id path parameter is required and specifies the id of the job application to retrieve. On success, 
 the response has a `200 OK` status code and returns the job application details in JSON format. If the 

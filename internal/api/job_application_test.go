@@ -1720,6 +1720,273 @@ func TestDeleteJobApplicationAPI(t *testing.T) {
 	}
 }
 
+func TestLustJobApplicationsForUserAPI(t *testing.T) {
+	user, _ := generateRandomUser(t)
+	employer, _, _ := generateRandomEmployerAndCompany(t)
+
+	var jobApplications []db.ListJobApplicationsForUserRow
+	for i := 0; i < 10; i++ {
+		jobApplications = append(jobApplications, db.ListJobApplicationsForUserRow{
+			UserID:            user.ID,
+			ApplicationID:     int32(i),
+			JobTitle:          utils.RandomString(5),
+			JobID:             int32(i * 2),
+			CompanyName:       utils.RandomString(4),
+			ApplicationStatus: db.ApplicationStatusApplied,
+			ApplicationDate:   time.Now().Add(-time.Hour * time.Duration(i)),
+		})
+	}
+
+	type Query struct {
+		page     int
+		pageSize int
+		sort     string // 'date-asc' or 'date-desc'
+		status   db.ApplicationStatus
+	}
+
+	testCases := []struct {
+		name          string
+		query         Query
+		setupAuth     func(t *testing.T, r *http.Request, maker token.Maker)
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				sort:     "date-desc",
+				status:   db.ApplicationStatusApplied,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				params := db.ListJobApplicationsForUserParams{
+					UserID:        user.ID,
+					Limit:         10,
+					Offset:        0,
+					FilterStatus:  true,
+					Status:        db.ApplicationStatusApplied,
+					AppliedAtAsc:  false,
+					AppliedAtDesc: true,
+				}
+				store.EXPECT().
+					ListJobApplicationsForUser(gomock.Any(), gomock.Eq(params)).
+					Times(1).
+					Return(jobApplications, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchJobApplications(t, recorder.Body, jobApplications)
+			},
+		},
+		{
+			name: "Invalid Page",
+			query: Query{
+				page:     0,
+				pageSize: 10,
+				sort:     "date-desc",
+				status:   db.ApplicationStatusApplied,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobApplicationsForUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Page Size",
+			query: Query{
+				page:     1,
+				pageSize: 50,
+				sort:     "date-desc",
+				status:   db.ApplicationStatusApplied,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobApplicationsForUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Sort",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				sort:     "invalid",
+				status:   db.ApplicationStatusApplied,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobApplicationsForUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Sort",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				sort:     "date-desc",
+				status:   "invalid",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListJobApplicationsForUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Unauthorized Only Users Access",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				sort:     "date-desc",
+				status:   db.ApplicationStatusApplied,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrNoRows)
+				store.EXPECT().
+					ListJobApplicationsForUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error GetUserByEmail",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				sort:     "date-desc",
+				status:   db.ApplicationStatusApplied,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrConnDone)
+				store.EXPECT().
+					ListJobApplicationsForUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error GetUserByEmail",
+			query: Query{
+				page:     1,
+				pageSize: 10,
+				sort:     "date-asc",
+				status:   db.ApplicationStatusApplied,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					ListJobApplicationsForUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return([]db.ListJobApplicationsForUserRow{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store, nil)
+			recorder := httptest.NewRecorder()
+
+			url := "/api/v1/job-applications/user"
+
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			// add query params
+			q := req.URL.Query()
+			q.Add("page", fmt.Sprintf("%d", tc.query.page))
+			q.Add("page_size", fmt.Sprintf("%d", tc.query.pageSize))
+			q.Add("sort", tc.query.sort)
+			q.Add("status", fmt.Sprintf("%s", tc.query.status))
+			req.URL.RawQuery = q.Encode()
+
+			tc.setupAuth(t, req, server.tokenMaker)
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
 func requireBodyMatchJobApplication(t *testing.T, body *bytes.Buffer, jobApplication interface{}) {
 	data, err := io.ReadAll(body)
 	require.NoError(t, err)
@@ -1770,6 +2037,31 @@ func requireBodyMatchJobApplication(t *testing.T, body *bytes.Buffer, jobApplica
 		require.WithinDuration(t, response.ApplicationDate, ja.ApplicationDate, 1*time.Second)
 		if ja.ApplicationMessage.Valid {
 			require.Equal(t, response.ApplicationMessage, ja.ApplicationMessage.String)
+		}
+	default:
+		t.Fatalf("unsupported type %T", jobApplication)
+	}
+}
+
+func requireBodyMatchJobApplications(t *testing.T, body *bytes.Buffer, jobApplication interface{}) {
+	data, err := io.ReadAll(body)
+	require.NoError(t, err)
+
+	switch j := jobApplication.(type) {
+	case []db.ListJobApplicationsForUserRow:
+		var response []db.ListJobApplicationsForUserRow
+		err = json.Unmarshal(data, &response)
+		require.NoError(t, err)
+
+		for i := 0; i < len(j); i++ {
+			require.Equal(t, j[i].JobID, response[i].JobID)
+			require.Equal(t, j[i].UserID, response[i].UserID)
+			require.Equal(t, j[i].ApplicationID, response[i].ApplicationID)
+			require.Equal(t, j[i].JobTitle, response[i].JobTitle)
+			require.Equal(t, j[i].CompanyName, response[i].CompanyName)
+			require.Equal(t, j[i].ApplicationStatus, response[i].ApplicationStatus)
+			require.Equal(t, j[i].ApplicationStatus, response[i].ApplicationStatus)
+			require.WithinDuration(t, j[i].ApplicationDate, response[i].ApplicationDate, 1*time.Second)
 		}
 	default:
 		t.Fatalf("unsupported type %T", jobApplication)
