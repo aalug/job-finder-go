@@ -118,6 +118,7 @@ func (server *Server) setupRouter() {
 	// for employers, reading, changing statuses (rejecting, offering)
 	authRoutesV1.GET("/job-applications/employer/:id", server.getJobApplicationForEmployer)
 	authRoutesV1.PATCH("/job-applications/employer/:id/status", server.changeJobApplicationStatus)
+	authRoutesV1.GET("/job-applications/employer", server.listJobApplicationsForEmployer)
 
 	server.router = router
 }
