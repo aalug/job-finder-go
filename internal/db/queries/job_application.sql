@@ -67,6 +67,10 @@ SELECT ja.id         AS application_id,
 FROM job_applications ja
          JOIN users u ON u.id = ja.user_id
 WHERE ja.job_id = $1
+  AND (@filter_status::bool = TRUE AND ja.status = @status OR @filter_status::bool = FALSE)
+ORDER BY CASE WHEN @applied_at_asc::bool THEN ja.applied_at END ASC,
+         CASE WHEN @applied_at_desc::bool THEN ja.applied_at END DESC,
+         ja.applied_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: UpdateJobApplication :one

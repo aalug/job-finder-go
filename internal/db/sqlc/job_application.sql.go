@@ -198,13 +198,21 @@ SELECT ja.id         AS application_id,
 FROM job_applications ja
          JOIN users u ON u.id = ja.user_id
 WHERE ja.job_id = $1
+  AND ($4::bool = TRUE AND ja.status = $5 OR $4::bool = FALSE)
+ORDER BY CASE WHEN $6::bool THEN ja.applied_at END ASC,
+         CASE WHEN $7::bool THEN ja.applied_at END DESC,
+         ja.applied_at DESC
 LIMIT $2 OFFSET $3
 `
 
 type ListJobApplicationsForEmployerParams struct {
-	JobID  int32 `json:"job_id"`
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	JobID         int32             `json:"job_id"`
+	Limit         int32             `json:"limit"`
+	Offset        int32             `json:"offset"`
+	FilterStatus  bool              `json:"filter_status"`
+	Status        ApplicationStatus `json:"status"`
+	AppliedAtAsc  bool              `json:"applied_at_asc"`
+	AppliedAtDesc bool              `json:"applied_at_desc"`
 }
 
 type ListJobApplicationsForEmployerRow struct {
@@ -217,7 +225,15 @@ type ListJobApplicationsForEmployerRow struct {
 }
 
 func (q *Queries) ListJobApplicationsForEmployer(ctx context.Context, arg ListJobApplicationsForEmployerParams) ([]ListJobApplicationsForEmployerRow, error) {
-	rows, err := q.db.QueryContext(ctx, listJobApplicationsForEmployer, arg.JobID, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listJobApplicationsForEmployer,
+		arg.JobID,
+		arg.Limit,
+		arg.Offset,
+		arg.FilterStatus,
+		arg.Status,
+		arg.AppliedAtAsc,
+		arg.AppliedAtDesc,
+	)
 	if err != nil {
 		return nil, err
 	}
