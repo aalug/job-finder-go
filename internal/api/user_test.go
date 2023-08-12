@@ -285,7 +285,7 @@ func TestCreateUserAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := "/api/v1/users"
+			url := baseUrl + "/users"
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -462,7 +462,7 @@ func TestLoginUserAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := "/api/v1/users/login"
+			url := baseUrl + "/users/login"
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -527,7 +527,7 @@ func TestGetUserAPI(t *testing.T) {
 			server := newTestServer(t, store, nil)
 			recorder := httptest.NewRecorder()
 
-			url := "/api/v1/users"
+			url := baseUrl + "/users"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -913,7 +913,7 @@ func TestUpdateUserAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := "/api/v1/users"
+			url := baseUrl + "/users"
 			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -1086,7 +1086,7 @@ func TestUpdateUserPasswordAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := "/api/v1/users/password"
+			url := baseUrl + "/users/password"
 			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -1210,7 +1210,7 @@ func TestDeleteUserAPI(t *testing.T) {
 			server := newTestServer(t, store, nil)
 			recorder := httptest.NewRecorder()
 
-			url := "/api/v1/users"
+			url := baseUrl + "/users"
 			req, err := http.NewRequest(http.MethodDelete, url, nil)
 			require.NoError(t, err)
 

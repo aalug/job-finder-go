@@ -13,6 +13,8 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+const baseUrl = "/api/v1"
+
 // Server serves HTTP  requests for the service
 type Server struct {
 	config     config.Config
@@ -57,7 +59,7 @@ func NewServer(config config.Config, store db.Store, client esearch.ESearchClien
 func (server *Server) setupRouter() {
 	router := gin.Default()
 
-	routerV1 := router.Group("/api/v1")
+	routerV1 := router.Group(baseUrl)
 
 	// CORS
 	corsConfig := cors.DefaultConfig()
