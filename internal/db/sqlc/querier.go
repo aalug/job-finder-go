@@ -57,6 +57,7 @@ type Querier interface {
 	ListJobsBySalaryRange(ctx context.Context, arg ListJobsBySalaryRangeParams) ([]Job, error)
 	ListJobsBySkill(ctx context.Context, arg ListJobsBySkillParams) ([]int32, error)
 	ListJobsByTitle(ctx context.Context, arg ListJobsByTitleParams) ([]Job, error)
+	ListJobsForEmployer(ctx context.Context, arg ListJobsForEmployerParams) ([]ListJobsForEmployerRow, error)
 	ListJobsMatchingUserSkills(ctx context.Context, arg ListJobsMatchingUserSkillsParams) ([]ListJobsMatchingUserSkillsRow, error)
 	ListUserSkills(ctx context.Context, arg ListUserSkillsParams) ([]UserSkill, error)
 	ListUsersBySkill(ctx context.Context, arg ListUsersBySkillParams) ([]User, error)

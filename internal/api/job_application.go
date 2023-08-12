@@ -777,6 +777,7 @@ type listJobApplicationsForEmployer struct {
 // @Success 200 {object} []db.ListJobApplicationsForEmployerRow
 // @Failure 400 {object} ErrorResponse "Invalid query parameters"
 // @Failure 401 {object} ErrorResponse "Unauthorized. Only employers can access, not users."
+// @Failure 403 {object} ErrorResponse "Employer is trying to access job that does not belong to them."
 // @Failure 404 {object} ErrorResponse "Job with given ID does not exist"
 // @Failure 500 {object} ErrorResponse "Any other error"
 // @Security ApiKeyAuth

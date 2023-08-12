@@ -124,3 +124,19 @@ FROM jobs j
 SELECT company_id
 FROM jobs
 WHERE id = $1;
+
+-- name: ListJobsForEmployer :many
+SELECT id,
+       title,
+       industry,
+       description,
+       location,
+       salary_min,
+       salary_max,
+       created_at
+FROM jobs
+WHERE company_id = $1
+ORDER BY CASE WHEN @created_at_asc::bool THEN created_at END ASC,
+         CASE WHEN @created_at_desc::bool THEN created_at END DESC,
+         created_at DESC
+LIMIT $2 OFFSET $3;
