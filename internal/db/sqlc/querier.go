@@ -41,6 +41,7 @@ type Querier interface {
 	GetJobApplicationUserID(ctx context.Context, id int32) (int32, error)
 	GetJobApplicationUserIDAndStatus(ctx context.Context, id int32) (GetJobApplicationUserIDAndStatusRow, error)
 	GetJobDetails(ctx context.Context, id int32) (GetJobDetailsRow, error)
+	GetJobIDOfJobApplication(ctx context.Context, id int32) (int32, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
 	ListAllJobSkillsByJobID(ctx context.Context, jobID int32) ([]string, error)

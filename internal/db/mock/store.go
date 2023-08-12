@@ -517,6 +517,21 @@ func (mr *MockStoreMockRecorder) GetJobDetails(arg0, arg1 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJobDetails", reflect.TypeOf((*MockStore)(nil).GetJobDetails), arg0, arg1)
 }
 
+// GetJobIDOfJobApplication mocks base method.
+func (m *MockStore) GetJobIDOfJobApplication(arg0 context.Context, arg1 int32) (int32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetJobIDOfJobApplication", arg0, arg1)
+	ret0, _ := ret[0].(int32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetJobIDOfJobApplication indicates an expected call of GetJobIDOfJobApplication.
+func (mr *MockStoreMockRecorder) GetJobIDOfJobApplication(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJobIDOfJobApplication", reflect.TypeOf((*MockStore)(nil).GetJobIDOfJobApplication), arg0, arg1)
+}
+
 // GetUserByEmail mocks base method.
 func (m *MockStore) GetUserByEmail(arg0 context.Context, arg1 string) (db.User, error) {
 	m.ctrl.T.Helper()

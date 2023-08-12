@@ -100,7 +100,10 @@ SELECT user_id
 FROM job_applications
 WHERE id = $1;
 
-
+-- name: GetJobIDOfJobApplication :one
+SELECT job_id
+FROM job_applications
+WHERE id = $1;
 
 
 

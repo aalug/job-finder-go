@@ -425,9 +425,8 @@ func (server *Server) changeJobApplicationStatus(ctx *gin.Context) {
 		return
 	}
 
-	// check if the employer is part of the company that created job for which the application was made
-	// get company ID
-	companyID, err := server.store.GetCompanyIDOfJob(ctx, uriRequest.ID)
+	// get job of the job application with given ID
+	jobID, err := server.store.GetJobIDOfJobApplication(ctx, uriRequest.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			ctx.JSON(http.StatusNotFound, errorResponse(
@@ -436,6 +435,14 @@ func (server *Server) changeJobApplicationStatus(ctx *gin.Context) {
 			return
 		}
 
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// check if the employer is part of the company that created job for which the application was made
+	// get company ID
+	companyID, err := server.store.GetCompanyIDOfJob(ctx, jobID)
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
