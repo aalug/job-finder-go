@@ -428,6 +428,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
+                    "403": {
+                        "description": "Employer is trying to access job that does not belong to them.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
                     "404": {
                         "description": "Job with given ID does not exist",
                         "schema": {
@@ -1035,6 +1041,71 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid query. Only one of the three parameters is allowed.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs/employer": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "List all jobs of an employer. Only employers can access this endpoint. Returns a list of jobs that were created by the authenticated employer. Results are paginated based on page and page_size query parameters.",
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "List all jobs of an employer",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "sort by date ('date-asc' or 'date-desc')",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/db.ListJobsForEmployerRow"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid query parameters",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Only employers can access, not users.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -2322,6 +2393,35 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "requirements": {
+                    "type": "string"
+                },
+                "salary_max": {
+                    "type": "integer"
+                },
+                "salary_min": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "db.ListJobsForEmployerRow": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "industry": {
+                    "type": "string"
+                },
+                "location": {
                     "type": "string"
                 },
                 "salary_max": {

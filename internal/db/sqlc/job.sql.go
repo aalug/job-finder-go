@@ -612,6 +612,80 @@ func (q *Queries) ListJobsByTitle(ctx context.Context, arg ListJobsByTitleParams
 	return items, nil
 }
 
+const listJobsForEmployer = `-- name: ListJobsForEmployer :many
+SELECT id,
+       title,
+       industry,
+       description,
+       location,
+       salary_min,
+       salary_max,
+       created_at
+FROM jobs
+WHERE company_id = $1
+ORDER BY CASE WHEN $4::bool THEN created_at END ASC,
+         CASE WHEN $5::bool THEN created_at END DESC,
+         created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type ListJobsForEmployerParams struct {
+	CompanyID     int32 `json:"company_id"`
+	Limit         int32 `json:"limit"`
+	Offset        int32 `json:"offset"`
+	CreatedAtAsc  bool  `json:"created_at_asc"`
+	CreatedAtDesc bool  `json:"created_at_desc"`
+}
+
+type ListJobsForEmployerRow struct {
+	ID          int32     `json:"id"`
+	Title       string    `json:"title"`
+	Industry    string    `json:"industry"`
+	Description string    `json:"description"`
+	Location    string    `json:"location"`
+	SalaryMin   int32     `json:"salary_min"`
+	SalaryMax   int32     `json:"salary_max"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+func (q *Queries) ListJobsForEmployer(ctx context.Context, arg ListJobsForEmployerParams) ([]ListJobsForEmployerRow, error) {
+	rows, err := q.db.QueryContext(ctx, listJobsForEmployer,
+		arg.CompanyID,
+		arg.Limit,
+		arg.Offset,
+		arg.CreatedAtAsc,
+		arg.CreatedAtDesc,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListJobsForEmployerRow{}
+	for rows.Next() {
+		var i ListJobsForEmployerRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Industry,
+			&i.Description,
+			&i.Location,
+			&i.SalaryMin,
+			&i.SalaryMax,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listJobsMatchingUserSkills = `-- name: ListJobsMatchingUserSkills :many
 SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.salary_min, j.salary_max, j.requirements, j.created_at,
        c.name AS company_name

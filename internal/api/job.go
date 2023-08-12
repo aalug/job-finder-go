@@ -738,3 +738,68 @@ func (server *Server) searchJobs(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, jobs)
 }
+
+type listEmployerJobsRequest struct {
+	Page     int32  `form:"page" binding:"required,min=1"`
+	PageSize int32  `form:"page_size" binding:"required,min=5,max=15"`
+	Sort     string `form:"sort" binding:"omitempty,oneof=date-asc date-desc"`
+}
+
+// @Schemes
+// @Summary List all jobs of an employer
+// @Description List all jobs of an employer. Only employers can access this endpoint. Returns a list of jobs that were created by the authenticated employer. Results are paginated based on page and page_size query parameters.
+// @Tags jobs
+// @param page query int true "page number"
+// @param page_size query int true "page size"
+// @param sort query string false "sort by date ('date-asc' or 'date-desc')"
+// @Success 200 {object} []db.ListJobsForEmployerRow
+// @Failure 400 {object} ErrorResponse "Invalid query parameters"
+// @Failure 401 {object} ErrorResponse "Unauthorized. Only employers can access, not users."
+// @Failure 500 {object} ErrorResponse "Any other error"
+// @Security ApiKeyAuth
+// @Router /jobs/employer [get]
+// listEmployerJobs lists all jobs of an authenticated employer
+func (server *Server) listEmployerJobs(ctx *gin.Context) {
+	var request listEmployerJobsRequest
+	if err := ctx.ShouldBindQuery(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// check if the employer is authenticated (and is an employer, not user)
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so it had to be made by a user
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	params := db.ListJobsForEmployerParams{
+		CompanyID: authEmployer.CompanyID,
+		Limit:     request.PageSize,
+		Offset:    (request.Page - 1) * request.PageSize,
+	}
+
+	// by default, sort by date descending
+	switch request.Sort {
+	case "date-asc":
+		params.CreatedAtAsc = true
+	default:
+		params.CreatedAtDesc = true
+	}
+
+	// get jobs with provided params
+	jobs, err := server.store.ListJobsForEmployer(ctx, params)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, jobs)
+}

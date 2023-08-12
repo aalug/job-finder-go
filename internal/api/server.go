@@ -103,8 +103,9 @@ func (server *Server) setupRouter() {
 	// === jobs ===
 	// for employers, jobs CRUD
 	authRoutesV1.POST("/jobs", server.createJob)
-	authRoutesV1.DELETE("/jobs/:id", server.deleteJob)
+	authRoutesV1.GET("/jobs/employer", server.listEmployerJobs)
 	authRoutesV1.PATCH("/jobs/:id", server.updateJob)
+	authRoutesV1.DELETE("/jobs/:id", server.deleteJob)
 
 	// for users, listing jobs that use user details
 	authRoutesV1.GET("/jobs/match-skills", server.listJobsByMatchingSkills)

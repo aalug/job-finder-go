@@ -412,10 +412,42 @@ func TestQueries_ListAllJobsForES(t *testing.T) {
 	}
 }
 
-func TestGetCompanyIDOfJob(t *testing.T) {
+func TestQueries_GetCompanyIDOfJob(t *testing.T) {
 	company := createRandomCompany(t, "")
 	job := createRandomJob(t, &company, jobDetails{})
 	companyID, err := testQueries.GetCompanyIDOfJob(context.Background(), job.ID)
 	require.NoError(t, err)
 	require.Equal(t, company.ID, companyID)
+}
+
+func TestQueries_ListJobsForEmployer(t *testing.T) {
+	company := createRandomCompany(t, "")
+	for i := 0; i < 5; i++ {
+		createRandomJob(t, &company, jobDetails{})
+	}
+
+	params := ListJobsForEmployerParams{
+		CompanyID:     company.ID,
+		Limit:         5,
+		Offset:        0,
+		CreatedAtAsc:  true,
+		CreatedAtDesc: false,
+	}
+
+	jobs, err := testQueries.ListJobsForEmployer(context.Background(), params)
+	require.NoError(t, err)
+	require.Len(t, jobs, 5)
+	for _, job := range jobs {
+		require.NotEmpty(t, job)
+		require.NotZero(t, job.ID)
+		require.NotEmpty(t, job.Title)
+		require.NotEmpty(t, job.Description)
+		require.NotEmpty(t, job.Location)
+		require.NotEmpty(t, job.CreatedAt)
+	}
+
+	// check ordering
+	for i := 1; i < len(jobs); i++ {
+		require.True(t, jobs[i].CreatedAt.After(jobs[i-1].CreatedAt) || jobs[i].CreatedAt.Equal(jobs[i-1].CreatedAt))
+	}
 }

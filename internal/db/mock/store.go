@@ -788,6 +788,21 @@ func (mr *MockStoreMockRecorder) ListJobsByTitle(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListJobsByTitle", reflect.TypeOf((*MockStore)(nil).ListJobsByTitle), arg0, arg1)
 }
 
+// ListJobsForEmployer mocks base method.
+func (m *MockStore) ListJobsForEmployer(arg0 context.Context, arg1 db.ListJobsForEmployerParams) ([]db.ListJobsForEmployerRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListJobsForEmployer", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListJobsForEmployerRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListJobsForEmployer indicates an expected call of ListJobsForEmployer.
+func (mr *MockStoreMockRecorder) ListJobsForEmployer(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListJobsForEmployer", reflect.TypeOf((*MockStore)(nil).ListJobsForEmployer), arg0, arg1)
+}
+
 // ListJobsMatchingUserSkills mocks base method.
 func (m *MockStore) ListJobsMatchingUserSkills(arg0 context.Context, arg1 db.ListJobsMatchingUserSkillsParams) ([]db.ListJobsMatchingUserSkillsRow, error) {
 	m.ctrl.T.Helper()
