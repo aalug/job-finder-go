@@ -854,6 +854,7 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 	user, _ := generateRandomUser(t)
 	employer, _, company := generateRandomEmployerAndCompany(t)
 	jobApplicationID := utils.RandomInt(1, 1000)
+	job := generateRandomJob()
 
 	testCases := []struct {
 		name             string
@@ -878,7 +879,11 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 					Times(1).
 					Return(employer, nil)
 				store.EXPECT().
-					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					GetJobIDOfJobApplication(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(job.ID, nil)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Eq(job.ID)).
 					Times(1).
 					Return(company.ID, nil)
 				params := db.UpdateJobApplicationStatusParams{
@@ -917,6 +922,9 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
 					Times(0)
 				store.EXPECT().
+					GetJobIDOfJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
 					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
 					Times(0)
 				store.EXPECT().
@@ -939,6 +947,9 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					GetJobIDOfJobApplication(gomock.Any(), gomock.Any()).
 					Times(0)
 				store.EXPECT().
 					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
@@ -966,6 +977,9 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 					Times(1).
 					Return(db.Employer{}, sql.ErrNoRows)
 				store.EXPECT().
+					GetJobIDOfJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
 					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
 					Times(0)
 				store.EXPECT().
@@ -990,6 +1004,9 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
 					Return(db.Employer{}, sql.ErrConnDone)
+				store.EXPECT().
+					GetJobIDOfJobApplication(gomock.Any(), gomock.Any()).
+					Times(0)
 				store.EXPECT().
 					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1016,9 +1033,12 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 					Times(1).
 					Return(employer, nil)
 				store.EXPECT().
-					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					GetJobIDOfJobApplication(gomock.Any(), gomock.Eq(jobApplicationID)).
 					Times(1).
 					Return(int32(0), sql.ErrNoRows)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					Times(0)
 				store.EXPECT().
 					UpdateJobApplicationStatus(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1041,6 +1061,10 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
 					Return(employer, nil)
+				store.EXPECT().
+					GetJobIDOfJobApplication(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(job.ID, nil)
 				store.EXPECT().
 					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
 					Times(1).
@@ -1068,6 +1092,10 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 					Times(1).
 					Return(employer, nil)
 				store.EXPECT().
+					GetJobIDOfJobApplication(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(job.ID, nil)
+				store.EXPECT().
 					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
 					Times(1).
 					Return(company.ID+1, nil)
@@ -1094,6 +1122,10 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 					Times(1).
 					Return(employer, nil)
 				store.EXPECT().
+					GetJobIDOfJobApplication(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(job.ID, nil)
+				store.EXPECT().
 					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
 					Times(1).
 					Return(company.ID, nil)
@@ -1105,6 +1137,35 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 					UpdateJobApplicationStatus(gomock.Any(), gomock.Eq(params)).
 					Times(1).
 					Return(sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:             "Forbidden Employer Not Job Owner",
+			JobApplicationID: jobApplicationID,
+			body: gin.H{
+				"new_status": "Rejected",
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetJobIDOfJobApplication(gomock.Any(), gomock.Eq(jobApplicationID)).
+					Times(1).
+					Return(int32(0), sql.ErrConnDone)
+				store.EXPECT().
+					GetCompanyIDOfJob(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateJobApplicationStatus(gomock.Any(), gomock.Any()).
+					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)

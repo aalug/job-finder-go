@@ -359,6 +359,90 @@ const docTemplate = `{
                 }
             }
         },
+        "/job-applications/employer": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "List job applications for a job with a given ID. Only employers can access this endpoint. Returns a list of job applications that were made for a given job. Results are paginated based on page and page_size query parameters.",
+                "tags": [
+                    "job applications"
+                ],
+                "summary": "List job applications (employer)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "job ID",
+                        "name": "job_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page number",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "sort by date ('date-asc' or 'date-desc')",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "filter by status ('Applied', 'Seen', 'Interviewing', 'Offered', 'Rejected')",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/db.ListJobApplicationsForEmployerRow"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid query parameters",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized. Only employers can access, not users.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Job with given ID does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/job-applications/employer/{id}": {
             "get": {
                 "security": [
@@ -534,7 +618,10 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/db.ListJobApplicationsForUserParams"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/db.ListJobApplicationsForUserRow"
+                            }
                         }
                     },
                     "400": {
@@ -2112,26 +2199,49 @@ const docTemplate = `{
                 "ApplicationStatusRejected"
             ]
         },
-        "db.ListJobApplicationsForUserParams": {
+        "db.ListJobApplicationsForEmployerRow": {
             "type": "object",
             "properties": {
-                "applied_at_asc": {
-                    "type": "boolean"
+                "application_date": {
+                    "type": "string"
                 },
-                "applied_at_desc": {
-                    "type": "boolean"
-                },
-                "filter_status": {
-                    "type": "boolean"
-                },
-                "limit": {
+                "application_id": {
                     "type": "integer"
                 },
-                "offset": {
-                    "type": "integer"
-                },
-                "status": {
+                "application_status": {
                     "$ref": "#/definitions/db.ApplicationStatus"
+                },
+                "user_email": {
+                    "type": "string"
+                },
+                "user_full_name": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "db.ListJobApplicationsForUserRow": {
+            "type": "object",
+            "properties": {
+                "application_date": {
+                    "type": "string"
+                },
+                "application_id": {
+                    "type": "integer"
+                },
+                "application_status": {
+                    "$ref": "#/definitions/db.ApplicationStatus"
+                },
+                "company_name": {
+                    "type": "string"
+                },
+                "job_id": {
+                    "type": "integer"
+                },
+                "job_title": {
+                    "type": "string"
                 },
                 "user_id": {
                     "type": "integer"

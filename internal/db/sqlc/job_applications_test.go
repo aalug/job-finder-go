@@ -255,3 +255,10 @@ func TestQueries_GetJobApplicationUserIDAndStatus(t *testing.T) {
 	require.Equal(t, details.UserID, jobApplication.UserID)
 	require.Equal(t, details.Status, jobApplication.Status)
 }
+
+func TestQueries_GetJobIDOfJobApplication(t *testing.T) {
+	jobApplication := createRandomJobApplication(t, 0, 0)
+	jobID, err := testQueries.GetJobIDOfJobApplication(context.Background(), jobApplication.ID)
+	require.NoError(t, err)
+	require.Equal(t, jobID, jobApplication.JobID)
+}
