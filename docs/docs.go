@@ -1403,7 +1403,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Get details of the logged in user",
+                "description": "Get details of the logged-in user",
                 "produces": [
                     "application/json"
                 ],
@@ -1418,8 +1418,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.userResponse"
                         }
                     },
+                    "401": {
+                        "description": "Only users can access this endpoint, not employers.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
                     "500": {
-                        "description": "Any error",
+                        "description": "Any other error",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1494,8 +1500,14 @@ const docTemplate = `{
                             "type": "null"
                         }
                     },
+                    "401": {
+                        "description": "Only users can update their details using this endpoint.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
                     "500": {
-                        "description": "Any error",
+                        "description": "Any other error",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1539,6 +1551,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Only users can update their details using this endpoint.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -1653,7 +1671,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Incorrect password",
+                        "description": "Incorrect password or the account making the request is not a user.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }

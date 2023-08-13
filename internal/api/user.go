@@ -236,11 +236,12 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 // @Schemes
 // @Summary Get user
-// @Description Get details of the logged in user
+// @Description Get details of the logged-in user
 // @Tags users
 // @Produce json
 // @Success 200 {object} userResponse
-// @Failure 500 {object} ErrorResponse "Any error"
+// @Failure 401 {object} ErrorResponse "Only users can access this endpoint, not employers."
+// @Failure 500 {object} ErrorResponse "Any other error"
 // @Security ApiKeyAuth
 // @Router /users [get]
 // getUser handles getting user details
@@ -248,6 +249,13 @@ func (server *Server) getUser(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	user, userSkills, err := server.store.GetUserDetailsByEmail(ctx, authPayload.Email)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so we assume
+			// that the request was made by an employer
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -278,6 +286,7 @@ type updateUserRequest struct {
 // @param UpdateUserRequest body updateUserRequest true "User details to update"
 // @Success 200 {object} userResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body"
+// @Failure 401 {object} ErrorResponse "Only users can update their details using this endpoint."
 // @Failure 500 {object} ErrorResponse "Any other error"
 // @Security ApiKeyAuth
 // @Router /users [patch]
@@ -300,6 +309,13 @@ func (server *Server) updateUser(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so we assume
+			// that the request was made by an employer
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -419,7 +435,7 @@ type updateUserPasswordResponse struct {
 // @param UpdateUserPasswordRequest body updateUserPasswordRequest true "Users old and new password"
 // @Success 200 {object} updateUserPasswordResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body"
-// @Failure 401 {object} ErrorResponse "Incorrect password"
+// @Failure 401 {object} ErrorResponse "Incorrect password or the account making the request is not a user."
 // @Failure 500 {object} ErrorResponse "Any other error"
 // @Security ApiKeyAuth
 // @Router /users/password [patch]
@@ -434,6 +450,13 @@ func (server *Server) updateUserPassword(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so we assume
+			// that the request was made by an employer
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -470,7 +493,8 @@ func (server *Server) updateUserPassword(ctx *gin.Context) {
 // @Description Delete the logged-in user
 // @Tags users
 // @Success 204 {null} null
-// @Failure 500 {object} ErrorResponse "Any error"
+// @Failure 401 {object} ErrorResponse "Only users can update their details using this endpoint."
+// @Failure 500 {object} ErrorResponse "Any other error"
 // @Security ApiKeyAuth
 // @Router /users [delete]
 // deleteUser handles deleting users
@@ -478,6 +502,12 @@ func (server *Server) deleteUser(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	authUser, err := server.store.GetUserByEmail(ctx, authPayload.Email)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so we assume
+			// that the request was made by an employer
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyUsersAccessError))
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
