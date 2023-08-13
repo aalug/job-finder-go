@@ -475,6 +475,7 @@ func TestLoginUserAPI(t *testing.T) {
 
 func TestGetUserAPI(t *testing.T) {
 	user, _ := generateRandomUser(t)
+	employer, _, _ := generateRandomEmployerAndCompany(t)
 	_, userSkills, _ := generateSkills(user.ID)
 	testCases := []struct {
 		name          string
@@ -496,6 +497,21 @@ func TestGetUserAPI(t *testing.T) {
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
 				requireBodyMatchUser(t, recorder.Body, user, userSkills)
+			},
+		},
+		{
+			name: "Unauthorized Only Users Access",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserDetailsByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.User{}, []db.UserSkill{}, sql.ErrNoRows)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
 			},
 		},
 		{
@@ -542,6 +558,7 @@ func TestGetUserAPI(t *testing.T) {
 
 func TestUpdateUserAPI(t *testing.T) {
 	user, _ := generateRandomUser(t)
+	employer, _, _ := generateRandomEmployerAndCompany(t)
 	skills, userSkills, createUserSkills := generateSkills(user.ID)
 	skillIDsToRemove := []int32{userSkills[0].ID}
 	newDetails := db.UpdateUserParams{
@@ -621,6 +638,40 @@ func TestUpdateUserAPI(t *testing.T) {
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "Unauthorized Only User Access",
+			body: gin.H{
+				"location":            newDetails.Location,
+				"desired_job_title":   newDetails.DesiredJobTitle,
+				"full_name":           newDetails.FullName,
+				"skills_to_add":       skills,
+				"skill_ids_to_remove": skillIDsToRemove,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrNoRows)
+				store.EXPECT().
+					UpdateUser(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					CreateMultipleUserSkills(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteMultipleUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
 			},
 		},
 		{
@@ -928,6 +979,7 @@ func TestUpdateUserAPI(t *testing.T) {
 
 func TestUpdateUserPasswordAPI(t *testing.T) {
 	user, oldPassword := generateRandomUser(t)
+	employer, _, _ := generateRandomEmployerAndCompany(t)
 	newPassword := utils2.RandomString(6)
 	testCases := []struct {
 		name          string
@@ -1025,6 +1077,28 @@ func TestUpdateUserPasswordAPI(t *testing.T) {
 			},
 		},
 		{
+			name: "Unauthorized Only User Access",
+			body: gin.H{
+				"old_password": oldPassword,
+				"new_password": newPassword,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrNoRows)
+				store.EXPECT().
+					UpdatePassword(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name: "Internal Server Error GetUserByEmail",
 			body: gin.H{
 				"old_password": oldPassword,
@@ -1101,6 +1175,7 @@ func TestUpdateUserPasswordAPI(t *testing.T) {
 
 func TestDeleteUserAPI(t *testing.T) {
 	user, _ := generateRandomUser(t)
+	employer, _, _ := generateRandomEmployerAndCompany(t)
 	testCases := []struct {
 		name          string
 		setupAuth     func(t *testing.T, r *http.Request, maker token.Maker)
@@ -1128,6 +1203,27 @@ func TestDeleteUserAPI(t *testing.T) {
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNoContent, recorder.Code)
+			},
+		},
+		{
+			name: "Unauthorized Only User Access",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrNoRows)
+				store.EXPECT().
+					DeleteAllUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
 			},
 		},
 		{

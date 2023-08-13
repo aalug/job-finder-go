@@ -1492,8 +1492,12 @@ paths:
           description: No Content
           schema:
             type: "null"
+        "401":
+          description: Only users can update their details using this endpoint.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Any error
+          description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
@@ -1502,7 +1506,7 @@ paths:
       tags:
       - users
     get:
-      description: Get details of the logged in user
+      description: Get details of the logged-in user
       produces:
       - application/json
       responses:
@@ -1510,8 +1514,12 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/api.userResponse'
+        "401":
+          description: Only users can access this endpoint, not employers.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Any error
+          description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
@@ -1539,6 +1547,10 @@ paths:
             $ref: '#/definitions/api.userResponse'
         "400":
           description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Only users can update their details using this endpoint.
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "500":
@@ -1645,7 +1657,8 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Incorrect password
+          description: Incorrect password or the account making the request is not
+            a user.
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "500":
