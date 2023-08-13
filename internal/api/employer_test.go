@@ -418,6 +418,7 @@ func TestLoginEmployerAPI(t *testing.T) {
 
 func TestGetEmployerAPI(t *testing.T) {
 	employer, _, company := generateRandomEmployerAndCompany(t)
+	user, _ := generateRandomUser(t)
 
 	testCases := []struct {
 		name          string
@@ -443,6 +444,24 @@ func TestGetEmployerAPI(t *testing.T) {
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
 				requireBodyMatchEmployerAndCompany(t, recorder.Body, employer, company)
+			},
+		},
+		{
+			name: "Unauthorized Only Employer Access",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db2.Employer{}, sql.ErrNoRows)
+				store.EXPECT().
+					GetCompanyByID(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
 			},
 		},
 		{
@@ -512,6 +531,7 @@ func TestGetEmployerAPI(t *testing.T) {
 func TestUpdateEmployerAPI(t *testing.T) {
 	employer, _, company := generateRandomEmployerAndCompany(t)
 	newEmployer, _, newCompany := generateRandomEmployerAndCompany(t)
+	user, _ := generateRandomUser(t)
 
 	testCases := []struct {
 		name          string
@@ -565,6 +585,35 @@ func TestUpdateEmployerAPI(t *testing.T) {
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
 				requireBodyMatchEmployerAndCompany(t, recorder.Body, newEmployer, newCompany)
+			},
+		},
+		{
+			name: "Unauthorized Only Employer Access",
+			body: gin.H{
+				"email":            newEmployer.Email,
+				"company_industry": newCompany.Industry,
+				"company_location": newCompany.Location,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db2.Employer{}, sql.ErrNoRows)
+				store.EXPECT().
+					GetCompanyByID(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateCompany(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					UpdateEmployer(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
 			},
 		},
 		{
@@ -771,6 +820,7 @@ func TestUpdateEmployerAPI(t *testing.T) {
 func TestUpdateEmployerPasswordAPI(t *testing.T) {
 	employer, password, _ := generateRandomEmployerAndCompany(t)
 	newPassword := utils2.RandomString(6)
+	user, _ := generateRandomUser(t)
 
 	testCases := []struct {
 		name          string
@@ -890,6 +940,28 @@ func TestUpdateEmployerPasswordAPI(t *testing.T) {
 			},
 		},
 		{
+			name: "Unauthorized Only Employer Access",
+			body: gin.H{
+				"old_password": password,
+				"new_password": newPassword,
+			},
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db2.Employer{}, sql.ErrNoRows)
+				store.EXPECT().
+					UpdateEmployerPassword(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
 			name: "Internal Server Error GetEmployerByEmail",
 			body: gin.H{
 				"old_password": password,
@@ -943,6 +1015,7 @@ func TestUpdateEmployerPasswordAPI(t *testing.T) {
 
 func TestDeleteEmployerAPI(t *testing.T) {
 	employer, _, company := generateRandomEmployerAndCompany(t)
+	user, _ := generateRandomUser(t)
 
 	testCases := []struct {
 		name          string
@@ -971,6 +1044,27 @@ func TestDeleteEmployerAPI(t *testing.T) {
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNoContent, recorder.Code)
+			},
+		},
+		{
+			name: "Unauthorized Only Employer Access",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db2.Employer{}, sql.ErrNoRows)
+				store.EXPECT().
+					DeleteCompany(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteEmployer(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
 			},
 		},
 		{
