@@ -464,3 +464,56 @@ func (server *Server) deleteEmployer(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusNoContent, nil)
 }
+
+type getUserAsEmployerRequest struct {
+	Email string `uri:"email" binding:"required,email"`
+}
+
+// @Schemes
+// @Summary Get user as employer
+// @Description Get a user as employer. Returns user details and skills. Only employers can access this endpoint.
+// @Tags employers
+// @Success 200 {object} userResponse
+// @Failure 400 {object} ErrorResponse "Invalid email in uri."
+// @Failure 401 {object} ErrorResponse "Only employers can access this endpoint."
+// @Failure 404 {object} ErrorResponse "User with given email does not exist."
+// @Failure 500 {object} ErrorResponse "Any other error."
+// @Security ApiKeyAuth
+// @Router /employers/user/{email} [get]
+// getUserAsEmployer get user details as employer.
+func (server *Server) getUserAsEmployer(ctx *gin.Context) {
+	var request getUserAsEmployerRequest
+	if err := ctx.ShouldBindUri(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// authenticate the employer
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	_, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so we assume
+			// that the request was made by a user
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyEmployersAccessError))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	user, userSkills, err := server.store.GetUserDetailsByEmail(ctx, request.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = fmt.Errorf("user with email %s does not exist", request.Email)
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newUserResponse(user, userSkills))
+}

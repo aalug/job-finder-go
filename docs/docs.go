@@ -42,6 +42,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.employerResponse"
                         }
                     },
+                    "401": {
+                        "description": "Only employers can access this endpoint.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal error",
                         "schema": {
@@ -118,8 +124,14 @@ const docTemplate = `{
                             "type": "null"
                         }
                     },
+                    "401": {
+                        "description": "Only employers can access this endpoint.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
                     "500": {
-                        "description": "Any error",
+                        "description": "Any other error",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -163,6 +175,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request body",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Only employers can access this endpoint.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
@@ -277,13 +295,59 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Incorrect password",
+                        "description": "Incorrect password or request made a user, not employer.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Any other error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/employers/user/{email}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get a user as employer. Returns user details and skills. Only employers can access this endpoint.",
+                "tags": [
+                    "employers"
+                ],
+                "summary": "Get user as employer",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.userResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid email in uri.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Only employers can access this endpoint.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User with given email does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorResponse"
                         }

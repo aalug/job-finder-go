@@ -85,22 +85,28 @@ status code is returned. If a user with the given email does not exist, a `404 N
 code is returned. In case of any other error, a `500 Internal Server Error` status code is returned.
 
 + `GET /users`: This endpoint retrieves the details of the logged-in user. On success, the response 
-has a `200 OK` status code and returns the user details in JSON format. In case of any error, a 
+has a `200 OK` status code and returns the user details in JSON format. If the user 
+is not authorized (does not have an account or is an employer, not user), a 
+`401 Unauthorized` status code is returned. In case of any other error, a 
 `500 Internal Server Error` status code is returned.
 
 + `PATCH /users`: This endpoint updates the details of the logged-in user. The request body must 
 contain the updated user details in JSON format. On success, the response has a `200 OK` status code 
 and returns the updated user in JSON format. If the request body is invalid, a `400 Bad Request` 
-status code is returned. In case of any other error, a `500 Internal Server Error` status code is returned.
+status code is returned. If the user is not authorized (does not have an account or is an employer, not user), 
+a `401 Unauthorized` status code is returned. In case of any other error, a `500 Internal Server Error` status code is returned.
 
 + `PATCH /users/password`: This endpoint updates the password of the logged-in user. The request body 
 must contain the old and new password in JSON format. On success, the response has a `200 OK` status 
 code and returns a success message. If the request body is invalid, a `400 Bad Request` status code 
-is returned. If the old password is incorrect, a `401 Unauthorized` status code is returned. In case 
+is returned. If the old password is incorrect or the user is not authorized (does not have an account or is an employer, not user), 
+a `401 Unauthorized` status code is returned. In case 
 of any other error, a `500 Internal Server Error` status code is returned.
 
 + `DELETE /users`: This endpoint deletes the logged-in user. On success, the response has a 
-`204 No Content` status code. In case of any error, a `500 Internal Server Error` status code is returned.
+`204 No Content` status code. If the user 
+is not authorized (does not have an account or is an employer, not user), a 
+`401 Unauthorized` status code is returned.In case of any other error, a `500 Internal Server Error` status code is returned.
 
 
 ### Employers
@@ -124,25 +130,37 @@ a `500 Internal Server Error` status code is returned.
 
 + `GET /employers`: This endpoint retrieves the details of the 
 authenticated employer. The response is in JSON format and has a `200 OK` 
-status code on success. In case of an internal error, a `500 Internal Server Error` 
+status code on success. If the employer is not authorized (does not have an account or is a user, not employer), a 
+`401 Unauthorized` status code is returned. In case of an any other error, a `500 Internal Server Error` 
 status code is returned.
+
++ `GET /employers/user/{email}`: This endpoint retrieves the details of a user as an employer. 
+The response is in JSON format and has a `200 OK` status code on success. If the email 
+in the URI is invalid, a `400 Bad Request` status code is returned. If the employer is 
+not authorized (does not have an account or is not an employer), a `401 Unauthorized` 
+status code is returned. If the user with the given email does not exist, a `404 Not Found` 
+status code is returned. In case of any other error, a `500 Internal Server Error` status code is returned. 
 
 + `PATCH /employers`: This endpoint updates the details of the 
 authenticated employer. The request body must contain the updated 
 employer details in JSON format. On success, the response has a `200 OK` 
-status code and returns the updated employer in JSON format. In case of 
-any error, a `500 Internal Server Error` status code is returned.
+status code and returns the updated employer in JSON format. If the employer is not 
+authorized (does not have an account or is a user, not employer), a `401 Unauthorized` 
+status code is returned.In case of any other error, a `500 Internal Server Error` status code is returned.
 
 + `PATCH /employers/password`: This endpoint updates the password of the logged-in 
 employer. The request body must contain the old and new password in JSON format.
 On success, the response has a `200 OK` status code and returns a success message. 
 If the request body is invalid, a `400 Bad Request` status code is returned. 
-If the old password is incorrect, a `401 Unauthorized` status code is returned. 
+If the old password is incorrect or the employer is not authorized (does not have an account or is a user, not employer), a 
+, a `401 Unauthorized` status code is returned. 
 In case of any other error, a `500 Internal Server Error` status code is returned.
 
 + `DELETE /employers`: This endpoint deletes the logged-in employer. 
-On success, the response has a `204 No Content` status code. In case of 
-any error, a `500 Internal Server Error` status code is returned.
+On success, the response has a `204 No Content` status code. If the employer is not 
+authorized (does not have an account or is a user, not employer), a 
+`401 Unauthorized` status code is returned.In case of 
+any other error, a `500 Internal Server Error` status code is returned.
 
 
 ### Jobs
