@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aalug/go-gin-job-search/internal/db/mock"
-	db2 "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/pkg/token"
-	utils2 "github.com/aalug/go-gin-job-search/pkg/utils"
+	"github.com/aalug/go-gin-job-search/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/lib/pq"
@@ -22,17 +22,17 @@ import (
 )
 
 type eqCreateEmployerParamsMatcher struct {
-	params   db2.CreateEmployerParams
+	params   db.CreateEmployerParams
 	password string
 }
 
 func (e eqCreateEmployerParamsMatcher) Matches(arg interface{}) bool {
-	params, ok := arg.(db2.CreateEmployerParams)
+	params, ok := arg.(db.CreateEmployerParams)
 	if !ok {
 		return false
 	}
 
-	err := utils2.CheckPassword(e.password, params.HashedPassword)
+	err := utils.CheckPassword(e.password, params.HashedPassword)
 	if err != nil {
 		return false
 	}
@@ -45,7 +45,7 @@ func (e eqCreateEmployerParamsMatcher) String() string {
 	return fmt.Sprintf("matches arg %v and password %v", e.params, e.password)
 }
 
-func EqCreateEmployerParams(arg db2.CreateEmployerParams, password string) gomock.Matcher {
+func EqCreateEmployerParams(arg db.CreateEmployerParams, password string) gomock.Matcher {
 	return eqCreateEmployerParamsMatcher{arg, password}
 }
 
@@ -71,7 +71,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 			name: "OK",
 			body: requestBody,
 			buildStubs: func(store *mockdb.MockStore) {
-				companyParams := db2.CreateCompanyParams{
+				companyParams := db.CreateCompanyParams{
 					Name:     company.Name,
 					Industry: company.Industry,
 					Location: company.Location,
@@ -94,7 +94,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 			name: "Internal Server Error CreateCompany",
 			body: requestBody,
 			buildStubs: func(store *mockdb.MockStore) {
-				companyParams := db2.CreateCompanyParams{
+				companyParams := db.CreateCompanyParams{
 					Name:     company.Name,
 					Industry: company.Industry,
 					Location: company.Location,
@@ -102,7 +102,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					CreateCompany(gomock.Any(), gomock.Eq(companyParams)).
 					Times(1).
-					Return(db2.Company{}, sql.ErrConnDone)
+					Return(db.Company{}, sql.ErrConnDone)
 				store.EXPECT().
 					CreateEmployer(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -115,7 +115,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 			name: "Internal Server Error CreateEmployer",
 			body: requestBody,
 			buildStubs: func(store *mockdb.MockStore) {
-				companyParams := db2.CreateCompanyParams{
+				companyParams := db.CreateCompanyParams{
 					Name:     company.Name,
 					Industry: company.Industry,
 					Location: company.Location,
@@ -127,7 +127,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					CreateEmployer(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrConnDone)
+					Return(db.Employer{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -159,7 +159,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 			name: "Duplicated Company Name",
 			body: requestBody,
 			buildStubs: func(store *mockdb.MockStore) {
-				params := db2.CreateCompanyParams{
+				params := db.CreateCompanyParams{
 					Name:     company.Name,
 					Industry: company.Industry,
 					Location: company.Location,
@@ -167,7 +167,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					CreateCompany(gomock.Any(), gomock.Eq(params)).
 					Times(1).
-					Return(db2.Company{}, &pq.Error{Code: "23505"})
+					Return(db.Company{}, &pq.Error{Code: "23505"})
 				store.EXPECT().
 					CreateEmployer(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -180,7 +180,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 			name: "Duplicated Email",
 			body: requestBody,
 			buildStubs: func(store *mockdb.MockStore) {
-				params := db2.CreateCompanyParams{
+				params := db.CreateCompanyParams{
 					Name:     company.Name,
 					Industry: company.Industry,
 					Location: company.Location,
@@ -192,7 +192,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					CreateEmployer(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Employer{}, &pq.Error{Code: "23505"})
+					Return(db.Employer{}, &pq.Error{Code: "23505"})
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusForbidden, recorder.Code)
@@ -265,7 +265,7 @@ func TestLoginEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrNoRows)
+					Return(db.Employer{}, sql.ErrNoRows)
 				store.EXPECT().
 					GetCompanyByID(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -284,7 +284,7 @@ func TestLoginEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrConnDone)
+					Return(db.Employer{}, sql.ErrConnDone)
 				store.EXPECT().
 					GetCompanyByID(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -307,7 +307,7 @@ func TestLoginEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetCompanyByID(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Company{}, sql.ErrConnDone)
+					Return(db.Company{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -327,7 +327,7 @@ func TestLoginEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetCompanyByID(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Company{}, sql.ErrNoRows)
+					Return(db.Company{}, sql.ErrNoRows)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -355,7 +355,7 @@ func TestLoginEmployerAPI(t *testing.T) {
 			name: "Incorrect Password",
 			body: gin.H{
 				"email":    employer.Email,
-				"password": fmt.Sprintf("%d, %s", utils2.RandomInt(1, 1000), utils2.RandomString(10)),
+				"password": fmt.Sprintf("%d, %s", utils.RandomInt(1, 1000), utils.RandomString(10)),
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -455,7 +455,7 @@ func TestGetEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrNoRows)
+					Return(db.Employer{}, sql.ErrNoRows)
 				store.EXPECT().
 					GetCompanyByID(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -473,7 +473,7 @@ func TestGetEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrConnDone)
+					Return(db.Employer{}, sql.ErrConnDone)
 				store.EXPECT().
 					GetCompanyByID(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -495,7 +495,7 @@ func TestGetEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetCompanyByID(gomock.Any(), gomock.Eq(employer.CompanyID)).
 					Times(1).
-					Return(db2.Company{}, sql.ErrConnDone)
+					Return(db.Company{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -561,7 +561,7 @@ func TestUpdateEmployerAPI(t *testing.T) {
 					GetCompanyByID(gomock.Any(), gomock.Eq(employer.CompanyID)).
 					Times(1).
 					Return(company, nil)
-				companyParams := db2.UpdateCompanyParams{
+				companyParams := db.UpdateCompanyParams{
 					ID:       company.ID,
 					Name:     newCompany.Name,
 					Industry: newCompany.Industry,
@@ -571,7 +571,7 @@ func TestUpdateEmployerAPI(t *testing.T) {
 					UpdateCompany(gomock.Any(), gomock.Eq(companyParams)).
 					Times(1).
 					Return(newCompany, nil)
-				employerParams := db2.UpdateEmployerParams{
+				employerParams := db.UpdateEmployerParams{
 					ID:        employer.ID,
 					CompanyID: employer.CompanyID,
 					FullName:  newEmployer.FullName,
@@ -601,7 +601,7 @@ func TestUpdateEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrNoRows)
+					Return(db.Employer{}, sql.ErrNoRows)
 				store.EXPECT().
 					GetCompanyByID(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -630,7 +630,7 @@ func TestUpdateEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrConnDone)
+					Return(db.Employer{}, sql.ErrConnDone)
 				store.EXPECT().
 					GetCompanyByID(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -662,7 +662,7 @@ func TestUpdateEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetCompanyByID(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Company{}, sql.ErrConnDone)
+					Return(db.Company{}, sql.ErrConnDone)
 				store.EXPECT().
 					UpdateCompany(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -695,7 +695,7 @@ func TestUpdateEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					UpdateCompany(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Company{}, sql.ErrConnDone)
+					Return(db.Company{}, sql.ErrConnDone)
 				store.EXPECT().
 					UpdateEmployer(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -729,7 +729,7 @@ func TestUpdateEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					UpdateEmployer(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrConnDone)
+					Return(db.Employer{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -819,7 +819,7 @@ func TestUpdateEmployerAPI(t *testing.T) {
 
 func TestUpdateEmployerPasswordAPI(t *testing.T) {
 	employer, password, _ := generateRandomEmployerAndCompany(t)
-	newPassword := utils2.RandomString(6)
+	newPassword := utils.RandomString(6)
 	user, _ := generateRandomUser(t)
 
 	testCases := []struct {
@@ -952,7 +952,7 @@ func TestUpdateEmployerPasswordAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrNoRows)
+					Return(db.Employer{}, sql.ErrNoRows)
 				store.EXPECT().
 					UpdateEmployerPassword(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -974,7 +974,7 @@ func TestUpdateEmployerPasswordAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrConnDone)
+					Return(db.Employer{}, sql.ErrConnDone)
 				store.EXPECT().
 					UpdateEmployerPassword(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1055,7 +1055,7 @@ func TestDeleteEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrNoRows)
+					Return(db.Employer{}, sql.ErrNoRows)
 				store.EXPECT().
 					DeleteCompany(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1076,7 +1076,7 @@ func TestDeleteEmployerAPI(t *testing.T) {
 				store.EXPECT().
 					GetEmployerByEmail(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db2.Employer{}, sql.ErrConnDone)
+					Return(db.Employer{}, sql.ErrConnDone)
 				store.EXPECT().
 					DeleteCompany(gomock.Any(), gomock.Any()).
 					Times(0)
@@ -1160,24 +1160,207 @@ func TestDeleteEmployerAPI(t *testing.T) {
 	}
 }
 
-// generateRandomEmployer create a random employer and company
-func generateRandomEmployerAndCompany(t *testing.T) (db2.Employer, string, db2.Company) {
-	password := utils2.RandomString(6)
-	hashedPassword, err := utils2.HashPassword(password)
-	require.NoError(t, err)
-
-	company := db2.Company{
-		ID:       utils2.RandomInt(1, 100),
-		Name:     utils2.RandomString(5),
-		Industry: utils2.RandomString(5),
-		Location: utils2.RandomString(6),
+func TestGetUserAsEmployerAPI(t *testing.T) {
+	employer, _, _ := generateRandomEmployerAndCompany(t)
+	user, _ := generateRandomUser(t)
+	var userSkills []db.UserSkill
+	for i := 0; i < 5; i++ {
+		userSkills = append(userSkills, db.UserSkill{
+			ID:         int32(i),
+			UserID:     user.ID,
+			Skill:      utils.RandomString(4),
+			Experience: utils.RandomInt(1, 5),
+		})
 	}
 
-	employer := db2.Employer{
-		ID:             utils2.RandomInt(1, 100),
+	testCases := []struct {
+		name          string
+		userEmail     string
+		setupAuth     func(t *testing.T, r *http.Request, maker token.Maker)
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:      "OK",
+			userEmail: user.Email,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetUserDetailsByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, userSkills, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchUser(t, recorder.Body, user, userSkills)
+			},
+		},
+		{
+			name:      "Invalid Email",
+			userEmail: "invalid",
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					GetUserDetailsByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:      "Unauthorized Only Employer Access",
+			userEmail: user.Email,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, user.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db.Employer{}, sql.ErrNoRows)
+				store.EXPECT().
+					GetUserDetailsByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			},
+		},
+		{
+			name:      "Internal Server Error GetEmployerByEmail",
+			userEmail: user.Email,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.Employer{}, sql.ErrConnDone)
+				store.EXPECT().
+					GetUserDetailsByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:      "Internal Server Error GetEmployerByEmail",
+			userEmail: user.Email,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.Employer{}, sql.ErrConnDone)
+				store.EXPECT().
+					GetUserDetailsByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:      "User Not Found",
+			userEmail: user.Email,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetUserDetailsByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db.User{}, []db.UserSkill{}, sql.ErrNoRows)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:      "Internal Server Error GetUserDetailsByEmail",
+			userEmail: user.Email,
+			setupAuth: func(t *testing.T, r *http.Request, maker token.Maker) {
+				addAuthorization(t, r, maker, authorizationTypeBearer, employer.Email, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetUserDetailsByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db.User{}, []db.UserSkill{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store, nil)
+			recorder := httptest.NewRecorder()
+
+			url := baseUrl + "/employers/user/" + tc.userEmail
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			tc.setupAuth(t, req, server.tokenMaker)
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
+// generateRandomEmployer create a random employer and company
+func generateRandomEmployerAndCompany(t *testing.T) (db.Employer, string, db.Company) {
+	password := utils.RandomString(6)
+	hashedPassword, err := utils.HashPassword(password)
+	require.NoError(t, err)
+
+	company := db.Company{
+		ID:       utils.RandomInt(1, 100),
+		Name:     utils.RandomString(5),
+		Industry: utils.RandomString(5),
+		Location: utils.RandomString(6),
+	}
+
+	employer := db.Employer{
+		ID:             utils.RandomInt(1, 100),
 		CompanyID:      company.ID,
-		FullName:       utils2.RandomString(5),
-		Email:          utils2.RandomEmail(),
+		FullName:       utils.RandomString(5),
+		Email:          utils.RandomEmail(),
 		HashedPassword: hashedPassword,
 		CreatedAt:      time.Now(),
 	}
@@ -1186,7 +1369,7 @@ func generateRandomEmployerAndCompany(t *testing.T) (db2.Employer, string, db2.C
 }
 
 // requireBodyMatchEmployerAndCompany checks if the body of the response matches the employer and company
-func requireBodyMatchEmployerAndCompany(t *testing.T, body *bytes.Buffer, employer db2.Employer, company db2.Company) {
+func requireBodyMatchEmployerAndCompany(t *testing.T, body *bytes.Buffer, employer db.Employer, company db.Company) {
 	data, err := io.ReadAll(body)
 	require.NoError(t, err)
 

@@ -577,8 +577,12 @@ paths:
           description: No Content
           schema:
             type: "null"
+        "401":
+          description: Only employers can access this endpoint.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Any error
+          description: Any other error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       security:
@@ -595,6 +599,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/api.employerResponse'
+        "401":
+          description: Only employers can access this endpoint.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
           description: Internal error
           schema:
@@ -624,6 +632,10 @@ paths:
             $ref: '#/definitions/api.employerResponse'
         "400":
           description: Invalid request body
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Only employers can access this endpoint.
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "500":
@@ -732,7 +744,7 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Incorrect password
+          description: Incorrect password or request made a user, not employer.
           schema:
             $ref: '#/definitions/api.ErrorResponse'
         "500":
@@ -742,6 +754,36 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Update employer password
+      tags:
+      - employers
+  /employers/user/{email}:
+    get:
+      description: Get a user as employer. Returns user details and skills. Only employers
+        can access this endpoint.
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.userResponse'
+        "400":
+          description: Invalid email in uri.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "401":
+          description: Only employers can access this endpoint.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: User with given email does not exist.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get user as employer
       tags:
       - employers
   /job-applications:

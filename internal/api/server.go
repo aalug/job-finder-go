@@ -99,6 +99,7 @@ func (server *Server) setupRouter() {
 	authRoutesV1.PATCH("/employers", server.updateEmployer)
 	authRoutesV1.PATCH("/employers/password", server.updateEmployerPassword)
 	authRoutesV1.DELETE("/employers", server.deleteEmployer)
+	authRoutesV1.GET("/employers/user/:email", server.getUserAsEmployer)
 
 	// === jobs ===
 	// for employers, jobs CRUD
