@@ -206,6 +206,7 @@ func (server *Server) loginEmployer(ctx *gin.Context) {
 // @Tags employers
 // @Produce json
 // @Success 200 {object} employerResponse
+// @Failure 401 {object} ErrorResponse "Only employers can access this endpoint."
 // @Failure 500 {object} ErrorResponse "Internal error"
 // @Security ApiKeyAuth
 // @Router /employers [get]
@@ -214,6 +215,13 @@ func (server *Server) getEmployer(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so we assume
+			// that the request was made by a user
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyEmployersAccessError))
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -244,6 +252,7 @@ type updateEmployerRequest struct {
 // @param UpdateEmployerRequest body updateEmployerRequest true "Employer details to update"
 // @Success 200 {object} employerResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body"
+// @Failure 401 {object} ErrorResponse "Only employers can access this endpoint."
 // @Failure 500 {object} ErrorResponse "Any other error"
 // @Security ApiKeyAuth
 // @Router /employers [patch]
@@ -266,6 +275,13 @@ func (server *Server) updateEmployer(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so we assume
+			// that the request was made by a user
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyEmployersAccessError))
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -354,7 +370,7 @@ type updateEmployerPasswordResponse struct {
 // @param UpdateEmployerPasswordRequest body updateEmployerPasswordRequest true "Employer old and new password"
 // @Success 200 {object} updateEmployerPasswordResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body"
-// @Failure 401 {object} ErrorResponse "Incorrect password"
+// @Failure 401 {object} ErrorResponse "Incorrect password or request made a user, not employer."
 // @Failure 500 {object} ErrorResponse "Any other error"
 // @Security ApiKeyAuth
 // @Router /employers/password [patch]
@@ -369,6 +385,13 @@ func (server *Server) updateEmployerPassword(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so we assume
+			// that the request was made by a user
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyEmployersAccessError))
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -405,7 +428,8 @@ func (server *Server) updateEmployerPassword(ctx *gin.Context) {
 // @Description Delete the logged-in employer
 // @Tags employers
 // @Success 204 {null} null
-// @Failure 500 {object} ErrorResponse "Any error"
+// @Failure 401 {object} ErrorResponse "Only employers can access this endpoint."
+// @Failure 500 {object} ErrorResponse "Any other error"
 // @Security ApiKeyAuth
 // @Router /employers [delete]
 // deleteEmployer handles deleting employer
@@ -413,6 +437,13 @@ func (server *Server) deleteEmployer(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	authEmployer, err := server.store.GetEmployerByEmail(ctx, authPayload.Email)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			// but middleware did not stop the request, so we assume
+			// that the request was made by a user
+			ctx.JSON(http.StatusUnauthorized, errorResponse(onlyEmployersAccessError))
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
