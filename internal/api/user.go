@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	"github.com/aalug/go-gin-job-search/internal/worker"
 	"github.com/aalug/go-gin-job-search/pkg/token"
 	"github.com/aalug/go-gin-job-search/pkg/utils"
 	"github.com/aalug/go-gin-job-search/pkg/validation"
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"github.com/lib/pq"
 	"net/http"
 	"time"
@@ -152,6 +154,23 @@ func (server *Server) createUser(ctx *gin.Context) {
 			return
 		}
 
+	}
+
+	// send confirmation email
+	taskPayload := &worker.PayloadSendVerificationEmail{
+		Email: user.Email,
+	}
+
+	opts := []asynq.Option{
+		asynq.MaxRetry(10),
+		asynq.ProcessIn(10 * time.Second),
+		asynq.Queue(worker.QueueCritical),
+	}
+
+	err = server.taskDistributor.DistributeTaskSendVerificationEmail(ctx, taskPayload, opts...)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
 	}
 
 	res := newUserResponse(user, userSkills)

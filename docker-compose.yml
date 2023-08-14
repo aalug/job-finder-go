@@ -55,6 +55,12 @@ services:
       retries: 20
       test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:5601/api/status
 
+  redis:
+    image: redis:7.0
+    container_name: go_gin_job_search_redis
+    ports:
+      - "6379:6379"
+
 networks:
   es-job-search:
     driver: bridge

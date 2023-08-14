@@ -18,7 +18,7 @@ Search functionality is implemented both with Postgres and Elasticsearch (depend
 - [golang-migrate](https://github.com/golang-migrate/migrate)
 - [sqlc](https://github.com/kyleconroy/sqlc)
 - [testify](https://github.com/stretchr/testify)
-- [PASETO Security Tokens](github.com/o1egl/paseto)
+- [PASETO Security Tokens](https://github.com/o1egl/paseto)
 - [Viper](https://github.com/spf13/viper)
 - [gin-swagger](https://github.com/swaggo/gin-swagger)
 
