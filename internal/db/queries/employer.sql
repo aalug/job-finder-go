@@ -30,3 +30,15 @@ WHERE id = $1;
 DELETE
 FROM employers
 WHERE id = $1;
+
+-- name: GetEmployerAndCompanyDetails :one
+SELECT c.name      AS company_name,
+       c.industry  AS company_industry,
+       c.location  AS company_location,
+       c.id        AS company_id,
+       e.id        AS employer_id,
+       e.full_name AS employer_full_name,
+       e.email     AS employer_email
+FROM employers e
+         JOIN companies c ON c.id = e.company_id
+WHERE e.email = $1;

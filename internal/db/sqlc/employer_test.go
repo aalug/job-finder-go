@@ -106,3 +106,19 @@ func compareTwoEmployers(t *testing.T, employer1, employer2 Employer) {
 	require.Equal(t, employer1.CompanyID, employer2.CompanyID)
 	require.WithinDuration(t, employer1.CreatedAt, employer2.CreatedAt, time.Second)
 }
+
+func TestQueries_GetEmployerAndCompanyDetails(t *testing.T) {
+	company := createRandomCompany(t, "")
+	employer := createRandomEmployer(t, company.ID)
+	details, err := testQueries.GetEmployerAndCompanyDetails(context.Background(), employer.Email)
+	require.NoError(t, err)
+	require.NotEmpty(t, details)
+	require.Equal(t, employer.ID, details.EmployerID)
+	require.Equal(t, company.ID, details.CompanyID)
+	require.Equal(t, employer.CompanyID, details.CompanyID)
+	require.Equal(t, company.Name, details.CompanyName)
+	require.Equal(t, company.Location, details.CompanyLocation)
+	require.Equal(t, company.Industry, details.CompanyIndustry)
+	require.Equal(t, employer.FullName, details.EmployerFullName)
+	require.Equal(t, employer.Email, details.EmployerEmail)
+}

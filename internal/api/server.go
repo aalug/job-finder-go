@@ -79,6 +79,8 @@ func (server *Server) setupRouter() {
 	routerV1.POST("/employers", server.createEmployer)
 	routerV1.POST("/employers/login", server.loginEmployer)
 
+	routerV1.GET("/employers/employer-company-details/:email", server.getEmployerAndCompanyDetails)
+
 	// === jobs ===
 	routerV1.GET("/jobs/:id", server.getJob)
 	routerV1.GET("/jobs", server.filterAndListJobs)
@@ -99,7 +101,7 @@ func (server *Server) setupRouter() {
 	authRoutesV1.PATCH("/employers", server.updateEmployer)
 	authRoutesV1.PATCH("/employers/password", server.updateEmployerPassword)
 	authRoutesV1.DELETE("/employers", server.deleteEmployer)
-	authRoutesV1.GET("/employers/user/:email", server.getUserAsEmployer)
+	authRoutesV1.GET("/employers/user-details/:email", server.getUserAsEmployer)
 
 	// === jobs ===
 	// for employers, jobs CRUD
