@@ -479,7 +479,7 @@ type getUserAsEmployerRequest struct {
 // @Failure 404 {object} ErrorResponse "User with given email does not exist."
 // @Failure 500 {object} ErrorResponse "Any other error."
 // @Security ApiKeyAuth
-// @Router /employers/user/{email} [get]
+// @Router /employers/user-details/{email} [get]
 // getUserAsEmployer get user details as employer.
 func (server *Server) getUserAsEmployer(ctx *gin.Context) {
 	var request getUserAsEmployerRequest
@@ -516,4 +516,41 @@ func (server *Server) getUserAsEmployer(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, newUserResponse(user, userSkills))
+}
+
+type getEmployerAndCompanyDetailsRequest struct {
+	Email string `uri:"email" binding:"required,email"`
+}
+
+// @Schemes
+// @Summary Get employer and company details as user
+// @Description Get employer and company details as user. Does not require authentication.
+// @Tags employers
+// @Success 200 {object} db.GetEmployerAndCompanyDetailsRow
+// @Failure 400 {object} ErrorResponse "Invalid email in uri."
+// @Failure 404 {object} ErrorResponse "Employer with given email does not exist."
+// @Failure 500 {object} ErrorResponse "Any other error."
+// @Router /users/employer-company-details/{email} [get]
+// getEmployerAsUser get employer and company details as user.
+func (server *Server) getEmployerAndCompanyDetails(ctx *gin.Context) {
+	var request getEmployerAndCompanyDetailsRequest
+	if err := ctx.ShouldBindUri(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// get employer and company information
+	details, err := server.store.GetEmployerAndCompanyDetails(ctx, request.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = fmt.Errorf("employer with email %s does not exist", request.Email)
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, details)
 }

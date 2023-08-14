@@ -52,6 +52,44 @@ func (q *Queries) DeleteEmployer(ctx context.Context, id int32) error {
 	return err
 }
 
+const getEmployerAndCompanyDetails = `-- name: GetEmployerAndCompanyDetails :one
+SELECT c.name      AS company_name,
+       c.industry  AS company_industry,
+       c.location  AS company_location,
+       c.id        AS company_id,
+       e.id        AS employer_id,
+       e.full_name AS employer_full_name,
+       e.email     AS employer_email
+FROM employers e
+         JOIN companies c ON c.id = e.company_id
+WHERE e.email = $1
+`
+
+type GetEmployerAndCompanyDetailsRow struct {
+	CompanyName      string `json:"company_name"`
+	CompanyIndustry  string `json:"company_industry"`
+	CompanyLocation  string `json:"company_location"`
+	CompanyID        int32  `json:"company_id"`
+	EmployerID       int32  `json:"employer_id"`
+	EmployerFullName string `json:"employer_full_name"`
+	EmployerEmail    string `json:"employer_email"`
+}
+
+func (q *Queries) GetEmployerAndCompanyDetails(ctx context.Context, email string) (GetEmployerAndCompanyDetailsRow, error) {
+	row := q.db.QueryRowContext(ctx, getEmployerAndCompanyDetails, email)
+	var i GetEmployerAndCompanyDetailsRow
+	err := row.Scan(
+		&i.CompanyName,
+		&i.CompanyIndustry,
+		&i.CompanyLocation,
+		&i.CompanyID,
+		&i.EmployerID,
+		&i.EmployerFullName,
+		&i.EmployerEmail,
+	)
+	return i, err
+}
+
 const getEmployerByEmail = `-- name: GetEmployerByEmail :one
 SELECT id, company_id, full_name, email, hashed_password, created_at
 FROM employers

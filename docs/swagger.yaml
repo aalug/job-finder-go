@@ -405,6 +405,23 @@ definitions:
     - ApplicationStatusInterviewing
     - ApplicationStatusOffered
     - ApplicationStatusRejected
+  db.GetEmployerAndCompanyDetailsRow:
+    properties:
+      company_id:
+        type: integer
+      company_industry:
+        type: string
+      company_location:
+        type: string
+      company_name:
+        type: string
+      employer_email:
+        type: string
+      employer_full_name:
+        type: string
+      employer_id:
+        type: integer
+    type: object
   db.ListJobApplicationsForEmployerRow:
     properties:
       application_date:
@@ -756,7 +773,7 @@ paths:
       summary: Update employer password
       tags:
       - employers
-  /employers/user/{email}:
+  /employers/user-details/{email}:
     get:
       description: Get a user as employer. Returns user details and skills. Only employers
         can access this endpoint.
@@ -1637,6 +1654,29 @@ paths:
       summary: Create user
       tags:
       - users
+  /users/employer-company-details/{email}:
+    get:
+      description: Get employer and company details as user. Does not require authentication.
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/db.GetEmployerAndCompanyDetailsRow'
+        "400":
+          description: Invalid email in uri.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Employer with given email does not exist.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get employer and company details as user
+      tags:
+      - employers
   /users/login:
     post:
       consumes:

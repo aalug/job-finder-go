@@ -1330,11 +1330,106 @@ func TestGetUserAsEmployerAPI(t *testing.T) {
 			server := newTestServer(t, store, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/employers/user/" + tc.userEmail
+			url := baseUrl + "/employers/user-details/" + tc.userEmail
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
 			tc.setupAuth(t, req, server.tokenMaker)
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
+func TestGetEmployerAndCompanyDetailsAPI(t *testing.T) {
+	employer, _, company := generateRandomEmployerAndCompany(t)
+	details := db.GetEmployerAndCompanyDetailsRow{
+		CompanyName:      company.Name,
+		CompanyIndustry:  company.Industry,
+		CompanyLocation:  company.Location,
+		CompanyID:        company.ID,
+		EmployerID:       employer.ID,
+		EmployerFullName: employer.FullName,
+		EmployerEmail:    employer.Email,
+	}
+
+	testCases := []struct {
+		name          string
+		employerEmail string
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:          "OK",
+			employerEmail: employer.Email,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerAndCompanyDetails(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(details, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireBodyMatchEmployerAndCompanyDetails(t, recorder.Body, details)
+			},
+		},
+		{
+			name:          "Invalid Email",
+			employerEmail: "invalid",
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerAndCompanyDetails(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:          "Employer Not Found",
+			employerEmail: employer.Email,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerAndCompanyDetails(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.GetEmployerAndCompanyDetailsRow{}, sql.ErrNoRows)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:          "Internal Server Error",
+			employerEmail: employer.Email,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetEmployerAndCompanyDetails(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(db.GetEmployerAndCompanyDetailsRow{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store, nil)
+			recorder := httptest.NewRecorder()
+
+			url := baseUrl + "/employers/employer-company-details/" + tc.employerEmail
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
 
 			server.router.ServeHTTP(recorder, req)
 
@@ -1385,4 +1480,21 @@ func requireBodyMatchEmployerAndCompany(t *testing.T, body *bytes.Buffer, employ
 	require.Equal(t, company.Industry, response.CompanyIndustry)
 	require.Equal(t, company.Location, response.CompanyLocation)
 	require.WithinDuration(t, employer.CreatedAt, response.EmployerCreatedAt, time.Second)
+}
+
+func requireBodyMatchEmployerAndCompanyDetails(t *testing.T, body *bytes.Buffer, details db.GetEmployerAndCompanyDetailsRow) {
+	data, err := io.ReadAll(body)
+	require.NoError(t, err)
+
+	var response db.GetEmployerAndCompanyDetailsRow
+	err = json.Unmarshal(data, &response)
+	require.NoError(t, err)
+
+	require.Equal(t, details.CompanyName, response.CompanyName)
+	require.Equal(t, details.CompanyIndustry, response.CompanyIndustry)
+	require.Equal(t, details.CompanyLocation, response.CompanyLocation)
+	require.Equal(t, details.CompanyID, response.CompanyID)
+	require.Equal(t, details.EmployerID, response.EmployerID)
+	require.Equal(t, details.EmployerFullName, response.EmployerFullName)
+	require.Equal(t, details.EmployerEmail, response.EmployerEmail)
 }

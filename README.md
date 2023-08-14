@@ -90,6 +90,13 @@ is not authorized (does not have an account or is an employer, not user), a
 `401 Unauthorized` status code is returned. In case of any other error, a 
 `500 Internal Server Error` status code is returned.
 
++ `GET /users/employer-company-details/{email}`: This endpoint retrieves the employer 
+and company details. It does not require authentication. The response is in JSON format 
+and has a `200 OK` status code on success. If the email in the URI is invalid, a 
+`400 Bad Request` status code is returned. If the employer with the given email does 
+not exist, a `404 Not Found` status code is returned. In case of any other error, a 
+`500 Internal Server Error` status code is returned.
+
 + `PATCH /users`: This endpoint updates the details of the logged-in user. The request body must 
 contain the updated user details in JSON format. On success, the response has a `200 OK` status code 
 and returns the updated user in JSON format. If the request body is invalid, a `400 Bad Request` 
@@ -134,7 +141,7 @@ status code on success. If the employer is not authorized (does not have an acco
 `401 Unauthorized` status code is returned. In case of an any other error, a `500 Internal Server Error` 
 status code is returned.
 
-+ `GET /employers/user/{email}`: This endpoint retrieves the details of a user as an employer. 
++ `GET /employers/user-details/{email}`: This endpoint retrieves the details of a user as an employer. 
 The response is in JSON format and has a `200 OK` status code on success. If the email 
 in the URI is invalid, a `400 Bad Request` status code is returned. If the employer is 
 not authorized (does not have an account or is not an employer), a `401 Unauthorized` 
