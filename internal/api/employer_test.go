@@ -209,7 +209,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
@@ -399,7 +399,7 @@ func TestLoginEmployerAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
@@ -512,7 +512,7 @@ func TestGetEmployerAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/employers"
@@ -798,7 +798,7 @@ func TestUpdateEmployerAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
@@ -994,7 +994,7 @@ func TestUpdateEmployerPasswordAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
@@ -1144,7 +1144,7 @@ func TestDeleteEmployerAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/employers"
@@ -1327,7 +1327,7 @@ func TestGetUserAsEmployerAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/employers/user-details/" + tc.userEmail
@@ -1424,7 +1424,7 @@ func TestGetEmployerAndCompanyDetailsAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/employers/employer-company-details/" + tc.employerEmail

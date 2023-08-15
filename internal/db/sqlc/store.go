@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 )
 
@@ -13,6 +14,8 @@ type Store interface {
 	DeleteJobPosting(ctx context.Context, jobID int32) error
 	GetUserDetailsByEmail(ctx context.Context, email string) (User, []UserSkill, error)
 	ListJobsByFilters(ctx context.Context, arg ListJobsByFiltersParams) ([]ListJobsByFiltersRow, error)
+	CreateUserTx(ctx context.Context, arg CreateUserTxParams) (CreateUserTxResult, error)
+	ExecTx(ctx context.Context, fn func(*Queries) error) error
 }
 
 // SQLStore provides all functions to execute db queries and transactions
@@ -199,4 +202,23 @@ func (store SQLStore) ListJobsByFilters(ctx context.Context, arg ListJobsByFilte
 		return nil, err
 	}
 	return items, nil
+}
+
+// ExecTx executes a function within a database transaction
+func (store SQLStore) ExecTx(ctx context.Context, fn func(*Queries) error) error {
+	tx, err := store.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	q := New(tx)
+	err = fn(q)
+	if err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("tx err: %v, rb err: %v", err, rbErr)
+		}
+		return err
+	}
+
+	return tx.Commit()
 }

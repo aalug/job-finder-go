@@ -425,7 +425,7 @@ func TestCreateJobAPI(t *testing.T) {
 			client := mockesearch.NewMockESearchClient(ctrl)
 			tc.buildStubs(store, client)
 
-			server := newTestServer(t, store, client)
+			server := newTestServer(t, store, client, nil)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
@@ -808,7 +808,7 @@ func TestDeleteJobAPI(t *testing.T) {
 			client := mockesearch.NewMockESearchClient(ctrl)
 			tc.buildStubs(store, client)
 
-			server := newTestServer(t, store, client)
+			server := newTestServer(t, store, client, nil)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf(baseUrl+"/jobs/%d", tc.jobID)
@@ -920,7 +920,7 @@ func TestGetJobAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("%s/jobs/%d", baseUrl, tc.jobID)
@@ -1137,7 +1137,7 @@ func TestFilterAndListJobsAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/jobs"
@@ -1400,7 +1400,7 @@ func TestListJobsByMatchingSkillsAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/jobs/match-skills"
@@ -2102,7 +2102,7 @@ func TestUpdateJobAPI(t *testing.T) {
 			client := mockesearch.NewMockESearchClient(ctrl)
 			tc.buildStubs(store, client)
 
-			server := newTestServer(t, store, client)
+			server := newTestServer(t, store, client, nil)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
@@ -2456,7 +2456,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/jobs/company"
@@ -2648,7 +2648,7 @@ func TestSearchJobsAPI(t *testing.T) {
 			client := mockesearch.NewMockESearchClient(ctrl)
 			tc.buildStubs(client)
 
-			server := newTestServer(t, store, client)
+			server := newTestServer(t, store, client, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/jobs/search"
@@ -2880,7 +2880,7 @@ func TestListEmployerJobsAPI(t *testing.T) {
 
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/jobs/employer"

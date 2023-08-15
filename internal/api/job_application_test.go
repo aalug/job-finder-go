@@ -245,7 +245,7 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/job-applications"
@@ -488,7 +488,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("%s/job-applications/user/%d", baseUrl, tc.JobApplicationID)
@@ -815,7 +815,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("%s/job-applications/employer/%d", baseUrl, tc.JobApplicationID)
@@ -1182,7 +1182,7 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
@@ -1514,7 +1514,7 @@ func TestUpdateJobApplicationAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("%s/job-applications/user/%d", baseUrl, tc.JobApplicationID)
@@ -1764,7 +1764,7 @@ func TestDeleteJobApplicationAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("%s/job-applications/user/%d", baseUrl, tc.JobApplicationID)
@@ -2023,7 +2023,7 @@ func TestLustJobApplicationsForUserAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/job-applications/user"
@@ -2438,7 +2438,7 @@ func TestLustJobApplicationsForEmployerAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil)
+			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
 			url := baseUrl + "/job-applications/employer"

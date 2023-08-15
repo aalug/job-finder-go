@@ -109,21 +109,36 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	params := db.CreateUserParams{
-		FullName:         request.FullName,
-		Email:            request.Email,
-		HashedPassword:   hashedPassword,
-		Location:         request.Location,
-		DesiredJobTitle:  request.DesiredJobTitle,
-		DesiredIndustry:  request.DesiredIndustry,
-		DesiredSalaryMin: request.DesiredSalaryMin,
-		DesiredSalaryMax: request.DesiredSalaryMax,
-		Skills:           request.SkillsDescription,
-		Experience:       request.Experience,
+	params := db.CreateUserTxParams{
+		CreateUserParams: db.CreateUserParams{
+			FullName:         request.FullName,
+			Email:            request.Email,
+			HashedPassword:   hashedPassword,
+			Location:         request.Location,
+			DesiredJobTitle:  request.DesiredJobTitle,
+			DesiredIndustry:  request.DesiredIndustry,
+			DesiredSalaryMin: request.DesiredSalaryMin,
+			DesiredSalaryMax: request.DesiredSalaryMax,
+			Skills:           request.SkillsDescription,
+			Experience:       request.Experience,
+		},
+		AfterCreate: func(user db.User) error {
+			taskPayload := &worker.PayloadSendVerificationEmail{
+				Email: user.Email,
+			}
+
+			opts := []asynq.Option{
+				asynq.MaxRetry(10),
+				asynq.ProcessIn(10 * time.Second),
+				asynq.Queue(worker.QueueCritical),
+			}
+
+			return server.taskDistributor.DistributeTaskSendVerificationEmail(ctx, taskPayload, opts...)
+		},
 	}
 
 	// Create user
-	user, err := server.store.CreateUser(ctx, params)
+	txResult, err := server.store.CreateUserTx(ctx, params)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code.Name() {
@@ -148,7 +163,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 			})
 		}
 
-		userSkills, err = server.store.CreateMultipleUserSkills(ctx, skillsParams, user.ID)
+		userSkills, err = server.store.CreateMultipleUserSkills(ctx, skillsParams, txResult.User.ID)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 			return
@@ -158,7 +173,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	// send confirmation email
 	taskPayload := &worker.PayloadSendVerificationEmail{
-		Email: user.Email,
+		Email: txResult.User.Email,
 	}
 
 	opts := []asynq.Option{
@@ -173,7 +188,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	res := newUserResponse(user, userSkills)
+	res := newUserResponse(txResult.User, userSkills)
 
 	ctx.JSON(http.StatusCreated, res)
 }
