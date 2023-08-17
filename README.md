@@ -20,6 +20,7 @@ Search functionality is implemented both with Postgres and Elasticsearch (depend
 - [testify](https://github.com/stretchr/testify)
 - [PASETO Security Tokens](https://github.com/o1egl/paseto)
 - [Viper](https://github.com/spf13/viper)
+- [jordan-wright/email](https://github.com/jordan-wright/email)
 - [gin-swagger](https://github.com/swaggo/gin-swagger)
 
 <hr>

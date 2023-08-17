@@ -61,6 +61,15 @@ services:
     ports:
       - "6379:6379"
 
+  mailhog:
+    image: mailhog/mailhog
+    container_name: go_gin_job_search_mailhog
+    logging:
+      driver: 'none'
+    ports:
+      - "1025:1025" # smtp server
+      - "8025:8025" # web ui
+
 networks:
   es-job-search:
     driver: bridge

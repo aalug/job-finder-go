@@ -2,7 +2,6 @@ package worker
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/hibiken/asynq"
@@ -47,10 +46,6 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerificationEmail(ctx contex
 
 	user, err := processor.store.GetUserByEmail(ctx, payload.Email)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("user not found: %w", asynq.SkipRetry)
-		}
-
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 

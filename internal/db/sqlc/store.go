@@ -38,7 +38,7 @@ type CreateMultipleUserSkillsParams struct {
 }
 
 // CreateMultipleUserSkills creates multiple user skills for a user with ID of userID
-func (store SQLStore) CreateMultipleUserSkills(ctx context.Context, arg []CreateMultipleUserSkillsParams, userID int32) ([]UserSkill, error) {
+func (store *SQLStore) CreateMultipleUserSkills(ctx context.Context, arg []CreateMultipleUserSkillsParams, userID int32) ([]UserSkill, error) {
 	var skills []UserSkill
 
 	for _, v := range arg {
@@ -58,18 +58,8 @@ func (store SQLStore) CreateMultipleUserSkills(ctx context.Context, arg []Create
 	return skills, nil
 }
 
-func (store SQLStore) DeleteMultipleUserSkills(ctx context.Context, ids []int32) error {
-	for _, id := range ids {
-		err := store.DeleteUserSkill(ctx, id)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // CreateMultipleJobSkills creates multiple job skills for a job with ID of jobID
-func (store SQLStore) CreateMultipleJobSkills(ctx context.Context, skills []string, jobID int32) error {
+func (store *SQLStore) CreateMultipleJobSkills(ctx context.Context, skills []string, jobID int32) error {
 	for _, skill := range skills {
 		params := CreateJobSkillParams{
 			Skill: skill,
@@ -86,7 +76,7 @@ func (store SQLStore) CreateMultipleJobSkills(ctx context.Context, skills []stri
 }
 
 // DeleteJobPosting deletes a job with all its skills
-func (store SQLStore) DeleteJobPosting(ctx context.Context, jobID int32) error {
+func (store *SQLStore) DeleteJobPosting(ctx context.Context, jobID int32) error {
 	// Delete job skills
 	err := store.DeleteJobSkillsByJobID(ctx, jobID)
 	if err != nil {
@@ -103,7 +93,7 @@ func (store SQLStore) DeleteJobPosting(ctx context.Context, jobID int32) error {
 }
 
 // GetUserDetailsByEmail gets user details (user, user skills) by email
-func (store SQLStore) GetUserDetailsByEmail(ctx context.Context, email string) (User, []UserSkill, error) {
+func (store *SQLStore) GetUserDetailsByEmail(ctx context.Context, email string) (User, []UserSkill, error) {
 	user, err := store.GetUserByEmail(ctx, email)
 	if err != nil {
 		return User{}, nil, err
@@ -161,7 +151,7 @@ type ListJobsByFiltersRow struct {
 	CompanyName  string    `json:"company_name"`
 }
 
-func (store SQLStore) ListJobsByFilters(ctx context.Context, arg ListJobsByFiltersParams) ([]ListJobsByFiltersRow, error) {
+func (store *SQLStore) ListJobsByFilters(ctx context.Context, arg ListJobsByFiltersParams) ([]ListJobsByFiltersRow, error) {
 	rows, err := store.db.QueryContext(ctx, listJobsByFilters,
 		arg.Limit,
 		arg.Offset,
@@ -205,7 +195,7 @@ func (store SQLStore) ListJobsByFilters(ctx context.Context, arg ListJobsByFilte
 }
 
 // ExecTx executes a function within a database transaction
-func (store SQLStore) ExecTx(ctx context.Context, fn func(*Queries) error) error {
+func (store *SQLStore) ExecTx(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
