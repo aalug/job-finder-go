@@ -114,6 +114,7 @@ type User struct {
 	Skills           string    `json:"skills"`
 	Experience       string    `json:"experience"`
 	CreatedAt        time.Time `json:"created_at"`
+	IsEmailVerified  bool      `json:"is_email_verified"`
 }
 
 type UserSkill struct {
@@ -121,4 +122,13 @@ type UserSkill struct {
 	UserID     int32  `json:"user_id"`
 	Skill      string `json:"skill"`
 	Experience int32  `json:"experience"`
+}
+
+type VerifyEmail struct {
+	ID         int64     `json:"id"`
+	Email      string    `json:"email"`
+	SecretCode string    `json:"secret_code"`
+	IsUsed     bool      `json:"is_used"`
+	CreatedAt  time.Time `json:"created_at"`
+	ExpiredAt  time.Time `json:"expired_at"`
 }

@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	"github.com/aalug/go-gin-job-search/internal/mail"
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
 )
@@ -18,11 +19,12 @@ type TaskProcessor interface {
 }
 
 type RedisTaskProcessor struct {
-	server *asynq.Server
-	store  db.Store
+	server      *asynq.Server
+	store       db.Store
+	emailSender mail.EmailSender
 }
 
-func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store) TaskProcessor {
+func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store, emailSender mail.EmailSender) TaskProcessor {
 	server := asynq.NewServer(
 		redisOpt,
 		asynq.Config{
@@ -42,8 +44,9 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store) TaskPr
 	)
 
 	return &RedisTaskProcessor{
-		server: server,
-		store:  store,
+		server:      server,
+		store:       store,
+		emailSender: emailSender,
 	}
 }
 

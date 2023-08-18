@@ -7,6 +7,7 @@ import (
 	"github.com/aalug/go-gin-job-search/internal/config"
 	"github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/internal/esearch"
+	"github.com/aalug/go-gin-job-search/internal/mail"
 	"github.com/aalug/go-gin-job-search/internal/worker"
 	"github.com/hibiken/asynq"
 	zerolog "github.com/rs/zerolog/log"
@@ -52,7 +53,7 @@ func main() {
 	}
 
 	// === task processor ===
-	go runTaskProcessor(redisOpt, store)
+	go runTaskProcessor(cfg, redisOpt, store)
 	// === HTTP server ===
 	runHTTPServer(cfg, store, client, taskDistributor)
 }
@@ -76,8 +77,9 @@ func runHTTPServer(cfg config.Config, store db.Store, client esearch.ESearchClie
 	}
 }
 
-func runTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store) {
-	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store)
+func runTaskProcessor(cfg config.Config, redisOpt asynq.RedisClientOpt, store db.Store) {
+	emailSender := mail.NewHogSender(cfg.EmailSenderAddress)
+	taskProcessor := worker.NewRedisTaskProcessor(redisOpt, store, emailSender)
 	zerolog.Info().Msg("task processor started")
 	err := taskProcessor.Start()
 	if err != nil {

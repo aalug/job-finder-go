@@ -24,7 +24,7 @@ mock_es:
 
 # run all tests
 test:
-	go test -v -cover ./...
+	go test -v -cover -short ./...
 
 # run tests in the given path (p) and display results in the html file
 test_coverage:
