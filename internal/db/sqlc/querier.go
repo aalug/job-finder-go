@@ -16,6 +16,7 @@ type Querier interface {
 	CreateJobSkill(ctx context.Context, arg CreateJobSkillParams) (JobSkill, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserSkill(ctx context.Context, arg CreateUserSkillParams) (UserSkill, error)
+	CreateVerifyEmail(ctx context.Context, arg CreateVerifyEmailParams) (VerifyEmail, error)
 	DeleteAllUserSkills(ctx context.Context, userID int32) error
 	DeleteCompany(ctx context.Context, id int32) error
 	DeleteEmployer(ctx context.Context, id int32) error

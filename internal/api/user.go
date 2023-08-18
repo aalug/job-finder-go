@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	"github.com/aalug/go-gin-job-search/internal/worker"
 	"github.com/aalug/go-gin-job-search/pkg/token"
 	"github.com/aalug/go-gin-job-search/pkg/utils"
 	"github.com/aalug/go-gin-job-search/pkg/validation"
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"github.com/lib/pq"
 	"net/http"
 	"time"
@@ -107,21 +109,36 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	params := db.CreateUserParams{
-		FullName:         request.FullName,
-		Email:            request.Email,
-		HashedPassword:   hashedPassword,
-		Location:         request.Location,
-		DesiredJobTitle:  request.DesiredJobTitle,
-		DesiredIndustry:  request.DesiredIndustry,
-		DesiredSalaryMin: request.DesiredSalaryMin,
-		DesiredSalaryMax: request.DesiredSalaryMax,
-		Skills:           request.SkillsDescription,
-		Experience:       request.Experience,
+	params := db.CreateUserTxParams{
+		CreateUserParams: db.CreateUserParams{
+			FullName:         request.FullName,
+			Email:            request.Email,
+			HashedPassword:   hashedPassword,
+			Location:         request.Location,
+			DesiredJobTitle:  request.DesiredJobTitle,
+			DesiredIndustry:  request.DesiredIndustry,
+			DesiredSalaryMin: request.DesiredSalaryMin,
+			DesiredSalaryMax: request.DesiredSalaryMax,
+			Skills:           request.SkillsDescription,
+			Experience:       request.Experience,
+		},
+		AfterCreate: func(user db.User) error {
+			taskPayload := &worker.PayloadSendVerificationEmail{
+				Email: user.Email,
+			}
+
+			opts := []asynq.Option{
+				asynq.MaxRetry(10),
+				asynq.ProcessIn(10 * time.Second),
+				asynq.Queue(worker.QueueCritical),
+			}
+
+			return server.taskDistributor.DistributeTaskSendVerificationEmail(ctx, taskPayload, opts...)
+		},
 	}
 
 	// Create user
-	user, err := server.store.CreateUser(ctx, params)
+	txResult, err := server.store.CreateUserTx(ctx, params)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code.Name() {
@@ -146,7 +163,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 			})
 		}
 
-		userSkills, err = server.store.CreateMultipleUserSkills(ctx, skillsParams, user.ID)
+		userSkills, err = server.store.CreateMultipleUserSkills(ctx, skillsParams, txResult.User.ID)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 			return
@@ -154,7 +171,24 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	}
 
-	res := newUserResponse(user, userSkills)
+	// send confirmation email
+	taskPayload := &worker.PayloadSendVerificationEmail{
+		Email: txResult.User.Email,
+	}
+
+	opts := []asynq.Option{
+		asynq.MaxRetry(10),
+		asynq.ProcessIn(10 * time.Second),
+		asynq.Queue(worker.QueueCritical),
+	}
+
+	err = server.taskDistributor.DistributeTaskSendVerificationEmail(ctx, taskPayload, opts...)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	res := newUserResponse(txResult.User, userSkills)
 
 	ctx.JSON(http.StatusCreated, res)
 }

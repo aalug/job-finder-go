@@ -111,7 +111,7 @@ func (q *Queries) ListUserSkills(ctx context.Context, arg ListUserSkillsParams) 
 }
 
 const listUsersBySkill = `-- name: ListUsersBySkill :many
-SELECT u.id, u.full_name, u.email, u.hashed_password, u.location, u.desired_job_title, u.desired_industry, u.desired_salary_min, u.desired_salary_max, u.skills, u.experience, u.created_at
+SELECT u.id, u.full_name, u.email, u.hashed_password, u.location, u.desired_job_title, u.desired_industry, u.desired_salary_min, u.desired_salary_max, u.skills, u.experience, u.created_at, u.is_email_verified
 FROM users u
 JOIN user_skills us ON u.id = us.user_id
 WHERE us.skill = $1
@@ -147,6 +147,7 @@ func (q *Queries) ListUsersBySkill(ctx context.Context, arg ListUsersBySkillPara
 			&i.Skills,
 			&i.Experience,
 			&i.CreatedAt,
+			&i.IsEmailVerified,
 		); err != nil {
 			return nil, err
 		}

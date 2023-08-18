@@ -4,6 +4,7 @@ import (
 	"github.com/aalug/go-gin-job-search/internal/config"
 	"github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/internal/esearch"
+	"github.com/aalug/go-gin-job-search/internal/worker"
 	"github.com/aalug/go-gin-job-search/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -12,13 +13,13 @@ import (
 	"time"
 )
 
-func newTestServer(t *testing.T, store db.Store, client esearch.ESearchClient) *Server {
+func newTestServer(t *testing.T, store db.Store, client esearch.ESearchClient, taskDistributor worker.TaskDistributor) *Server {
 	cfg := config.Config{
 		TokenSymmetricKey:   utils.RandomString(32),
 		AccessTokenDuration: time.Minute,
 	}
 
-	server, err := NewServer(cfg, store, client)
+	server, err := NewServer(cfg, store, client, taskDistributor)
 	require.NoError(t, err)
 
 	if client != nil {

@@ -6,6 +6,7 @@ import (
 	"github.com/aalug/go-gin-job-search/internal/config"
 	"github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/internal/esearch"
+	"github.com/aalug/go-gin-job-search/internal/worker"
 	token2 "github.com/aalug/go-gin-job-search/pkg/token"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -17,11 +18,12 @@ const baseUrl = "/api/v1"
 
 // Server serves HTTP  requests for the service
 type Server struct {
-	config     config.Config
-	store      db.Store
-	tokenMaker token2.Maker
-	router     *gin.Engine
-	esDetails  elasticSearchDetails
+	config          config.Config
+	store           db.Store
+	tokenMaker      token2.Maker
+	router          *gin.Engine
+	esDetails       elasticSearchDetails
+	taskDistributor worker.TaskDistributor
 }
 
 type elasticSearchDetails struct {
@@ -31,7 +33,7 @@ type elasticSearchDetails struct {
 }
 
 // NewServer creates a new HTTP server and setups routing
-func NewServer(config config.Config, store db.Store, client esearch.ESearchClient) (*Server, error) {
+func NewServer(config config.Config, store db.Store, client esearch.ESearchClient, taskDistributor worker.TaskDistributor) (*Server, error) {
 	// === tokens ===
 	tokenMaker, err := token2.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
@@ -44,10 +46,11 @@ func NewServer(config config.Config, store db.Store, client esearch.ESearchClien
 	}
 
 	server := &Server{
-		config:     config,
-		store:      store,
-		tokenMaker: tokenMaker,
-		esDetails:  esDetails,
+		config:          config,
+		store:           store,
+		tokenMaker:      tokenMaker,
+		esDetails:       esDetails,
+		taskDistributor: taskDistributor,
 	}
 
 	server.setupRouter()

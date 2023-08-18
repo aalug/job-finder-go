@@ -13,7 +13,7 @@ const createUser = `-- name: CreateUser :one
 INSERT INTO users (full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min,
                    desired_salary_max, skills, experience)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING id, full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min, desired_salary_max, skills, experience, created_at
+RETURNING id, full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min, desired_salary_max, skills, experience, created_at, is_email_verified
 `
 
 type CreateUserParams struct {
@@ -56,6 +56,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Skills,
 		&i.Experience,
 		&i.CreatedAt,
+		&i.IsEmailVerified,
 	)
 	return i, err
 }
@@ -72,7 +73,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min, desired_salary_max, skills, experience, created_at
+SELECT id, full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min, desired_salary_max, skills, experience, created_at, is_email_verified
 FROM users
 WHERE email = $1
 `
@@ -93,12 +94,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Skills,
 		&i.Experience,
 		&i.CreatedAt,
+		&i.IsEmailVerified,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min, desired_salary_max, skills, experience, created_at
+SELECT id, full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min, desired_salary_max, skills, experience, created_at, is_email_verified
 FROM users
 WHERE id = $1
 `
@@ -119,6 +121,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
 		&i.Skills,
 		&i.Experience,
 		&i.CreatedAt,
+		&i.IsEmailVerified,
 	)
 	return i, err
 }
@@ -151,7 +154,7 @@ SET full_name          = $2,
     skills             = $9,
     experience         = $10
 WHERE id = $1
-RETURNING id, full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min, desired_salary_max, skills, experience, created_at
+RETURNING id, full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min, desired_salary_max, skills, experience, created_at, is_email_verified
 `
 
 type UpdateUserParams struct {
@@ -194,6 +197,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.Skills,
 		&i.Experience,
 		&i.CreatedAt,
+		&i.IsEmailVerified,
 	)
 	return i, err
 }
