@@ -61,20 +61,20 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerificationEmail(ctx contex
 		return fmt.Errorf("failed to create verify email: %w", err)
 	}
 
-	// send email to user
+	// send email to user to verify email
 	verifyUrl := fmt.Sprintf("http://localhost:8080/verify-email?id=%d&code=%s", verifyEmail.ID, verifyEmail.SecretCode)
 	content := fmt.Sprintf(`
-		<h1>Hello %s</h1><br>
-		<p>
+		<h3>Hello %s</h3><br>
+		<p class="message">
 		Please click the link below to verify your email address:
-		<a href="%s">Verify Email</a>
 		</p>
+		<a class="button" href="%s">Verify Email</a>
 		`, user.FullName, verifyUrl)
 	err = processor.emailSender.SendEmail(mail.Data{
-		To:      []string{user.Email},
-		Subject: "Welcome to Go Job Search!",
-		Content: content,
-		Files:   nil,
+		To:       []string{user.Email},
+		Subject:  "Welcome to Go Job Search!",
+		Content:  content,
+		Template: "verification_email.html",
 	})
 	if err != nil {
 		return fmt.Errorf("failed to send email: %w", err)

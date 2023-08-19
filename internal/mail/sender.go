@@ -1,7 +1,10 @@
 package mail
 
 import (
+	"fmt"
 	simplemail "github.com/xhit/go-simple-mail"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -32,10 +35,11 @@ type AttachFile struct {
 }
 
 type Data struct {
-	To      []string
-	Subject string
-	Content string
-	Files   []AttachFile
+	To       []string
+	Subject  string
+	Content  string
+	Files    []AttachFile
+	Template string
 }
 
 // SendEmail sends an email
@@ -64,7 +68,19 @@ func (sender *HogSender) SendEmail(data Data) error {
 		email.AddAttachment(f.Path, f.Name)
 	}
 
-	email.SetBody(simplemail.TextHTML, data.Content)
+	// set body - if template is empty, use plain text, otherwise use provided email template
+	if data.Template == "" {
+		email.SetBody(simplemail.TextHTML, data.Content)
+	} else {
+		emailData, err := os.ReadFile(fmt.Sprintf("internal/mail/email_templates/%s", data.Template))
+		if err != nil {
+			return err
+		}
+
+		mailTemplate := string(emailData)
+		finalMsg := strings.Replace(mailTemplate, "[%body%]", data.Content, 1)
+		email.SetBody(simplemail.TextHTML, finalMsg)
+	}
 
 	err = email.Send(client)
 	if err != nil {
