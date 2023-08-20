@@ -10,6 +10,7 @@ type Config struct {
 	DBDriver             string        `mapstructure:"DB_DRIVER"`
 	DBSource             string        `mapstructure:"DB_SOURCE"`
 	ServerAddress        string        `mapstructure:"SERVER_ADDRESS"`
+	BaseUrl              string        `mapstructure:"BASE_URL"`
 	ElasticSearchAddress string        `mapstructure:"ELASTICSEARCH_ADDRESS"`
 	RedisAddress         string        `mapstructure:"REDIS_ADDRESS"`
 	TokenSymmetricKey    string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
