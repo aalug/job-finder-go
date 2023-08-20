@@ -33,6 +33,12 @@ UPDATE users
 SET hashed_password = $2
 WHERE id = $1;
 
+-- name: VerifyUserEmail :one
+UPDATE users
+SET is_email_verified = TRUE
+WHERE email = $1
+RETURNING *;
+
 -- name: DeleteUser :exec
 DELETE
 FROM users

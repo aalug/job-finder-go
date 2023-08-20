@@ -215,7 +215,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := baseUrl + "/employers"
+			url := BaseUrl + "/employers"
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -405,7 +405,7 @@ func TestLoginEmployerAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := baseUrl + "/employers/login"
+			url := BaseUrl + "/employers/login"
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -515,7 +515,7 @@ func TestGetEmployerAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/employers"
+			url := BaseUrl + "/employers"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -804,7 +804,7 @@ func TestUpdateEmployerAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := baseUrl + "/employers"
+			url := BaseUrl + "/employers"
 			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -1000,7 +1000,7 @@ func TestUpdateEmployerPasswordAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := baseUrl + "/employers/password"
+			url := BaseUrl + "/employers/password"
 			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -1147,7 +1147,7 @@ func TestDeleteEmployerAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/employers"
+			url := BaseUrl + "/employers"
 			req, err := http.NewRequest(http.MethodDelete, url, nil)
 			require.NoError(t, err)
 
@@ -1330,7 +1330,7 @@ func TestGetUserAsEmployerAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/employers/user-details/" + tc.userEmail
+			url := BaseUrl + "/employers/user-details/" + tc.userEmail
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -1427,7 +1427,7 @@ func TestGetEmployerAndCompanyDetailsAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/employers/employer-company-details/" + tc.employerEmail
+			url := BaseUrl + "/employers/employer-company-details/" + tc.employerEmail
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 

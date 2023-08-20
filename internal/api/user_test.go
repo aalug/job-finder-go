@@ -8,7 +8,7 @@ import (
 	"github.com/aalug/go-gin-job-search/internal/db/mock"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/pkg/token"
-	utils2 "github.com/aalug/go-gin-job-search/pkg/utils"
+	utils "github.com/aalug/go-gin-job-search/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -31,7 +31,7 @@ func (e eqCreateUserParamsMatcher) Matches(arg interface{}) bool {
 		return false
 	}
 
-	err := utils2.CheckPassword(e.password, params.HashedPassword)
+	err := utils.CheckPassword(e.password, params.HashedPassword)
 	if err != nil {
 		return false
 	}
@@ -215,8 +215,7 @@ func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher
 //		},
 //		{
 //			name: "Password Too Short",
-//			body: gin.H{
-//				"email":              user.Email,
+//			body: gin.H{//				"email":              user.Email,
 //				"password":           "123",
 //				"full_name":          user.FullName,
 //				"skills_description": user.Skills,
@@ -284,7 +283,7 @@ func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher
 //			data, err := json.Marshal(tc.body)
 //			require.NoError(t, err)
 //
-//			url := baseUrl + "/users"
+//			url := BaseUrl + "/users"
 //			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 //			require.NoError(t, err)
 //
@@ -411,7 +410,7 @@ func TestLoginUserAPI(t *testing.T) {
 			name: "Incorrect Password",
 			body: gin.H{
 				"email":    user.Email,
-				"password": fmt.Sprintf("%d, %s", utils2.RandomInt(1, 1000), utils2.RandomString(10)),
+				"password": fmt.Sprintf("%d, %s", utils.RandomInt(1, 1000), utils.RandomString(10)),
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -461,7 +460,7 @@ func TestLoginUserAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := baseUrl + "/users/login"
+			url := BaseUrl + "/users/login"
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -542,7 +541,7 @@ func TestGetUserAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/users"
+			url := BaseUrl + "/users"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -562,24 +561,24 @@ func TestUpdateUserAPI(t *testing.T) {
 	skillIDsToRemove := []int32{userSkills[0].ID}
 	newDetails := db.UpdateUserParams{
 		ID:               user.ID,
-		FullName:         utils2.RandomString(5),
+		FullName:         utils.RandomString(5),
 		Email:            user.Email,
-		Location:         utils2.RandomString(5),
-		DesiredJobTitle:  utils2.RandomString(5),
-		DesiredIndustry:  utils2.RandomString(5),
-		DesiredSalaryMin: utils2.RandomInt(1000, 1100),
-		DesiredSalaryMax: utils2.RandomInt(1100, 1200),
+		Location:         utils.RandomString(5),
+		DesiredJobTitle:  utils.RandomString(5),
+		DesiredIndustry:  utils.RandomString(5),
+		DesiredSalaryMin: utils.RandomInt(1000, 1100),
+		DesiredSalaryMax: utils.RandomInt(1100, 1200),
 		Skills:           user.Skills,
 		Experience:       user.Experience,
 	}
 
 	updatedUser := db.User{
 		ID:               user.ID,
-		FullName:         utils2.RandomString(5),
+		FullName:         utils.RandomString(5),
 		Email:            user.Email,
 		HashedPassword:   user.HashedPassword,
-		Location:         utils2.RandomString(5),
-		DesiredJobTitle:  utils2.RandomString(5),
+		Location:         utils.RandomString(5),
+		DesiredJobTitle:  utils.RandomString(5),
 		DesiredIndustry:  user.Location,
 		DesiredSalaryMin: user.DesiredSalaryMin,
 		DesiredSalaryMax: user.DesiredSalaryMax,
@@ -963,7 +962,7 @@ func TestUpdateUserAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := baseUrl + "/users"
+			url := BaseUrl + "/users"
 			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -979,7 +978,7 @@ func TestUpdateUserAPI(t *testing.T) {
 func TestUpdateUserPasswordAPI(t *testing.T) {
 	user, oldPassword := generateRandomUser(t)
 	employer, _, _ := generateRandomEmployerAndCompany(t)
-	newPassword := utils2.RandomString(6)
+	newPassword := utils.RandomString(6)
 	testCases := []struct {
 		name          string
 		body          gin.H
@@ -1159,7 +1158,7 @@ func TestUpdateUserPasswordAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := baseUrl + "/users/password"
+			url := BaseUrl + "/users/password"
 			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -1305,7 +1304,7 @@ func TestDeleteUserAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/users"
+			url := BaseUrl + "/users"
 			req, err := http.NewRequest(http.MethodDelete, url, nil)
 			require.NoError(t, err)
 
@@ -1318,24 +1317,148 @@ func TestDeleteUserAPI(t *testing.T) {
 	}
 }
 
+func TestVerifyUserEmailAPI(t *testing.T) {
+	user, _ := generateRandomUser(t)
+	verifyEmail := db.VerifyEmail{
+		ID:         int64(utils.RandomInt(1, 1000)),
+		Email:      user.Email,
+		SecretCode: utils.RandomString(32),
+		IsUsed:     false,
+		CreatedAt:  time.Now(),
+		ExpiredAt:  time.Now().Add(15 * time.Minute),
+	}
+
+	type Query struct {
+		ID   int64  `json:"id"`
+		Code string `json:"code"`
+	}
+
+	testCases := []struct {
+		name          string
+		query         Query
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			query: Query{
+				ID:   verifyEmail.ID,
+				Code: verifyEmail.SecretCode,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				params := db.VerifyEmailTxParams{
+					ID:         verifyEmail.ID,
+					SecretCode: verifyEmail.SecretCode,
+				}
+				verifyEmail.IsUsed = true
+				user.IsEmailVerified = true
+				store.EXPECT().
+					VerifyEmailTx(gomock.Any(), gomock.Eq(params)).
+					Times(1).
+					Return(db.VerifyEmailTxResult{
+						User:        user,
+						VerifyEmail: verifyEmail,
+					}, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error",
+			query: Query{
+				ID:   verifyEmail.ID,
+				Code: verifyEmail.SecretCode,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					VerifyEmailTx(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.VerifyEmailTxResult{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Code Length",
+			query: Query{
+				ID:   verifyEmail.ID,
+				Code: utils.RandomString(31),
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					VerifyEmailTx(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid ID",
+			query: Query{
+				ID:   0,
+				Code: verifyEmail.SecretCode,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					VerifyEmailTx(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store, nil, nil)
+			recorder := httptest.NewRecorder()
+
+			url := BaseUrl + "/users/verify-email"
+
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			q := req.URL.Query()
+			q.Add("id", fmt.Sprintf("%d", tc.query.ID))
+			q.Add("code", tc.query.Code)
+			req.URL.RawQuery = q.Encode()
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
 // generateRandomUser generates a random user and returns it with the password
 func generateRandomUser(t *testing.T) (db.User, string) {
-	password := utils2.RandomString(6)
-	hashedPassword, err := utils2.HashPassword(password)
+	password := utils.RandomString(6)
+	hashedPassword, err := utils.HashPassword(password)
 	require.NoError(t, err)
 
 	user := db.User{
-		ID:               utils2.RandomInt(1, 1000),
-		FullName:         utils2.RandomString(6),
-		Email:            utils2.RandomEmail(),
+		ID:               utils.RandomInt(1, 1000),
+		FullName:         utils.RandomString(6),
+		Email:            utils.RandomEmail(),
 		HashedPassword:   hashedPassword,
-		Location:         utils2.RandomString(4),
-		DesiredJobTitle:  utils2.RandomString(3),
-		DesiredIndustry:  utils2.RandomString(2),
-		DesiredSalaryMin: utils2.RandomInt(1000, 1100),
-		DesiredSalaryMax: utils2.RandomInt(1100, 1200),
-		Skills:           utils2.RandomString(5),
-		Experience:       utils2.RandomString(5),
+		Location:         utils.RandomString(4),
+		DesiredJobTitle:  utils.RandomString(3),
+		DesiredIndustry:  utils.RandomString(2),
+		DesiredSalaryMin: utils.RandomInt(1000, 1100),
+		DesiredSalaryMax: utils.RandomInt(1100, 1200),
+		Skills:           utils.RandomString(5),
+		Experience:       utils.RandomString(5),
 		CreatedAt:        time.Now(),
 	}
 
@@ -1390,8 +1513,8 @@ func generateSkills(userID int32) ([]Skill, []db.UserSkill, []db.CreateMultipleU
 	var userSkills []db.UserSkill
 	var createUserSkills []db.CreateMultipleUserSkillsParams
 	for i := 0; i < 2; i++ {
-		name := utils2.RandomString(3)
-		experience := utils2.RandomInt(1, 5)
+		name := utils.RandomString(3)
+		experience := utils.RandomInt(1, 5)
 		skills = append(skills, Skill{
 			SkillName:         name,
 			YearsOfExperience: experience,
@@ -1401,7 +1524,7 @@ func generateSkills(userID int32) ([]Skill, []db.UserSkill, []db.CreateMultipleU
 			Experience: experience,
 		})
 		userSkills = append(userSkills, db.UserSkill{
-			ID:         utils2.RandomInt(1, 100),
+			ID:         utils.RandomInt(1, 100),
 			UserID:     userID,
 			Skill:      name,
 			Experience: experience,

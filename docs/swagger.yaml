@@ -391,6 +391,11 @@ definitions:
       skills_description:
         type: string
     type: object
+  api.verifyUserEmailResponse:
+    properties:
+      message:
+        type: string
+    type: object
   db.ApplicationStatus:
     enum:
     - Applied
@@ -1750,6 +1755,26 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Update user password
+      tags:
+      - users
+  /users/verify-email:
+    get:
+      description: Verify user email by providing verify email ID and secret code
+        that should be sent to the user in the verification email.
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.verifyUserEmailResponse'
+        "400":
+          description: Invalid request body.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Verify user email
       tags:
       - users
 securityDefinitions:

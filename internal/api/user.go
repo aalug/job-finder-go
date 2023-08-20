@@ -562,3 +562,43 @@ func (server *Server) deleteUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusNoContent, nil)
 }
+
+type verifyUserEmailRequest struct {
+	ID         int64  `form:"id" binding:"required,min=1"`
+	SecretCode string `form:"code" binding:"required,min=32"`
+}
+
+type verifyUserEmailResponse struct {
+	Message string `json:"message"`
+}
+
+// @Schemes
+// @Summary Verify user email
+// @Description Verify user email by providing verify email ID and secret code that should be sent to the user in the verification email.
+// @Tags users
+// @Success 200 {object} verifyUserEmailResponse
+// @Failure 400 {object} ErrorResponse "Invalid request body."
+// @Failure 500 {object} ErrorResponse "Any other error."
+// @Router /users/verify-email [get]
+// verifyUserEmail handles user email verification
+func (server *Server) verifyUserEmail(ctx *gin.Context) {
+	var request verifyUserEmailRequest
+	if err := ctx.ShouldBindQuery(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	txResult, err := server.store.VerifyEmailTx(ctx, db.VerifyEmailTxParams{
+		ID:         request.ID,
+		SecretCode: request.SecretCode,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if txResult.User.IsEmailVerified {
+
+		ctx.JSON(http.StatusOK, verifyUserEmailResponse{Message: "Successfully verified email"})
+	}
+}

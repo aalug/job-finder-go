@@ -1783,6 +1783,35 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/users/verify-email": {
+            "get": {
+                "description": "Verify user email by providing verify email ID and secret code that should be sent to the user in the verification email.",
+                "tags": [
+                    "users"
+                ],
+                "summary": "Verify user email",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.verifyUserEmailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2366,6 +2395,14 @@ const docTemplate = `{
                     }
                 },
                 "skills_description": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.verifyUserEmailResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
                     "type": "string"
                 }
             }
