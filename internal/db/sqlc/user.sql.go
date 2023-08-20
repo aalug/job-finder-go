@@ -201,3 +201,31 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 	)
 	return i, err
 }
+
+const verifyUserEmail = `-- name: VerifyUserEmail :one
+UPDATE users
+SET is_email_verified = TRUE
+WHERE email = $1
+RETURNING id, full_name, email, hashed_password, location, desired_job_title, desired_industry, desired_salary_min, desired_salary_max, skills, experience, created_at, is_email_verified
+`
+
+func (q *Queries) VerifyUserEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, verifyUserEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.FullName,
+		&i.Email,
+		&i.HashedPassword,
+		&i.Location,
+		&i.DesiredJobTitle,
+		&i.DesiredIndustry,
+		&i.DesiredSalaryMin,
+		&i.DesiredSalaryMax,
+		&i.Skills,
+		&i.Experience,
+		&i.CreatedAt,
+		&i.IsEmailVerified,
+	)
+	return i, err
+}

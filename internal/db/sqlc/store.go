@@ -16,6 +16,7 @@ type Store interface {
 	ListJobsByFilters(ctx context.Context, arg ListJobsByFiltersParams) ([]ListJobsByFiltersRow, error)
 	CreateUserTx(ctx context.Context, arg CreateUserTxParams) (CreateUserTxResult, error)
 	ExecTx(ctx context.Context, fn func(*Queries) error) error
+	VerifyEmailTx(ctx context.Context, arg VerifyEmailTxParams) (VerifyEmailTxResult, error)
 }
 
 // SQLStore provides all functions to execute db queries and transactions

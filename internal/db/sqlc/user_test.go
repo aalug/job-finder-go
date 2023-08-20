@@ -131,3 +131,12 @@ func compareTwoUsers(t *testing.T, user1, user2 User) {
 	require.Equal(t, user1.Experience, user2.Experience)
 	require.WithinDuration(t, user1.CreatedAt, user2.CreatedAt, time.Second)
 }
+
+func TestQueries_VerifyUserEmail(t *testing.T) {
+	user := createRandomUser(t)
+	require.False(t, user.IsEmailVerified)
+
+	user, err := testQueries.VerifyUserEmail(context.Background(), user.Email)
+	require.NoError(t, err)
+	require.True(t, user.IsEmailVerified)
+}

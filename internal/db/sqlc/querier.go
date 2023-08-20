@@ -73,6 +73,8 @@ type Querier interface {
 	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserSkill(ctx context.Context, arg UpdateUserSkillParams) (UserSkill, error)
+	UpdateVerifyEmail(ctx context.Context, arg UpdateVerifyEmailParams) (VerifyEmail, error)
+	VerifyUserEmail(ctx context.Context, email string) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -248,7 +248,7 @@ func TestCreateJobApplicationAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/job-applications"
+			url := BaseUrl + "/job-applications"
 
 			formData := &bytes.Buffer{}
 			writer := multipart.NewWriter(formData)
@@ -491,7 +491,7 @@ func TestGetJobApplicationForUserAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf("%s/job-applications/user/%d", baseUrl, tc.JobApplicationID)
+			url := fmt.Sprintf("%s/job-applications/user/%d", BaseUrl, tc.JobApplicationID)
 
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
@@ -818,7 +818,7 @@ func TestGetJobApplicationForEmployerAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf("%s/job-applications/employer/%d", baseUrl, tc.JobApplicationID)
+			url := fmt.Sprintf("%s/job-applications/employer/%d", BaseUrl, tc.JobApplicationID)
 
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
@@ -1188,7 +1188,7 @@ func TestChangeJobApplicationStatusAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := fmt.Sprintf("%s/job-applications/employer/%d/status", baseUrl, tc.JobApplicationID)
+			url := fmt.Sprintf("%s/job-applications/employer/%d/status", BaseUrl, tc.JobApplicationID)
 			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -1517,7 +1517,7 @@ func TestUpdateJobApplicationAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf("%s/job-applications/user/%d", baseUrl, tc.JobApplicationID)
+			url := fmt.Sprintf("%s/job-applications/user/%d", BaseUrl, tc.JobApplicationID)
 			formData := &bytes.Buffer{}
 
 			writer := multipart.NewWriter(formData)
@@ -1767,7 +1767,7 @@ func TestDeleteJobApplicationAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf("%s/job-applications/user/%d", baseUrl, tc.JobApplicationID)
+			url := fmt.Sprintf("%s/job-applications/user/%d", BaseUrl, tc.JobApplicationID)
 
 			req, err := http.NewRequest(http.MethodDelete, url, nil)
 			require.NoError(t, err)
@@ -2026,7 +2026,7 @@ func TestLustJobApplicationsForUserAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/job-applications/user"
+			url := BaseUrl + "/job-applications/user"
 
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
@@ -2441,7 +2441,7 @@ func TestLustJobApplicationsForEmployerAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/job-applications/employer"
+			url := BaseUrl + "/job-applications/employer"
 
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)

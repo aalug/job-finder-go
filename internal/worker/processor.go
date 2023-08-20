@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"github.com/aalug/go-gin-job-search/internal/config"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/internal/mail"
 	"github.com/hibiken/asynq"
@@ -22,6 +23,7 @@ type RedisTaskProcessor struct {
 	server      *asynq.Server
 	store       db.Store
 	emailSender mail.EmailSender
+	config      config.Config
 }
 
 func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store, emailSender mail.EmailSender) TaskProcessor {
@@ -43,10 +45,16 @@ func NewRedisTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store, emailS
 		},
 	)
 
+	cfg, err := config.LoadConfig("../..")
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot load config")
+	}
+
 	return &RedisTaskProcessor{
 		server:      server,
 		store:       store,
 		emailSender: emailSender,
+		config:      cfg,
 	}
 }
 

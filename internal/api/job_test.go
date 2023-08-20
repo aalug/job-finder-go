@@ -431,7 +431,7 @@ func TestCreateJobAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := baseUrl + "/jobs"
+			url := BaseUrl + "/jobs"
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -811,7 +811,7 @@ func TestDeleteJobAPI(t *testing.T) {
 			server := newTestServer(t, store, client, nil)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf(baseUrl+"/jobs/%d", tc.jobID)
+			url := fmt.Sprintf(BaseUrl+"/jobs/%d", tc.jobID)
 			req, err := http.NewRequest(http.MethodDelete, url, nil)
 			require.NoError(t, err)
 
@@ -923,7 +923,7 @@ func TestGetJobAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf("%s/jobs/%d", baseUrl, tc.jobID)
+			url := fmt.Sprintf("%s/jobs/%d", BaseUrl, tc.jobID)
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -1140,7 +1140,7 @@ func TestFilterAndListJobsAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/jobs"
+			url := BaseUrl + "/jobs"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -1403,7 +1403,7 @@ func TestListJobsByMatchingSkillsAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/jobs/match-skills"
+			url := BaseUrl + "/jobs/match-skills"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -2108,7 +2108,7 @@ func TestUpdateJobAPI(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := fmt.Sprintf(baseUrl+"/jobs/%d", tc.jobID)
+			url := fmt.Sprintf(BaseUrl+"/jobs/%d", tc.jobID)
 			req, err := http.NewRequest(http.MethodPatch, url, bytes.NewReader(data))
 			require.NoError(t, err)
 
@@ -2459,7 +2459,7 @@ func TestListJobsByCompanyAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/jobs/company"
+			url := BaseUrl + "/jobs/company"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -2651,7 +2651,7 @@ func TestSearchJobsAPI(t *testing.T) {
 			server := newTestServer(t, store, client, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/jobs/search"
+			url := BaseUrl + "/jobs/search"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -2883,7 +2883,7 @@ func TestListEmployerJobsAPI(t *testing.T) {
 			server := newTestServer(t, store, nil, nil)
 			recorder := httptest.NewRecorder()
 
-			url := baseUrl + "/jobs/employer"
+			url := BaseUrl + "/jobs/employer"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
