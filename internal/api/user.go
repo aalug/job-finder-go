@@ -148,6 +148,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 				return
 			}
 		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -169,23 +170,6 @@ func (server *Server) createUser(ctx *gin.Context) {
 			return
 		}
 
-	}
-
-	// send confirmation email
-	taskPayload := &worker.PayloadSendVerificationEmail{
-		Email: txResult.User.Email,
-	}
-
-	opts := []asynq.Option{
-		asynq.MaxRetry(10),
-		asynq.ProcessIn(10 * time.Second),
-		asynq.Queue(worker.QueueCritical),
-	}
-
-	err = server.taskDistributor.DistributeTaskSendVerificationEmail(ctx, taskPayload, opts...)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
 	}
 
 	res := newUserResponse(txResult.User, userSkills)
