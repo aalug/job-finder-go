@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	"github.com/aalug/go-gin-job-search/internal/worker"
 	"github.com/aalug/go-gin-job-search/pkg/token"
 	"github.com/aalug/go-gin-job-search/pkg/utils"
 	"github.com/aalug/go-gin-job-search/pkg/validation"
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"github.com/lib/pq"
 	"net/http"
 	"time"
@@ -97,14 +99,29 @@ func (server *Server) createEmployer(ctx *gin.Context) {
 	}
 
 	// Create an employer
-	employerParams := db.CreateEmployerParams{
-		CompanyID:      company.ID,
-		FullName:       request.FullName,
-		Email:          request.Email,
-		HashedPassword: hashedPassword,
+	employerTxParams := db.CreateEmployerTxParams{
+		CreateEmployerParams: db.CreateEmployerParams{
+			CompanyID:      company.ID,
+			FullName:       request.FullName,
+			Email:          request.Email,
+			HashedPassword: hashedPassword,
+		},
+		AfterCreate: func(employer db.Employer) error {
+			taskPayload := &worker.PayloadSendVerificationEmail{
+				Email: employer.Email,
+			}
+
+			opts := []asynq.Option{
+				asynq.MaxRetry(10),
+				asynq.ProcessIn(10 * time.Second),
+				asynq.Queue(worker.QueueCritical),
+			}
+
+			return server.taskDistributor.DistributeTaskSendVerificationEmail(ctx, taskPayload, opts...)
+		},
 	}
 
-	employer, err := server.store.CreateEmployer(ctx, employerParams)
+	txResult, err := server.store.CreateEmployerTx(ctx, employerTxParams)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code.Name() {
@@ -114,11 +131,12 @@ func (server *Server) createEmployer(ctx *gin.Context) {
 				return
 			}
 		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, newEmployerResponse(employer, company))
+	ctx.JSON(http.StatusCreated, newEmployerResponse(txResult.Employer, company))
 }
 
 type loginEmployerRequest struct {

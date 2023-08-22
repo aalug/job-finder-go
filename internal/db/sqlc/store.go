@@ -15,6 +15,7 @@ type Store interface {
 	GetUserDetailsByEmail(ctx context.Context, email string) (User, []UserSkill, error)
 	ListJobsByFilters(ctx context.Context, arg ListJobsByFiltersParams) ([]ListJobsByFiltersRow, error)
 	CreateUserTx(ctx context.Context, arg CreateUserTxParams) (CreateUserTxResult, error)
+	CreateEmployerTx(ctx context.Context, arg CreateEmployerTxParams) (CreateEmployerTxResult, error)
 	ExecTx(ctx context.Context, fn func(*Queries) error) error
 	VerifyEmailTx(ctx context.Context, arg VerifyEmailTxParams) (VerifyEmailTxResult, error)
 }

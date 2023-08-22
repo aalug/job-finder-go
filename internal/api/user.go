@@ -591,7 +591,6 @@ func (server *Server) verifyUserEmail(ctx *gin.Context) {
 	}
 
 	if txResult.User.IsEmailVerified {
-
 		ctx.JSON(http.StatusOK, verifyUserEmailResponse{Message: "Successfully verified email"})
 	}
 }

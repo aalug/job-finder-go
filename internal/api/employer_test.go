@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/aalug/go-gin-job-search/internal/db/mock"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	"github.com/aalug/go-gin-job-search/internal/worker"
+	mockworker "github.com/aalug/go-gin-job-search/internal/worker/mock"
 	"github.com/aalug/go-gin-job-search/pkg/token"
 	"github.com/aalug/go-gin-job-search/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -21,32 +23,38 @@ import (
 	"time"
 )
 
-type eqCreateEmployerParamsMatcher struct {
-	params   db.CreateEmployerParams
+type eqCreateEmployerTxParamsMatcher struct {
+	arg      db.CreateEmployerTxParams
 	password string
+	employer db.Employer
 }
 
-func (e eqCreateEmployerParamsMatcher) Matches(arg interface{}) bool {
-	params, ok := arg.(db.CreateEmployerParams)
+func (e eqCreateEmployerTxParamsMatcher) Matches(x interface{}) bool {
+	actualArg, ok := x.(db.CreateEmployerTxParams)
 	if !ok {
 		return false
 	}
 
-	err := utils.CheckPassword(e.password, params.HashedPassword)
+	err := utils.CheckPassword(e.password, actualArg.HashedPassword)
 	if err != nil {
 		return false
 	}
 
-	e.params.HashedPassword = params.HashedPassword
-	return reflect.DeepEqual(e.params, params)
+	e.arg.HashedPassword = actualArg.HashedPassword
+	if !reflect.DeepEqual(e.arg.CreateEmployerParams, actualArg.CreateEmployerParams) {
+		return false
+	}
+
+	err = actualArg.AfterCreate(e.employer)
+	return err == nil
 }
 
-func (e eqCreateEmployerParamsMatcher) String() string {
-	return fmt.Sprintf("matches arg %v and password %v", e.params, e.password)
+func (e eqCreateEmployerTxParamsMatcher) String() string {
+	return fmt.Sprintf("matches arg %v and password %v", e.arg, e.password)
 }
 
-func EqCreateEmployerParams(arg db.CreateEmployerParams, password string) gomock.Matcher {
-	return eqCreateEmployerParamsMatcher{arg, password}
+func EqCreateEmployerTxParams(arg db.CreateEmployerTxParams, password string, employer db.Employer) gomock.Matcher {
+	return eqCreateEmployerTxParamsMatcher{arg, password, employer}
 }
 
 func TestCreateEmployerAPI(t *testing.T) {
@@ -64,13 +72,13 @@ func TestCreateEmployerAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		body          gin.H
-		buildStubs    func(store *mockdb.MockStore)
+		buildStubs    func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor)
 		checkResponse func(recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name: "OK",
 			body: requestBody,
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
 				companyParams := db.CreateCompanyParams{
 					Name:     company.Name,
 					Industry: company.Industry,
@@ -80,10 +88,27 @@ func TestCreateEmployerAPI(t *testing.T) {
 					CreateCompany(gomock.Any(), gomock.Eq(companyParams)).
 					Times(1).
 					Return(company, nil)
+				employerParams := db.CreateEmployerTxParams{
+					CreateEmployerParams: db.CreateEmployerParams{
+						CompanyID:      company.ID,
+						FullName:       employer.FullName,
+						Email:          employer.Email,
+						HashedPassword: employer.HashedPassword,
+					},
+				}
 				store.EXPECT().
-					CreateEmployer(gomock.Any(), gomock.Any()).
+					CreateEmployerTx(gomock.Any(), EqCreateEmployerTxParams(employerParams, password, employer)).
 					Times(1).
-					Return(employer, nil)
+					Return(db.CreateEmployerTxResult{
+						Employer: employer,
+					}, nil)
+				taskPayload := &worker.PayloadSendVerificationEmail{
+					Email: employer.Email,
+				}
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), taskPayload, gomock.Any()).
+					Times(1).
+					Return(nil)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusCreated, recorder.Code)
@@ -91,64 +116,21 @@ func TestCreateEmployerAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Internal Server Error CreateCompany",
-			body: requestBody,
-			buildStubs: func(store *mockdb.MockStore) {
-				companyParams := db.CreateCompanyParams{
-					Name:     company.Name,
-					Industry: company.Industry,
-					Location: company.Location,
-				}
-				store.EXPECT().
-					CreateCompany(gomock.Any(), gomock.Eq(companyParams)).
-					Times(1).
-					Return(db.Company{}, sql.ErrConnDone)
-				store.EXPECT().
-					CreateEmployer(gomock.Any(), gomock.Any()).
-					Times(0)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusInternalServerError, recorder.Code)
-			},
-		},
-		{
-			name: "Internal Server Error CreateEmployer",
-			body: requestBody,
-			buildStubs: func(store *mockdb.MockStore) {
-				companyParams := db.CreateCompanyParams{
-					Name:     company.Name,
-					Industry: company.Industry,
-					Location: company.Location,
-				}
-				store.EXPECT().
-					CreateCompany(gomock.Any(), gomock.Eq(companyParams)).
-					Times(1).
-					Return(company, nil)
-				store.EXPECT().
-					CreateEmployer(gomock.Any(), gomock.Any()).
-					Times(1).
-					Return(db.Employer{}, sql.ErrConnDone)
-			},
-			checkResponse: func(recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusInternalServerError, recorder.Code)
-			},
-		},
-		{
-			name: "Invalid Email",
+			name: "Invalid Request Body",
 			body: gin.H{
-				"email":            "invalid",
-				"full_name":        employer.FullName,
-				"password":         password,
-				"company_name":     company.Name,
-				"company_industry": company.Industry,
-				"company_location": company.Location,
+				"email":     "invalid_email",
+				"full_name": "full name",
+				"password":  "password",
 			},
-			buildStubs: func(store *mockdb.MockStore) {
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
 				store.EXPECT().
 					CreateCompany(gomock.Any(), gomock.Any()).
 					Times(0)
 				store.EXPECT().
-					CreateEmployer(gomock.Any(), gomock.Any()).
+					CreateEmployerTx(gomock.Any(), gomock.Any()).
+					Times(0)
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -156,20 +138,18 @@ func TestCreateEmployerAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Duplicated Company Name",
+			name: "Company Name Already Exists",
 			body: requestBody,
-			buildStubs: func(store *mockdb.MockStore) {
-				params := db.CreateCompanyParams{
-					Name:     company.Name,
-					Industry: company.Industry,
-					Location: company.Location,
-				}
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
 				store.EXPECT().
-					CreateCompany(gomock.Any(), gomock.Eq(params)).
+					CreateCompany(gomock.Any(), gomock.Any()).
 					Times(1).
 					Return(db.Company{}, &pq.Error{Code: "23505"})
 				store.EXPECT().
-					CreateEmployer(gomock.Any(), gomock.Any()).
+					CreateEmployerTx(gomock.Any(), gomock.Any()).
+					Times(0)
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -177,25 +157,62 @@ func TestCreateEmployerAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Duplicated Email",
+			name: "Internal Server Error CreateCompany",
 			body: requestBody,
-			buildStubs: func(store *mockdb.MockStore) {
-				params := db.CreateCompanyParams{
-					Name:     company.Name,
-					Industry: company.Industry,
-					Location: company.Location,
-				}
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
 				store.EXPECT().
-					CreateCompany(gomock.Any(), gomock.Eq(params)).
+					CreateCompany(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.Company{}, sql.ErrConnDone)
+				store.EXPECT().
+					CreateEmployerTx(gomock.Any(), gomock.Any()).
+					Times(0)
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Employer Email Already Exists",
+			body: requestBody,
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
+				store.EXPECT().
+					CreateCompany(gomock.Any(), gomock.Any()).
 					Times(1).
 					Return(company, nil)
 				store.EXPECT().
-					CreateEmployer(gomock.Any(), gomock.Any()).
+					CreateEmployerTx(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db.Employer{}, &pq.Error{Code: "23505"})
+					Return(db.CreateEmployerTxResult{}, &pq.Error{Code: "23505"})
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusForbidden, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error CreateEmployerTx",
+			body: requestBody,
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
+				store.EXPECT().
+					CreateCompany(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(company, nil)
+				store.EXPECT().
+					CreateEmployerTx(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.CreateEmployerTxResult{}, sql.ErrConnDone)
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
 		},
 	}
@@ -205,11 +222,15 @@ func TestCreateEmployerAPI(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-
 			store := mockdb.NewMockStore(ctrl)
-			tc.buildStubs(store)
 
-			server := newTestServer(t, store, nil, nil)
+			taskCtrl := gomock.NewController(t)
+			defer taskCtrl.Finish()
+			taskDistributor := mockworker.NewMockTaskDistributor(taskCtrl)
+
+			tc.buildStubs(store, taskDistributor)
+
+			server := newTestServer(t, store, nil, taskDistributor)
 			recorder := httptest.NewRecorder()
 
 			data, err := json.Marshal(tc.body)
