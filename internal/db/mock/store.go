@@ -65,6 +65,21 @@ func (mr *MockStoreMockRecorder) CreateEmployer(arg0, arg1 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEmployer", reflect.TypeOf((*MockStore)(nil).CreateEmployer), arg0, arg1)
 }
 
+// CreateEmployerTx mocks base method.
+func (m *MockStore) CreateEmployerTx(arg0 context.Context, arg1 db.CreateEmployerTxParams) (db.CreateEmployerTxResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateEmployerTx", arg0, arg1)
+	ret0, _ := ret[0].(db.CreateEmployerTxResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateEmployerTx indicates an expected call of CreateEmployerTx.
+func (mr *MockStoreMockRecorder) CreateEmployerTx(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEmployerTx", reflect.TypeOf((*MockStore)(nil).CreateEmployerTx), arg0, arg1)
+}
+
 // CreateJob mocks base method.
 func (m *MockStore) CreateJob(arg0 context.Context, arg1 db.CreateJobParams) (db.Job, error) {
 	m.ctrl.T.Helper()

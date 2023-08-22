@@ -107,13 +107,13 @@ func TestCreateUserAPI(t *testing.T) {
 					CreateUserTx(gomock.Any(), EqCreateUserTxParams(params, password, user)).
 					Times(1).
 					Return(db.CreateUserTxResult{User: user}, nil)
-				taskPayload := &worker.PayloadSendVerificationEmail{
-					Email: user.Email,
-				}
 				store.EXPECT().
 					CreateMultipleUserSkills(gomock.Any(), gomock.Eq(createUserSkills), gomock.Eq(user.ID)).
 					Times(1).
 					Return(userSkills, nil)
+				taskPayload := &worker.PayloadSendVerificationEmail{
+					Email: user.Email,
+				}
 				distributor.EXPECT().
 					DistributeTaskSendVerificationEmail(gomock.Any(), taskPayload, gomock.Any()).
 					Times(1).
