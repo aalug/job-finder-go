@@ -23,33 +23,33 @@ import (
 	"time"
 )
 
-type eqCreateUserParamsMatcher struct {
-	params   db.CreateUserParams
-	password string
-}
-
-func (e eqCreateUserParamsMatcher) Matches(arg interface{}) bool {
-	params, ok := arg.(db.CreateUserParams)
-	if !ok {
-		return false
-	}
-
-	err := utils.CheckPassword(e.password, params.HashedPassword)
-	if err != nil {
-		return false
-	}
-
-	e.params.HashedPassword = params.HashedPassword
-	return reflect.DeepEqual(e.params, params)
-}
-
-func (e eqCreateUserParamsMatcher) String() string {
-	return fmt.Sprintf("matches arg %v and password %v", e.params, e.password)
-}
-
-func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
-	return eqCreateUserParamsMatcher{arg, password}
-}
+//type eqCreateUserParamsMatcher struct {
+//	params   db.CreateUserParams
+//	password string
+//}
+//
+//func (e eqCreateUserParamsMatcher) Matches(arg interface{}) bool {
+//	params, ok := arg.(db.CreateUserParams)
+//	if !ok {
+//		return false
+//	}
+//
+//	err := utils.CheckPassword(e.password, params.HashedPassword)
+//	if err != nil {
+//		return false
+//	}
+//
+//	e.params.HashedPassword = params.HashedPassword
+//	return reflect.DeepEqual(e.params, params)
+//}
+//
+//func (e eqCreateUserParamsMatcher) String() string {
+//	return fmt.Sprintf("matches arg %v and password %v", e.params, e.password)
+//}
+//
+//func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
+//	return eqCreateUserParamsMatcher{arg, password}
+//}
 
 type eqCreateUserTxParamsMatcher struct {
 	arg      db.CreateUserTxParams
@@ -298,6 +298,7 @@ func TestCreateUserAPI(t *testing.T) {
 
 func TestLoginUserAPI(t *testing.T) {
 	user, password := generateRandomUser(t)
+	user.IsEmailVerified = true
 	var userSkills []db.UserSkill
 	_, userSkills, _ = generateSkills(user.ID)
 
@@ -443,6 +444,26 @@ func TestLoginUserAPI(t *testing.T) {
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Email Not Verified",
+			body: gin.H{
+				"email":    user.Email,
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				user.IsEmailVerified = false
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					ListUserSkills(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusForbidden, recorder.Code)
 			},
 		},
 	}

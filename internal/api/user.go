@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/internal/worker"
@@ -210,12 +211,20 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	user, err := server.store.GetUserByEmail(ctx, request.Email)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			err = fmt.Errorf("user with this email does not exist")
 			ctx.JSON(http.StatusNotFound, errorResponse(err))
 			return
 		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// check if the user has verified email
+	if !user.IsEmailVerified {
+		err = fmt.Errorf("email not verified. Please verify your email before logging in")
+		ctx.JSON(http.StatusForbidden, errorResponse(err))
 		return
 	}
 
