@@ -23,34 +23,6 @@ import (
 	"time"
 )
 
-//type eqCreateUserParamsMatcher struct {
-//	params   db.CreateUserParams
-//	password string
-//}
-//
-//func (e eqCreateUserParamsMatcher) Matches(arg interface{}) bool {
-//	params, ok := arg.(db.CreateUserParams)
-//	if !ok {
-//		return false
-//	}
-//
-//	err := utils.CheckPassword(e.password, params.HashedPassword)
-//	if err != nil {
-//		return false
-//	}
-//
-//	e.params.HashedPassword = params.HashedPassword
-//	return reflect.DeepEqual(e.params, params)
-//}
-//
-//func (e eqCreateUserParamsMatcher) String() string {
-//	return fmt.Sprintf("matches arg %v and password %v", e.params, e.password)
-//}
-//
-//func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
-//	return eqCreateUserParamsMatcher{arg, password}
-//}
-
 type eqCreateUserTxParamsMatcher struct {
 	arg      db.CreateUserTxParams
 	password string
