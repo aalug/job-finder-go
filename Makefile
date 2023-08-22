@@ -48,6 +48,7 @@ flush_es:
 	docker-compose rm -f elasticsearch
 	docker-compose up -d elasticsearch
 
+# generate swag documentation files
 swag:
 	swag init -g cmd/main.go
 
