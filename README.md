@@ -13,14 +13,15 @@ Search functionality is implemented both with Postgres and Elasticsearch (depend
 ### The app uses:
 - Postgres
 - Docker
-- [Gin](https://github.com/gin-gonic/gin)
+- Redis
 - [Elasticsearch](https://github.com/elastic/go-elasticsearch)
+- [Gin](https://github.com/gin-gonic/gin)
 - [golang-migrate](https://github.com/golang-migrate/migrate)
 - [sqlc](https://github.com/kyleconroy/sqlc)
+- [asynq](https://github.com/hibiken/asynq)
 - [testify](https://github.com/stretchr/testify)
 - [PASETO Security Tokens](https://github.com/o1egl/paseto)
 - [Viper](https://github.com/spf13/viper)
-- [jordan-wright/email](https://github.com/jordan-wright/email)
 - [gin-swagger](https://github.com/swaggo/gin-swagger)
 
 <hr>
@@ -55,7 +56,7 @@ This API provides a set of endpoints for managing:
 - jobs
 - job applications
 
-(and indirectly: user skills and job skills)
+(and indirectly: user skills, job skills and verify emails table)
 
 
 After running the server, the Swagger documentation is available at http://localhost:8080/swagger/index.html. 
@@ -77,12 +78,19 @@ in JSON format. On success, the response has a `201 Created` status code and ret
 user in JSON format. If the request body is invalid, a `400 Bad Request` status code is returned. 
 If a user with the given email already exists, a `403 Forbidden` status code is returned. In case 
 of any other error, a `500 Internal Server Error` status code is returned.
+After registering, a verification email is sent to the provided email address.
+
++ `GET /users/verify-email`: This endpoint verifies a user’s email by providing a verify email ID and 
+secret code that should be sent to the user in the verification email. The request body must contain the verify 
+email ID and secret code as query parameters. On success, the response has a `200 OK` status code and returns the 
+verification result in JSON format. If the request query is invalid, a `400 Bad Request` status code is returned. 
+In case of any other error, a `500 Internal Server Error` status code is returned.
 
 + `POST /users/login`: This endpoint logs in a user. The request body must contain the user credentials
 (email, password) in JSON format. On success, the response has a `200 OK` status code and returns 
 an access token and the authenticated user in JSON format. If the request body is invalid, a 
 `400 Bad Request` status code is returned. If the password is incorrect, a `401 Unauthorized` 
-status code is returned. If a user with the given email does not exist, a `404 Not Found` status 
+status code is returned. If user has not verified email, `403 Forbidden` is returned. If a user with the given email does not exist, a `404 Not Found` status 
 code is returned. In case of any other error, a `500 Internal Server Error` status code is returned.
 
 + `GET /users`: This endpoint retrieves the details of the logged-in user. On success, the response 
@@ -126,12 +134,20 @@ the created employer in JSON format. If the request body is invalid,
 a `400` status code is returned. If a company with the given name or an 
 employer with the given email already exists, a `403 Forbidden` status 
 code is returned. In case of any other error, a 500 Internal Error status code is returned.
+After registering, a verification email is sent to the provided email address.
+
++ `GET /employers/verify-email`: This endpoint verifies an employer’s email by providing a verify email ID and 
+secret code that should be sent to the user in the verification email. The request body must contain the verify 
+email ID and secret code as query parameters. On success, the response has a `200 OK` status code and returns the 
+verification result in JSON format. If the request query is invalid, a `400 Bad Request` status code is returned. 
+In case of any other error, a `500 Internal Server Error` status code is returned.
 
 + `POST /employers/login`: This endpoint logs in an employer. The request body 
 must contain the employer credentials (email, password) in JSON format. On success, 
 the response has a `200 OK` status code and returns an access token and the authenticated employer 
 in JSON format. If the request body is invalid, a `400 Bad Request` status code is returned. 
 If the password is incorrect, a `401 Unauthorized` status code is returned. 
+If the emails is not verified, a `403 Forbidden` is returned.
 If an employer with the given email or a company with the given id does not 
 exist, a `404 Not Found` status code is returned. In case of any other error, 
 a `500 Internal Server Error` status code is returned.
