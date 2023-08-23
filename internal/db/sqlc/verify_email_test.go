@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func createRandomVerifyEmail(t *testing.T) VerifyEmail {
+func createVerifyEmailForUser(t *testing.T) VerifyEmail {
 	user := createRandomUser(t)
 	params := CreateVerifyEmailParams{
 		Email:      user.Email,
@@ -26,12 +26,32 @@ func createRandomVerifyEmail(t *testing.T) VerifyEmail {
 	return verifyEmail
 }
 
+func createVerifyEmailForEmployer(t *testing.T) VerifyEmail {
+	employer := createRandomEmployer(t, 0)
+	params := CreateVerifyEmailParams{
+		Email:      employer.Email,
+		SecretCode: utils.RandomString(32),
+	}
+
+	verifyEmail, err := testQueries.CreateVerifyEmail(context.Background(), params)
+	require.NoError(t, err)
+	require.Equal(t, verifyEmail.Email, employer.Email)
+	require.Equal(t, verifyEmail.SecretCode, params.SecretCode)
+	require.NotZero(t, verifyEmail.ID)
+	require.NotZero(t, verifyEmail.CreatedAt)
+	require.NotZero(t, verifyEmail.ExpiredAt)
+	require.True(t, verifyEmail.ExpiredAt.After(verifyEmail.CreatedAt))
+
+	return verifyEmail
+}
+
 func TestQueries_CreateVerifyEmail(t *testing.T) {
-	createRandomUser(t)
+	createVerifyEmailForUser(t)
+	createVerifyEmailForEmployer(t)
 }
 
 func TestQueries_UpdateVerifyEmail(t *testing.T) {
-	verifyEmail := createRandomVerifyEmail(t)
+	verifyEmail := createVerifyEmailForUser(t)
 	params := UpdateVerifyEmailParams{
 		ID:         verifyEmail.ID,
 		SecretCode: verifyEmail.SecretCode,

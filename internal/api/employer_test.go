@@ -1459,6 +1459,130 @@ func TestGetEmployerAndCompanyDetailsAPI(t *testing.T) {
 	}
 }
 
+func TestVerifyEmployerEmailAPI(t *testing.T) {
+	employer, _, _ := generateRandomEmployerAndCompany(t)
+	verifyEmail := db.VerifyEmail{
+		ID:         int64(utils.RandomInt(1, 1000)),
+		Email:      employer.Email,
+		SecretCode: utils.RandomString(32),
+		IsUsed:     false,
+		CreatedAt:  time.Now(),
+		ExpiredAt:  time.Now().Add(15 * time.Minute),
+	}
+
+	type Query struct {
+		ID   int64  `json:"id"`
+		Code string `json:"code"`
+	}
+
+	testCases := []struct {
+		name          string
+		query         Query
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			query: Query{
+				ID:   verifyEmail.ID,
+				Code: verifyEmail.SecretCode,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				params := db.VerifyEmailTxParams{
+					ID:         verifyEmail.ID,
+					SecretCode: verifyEmail.SecretCode,
+				}
+				verifyEmail.IsUsed = true
+				employer.IsEmailVerified = true
+				store.EXPECT().
+					VerifyEmployerEmailTx(gomock.Any(), gomock.Eq(params)).
+					Times(1).
+					Return(db.VerifyEmployerEmailResult{
+						Employer:    employer,
+						VerifyEmail: verifyEmail,
+					}, nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "Internal Server Error",
+			query: Query{
+				ID:   verifyEmail.ID,
+				Code: verifyEmail.SecretCode,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					VerifyEmployerEmailTx(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.VerifyEmployerEmailResult{}, sql.ErrConnDone)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid Code Length",
+			query: Query{
+				ID:   verifyEmail.ID,
+				Code: utils.RandomString(31),
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					VerifyEmployerEmailTx(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Invalid ID",
+			query: Query{
+				ID:   0,
+				Code: verifyEmail.SecretCode,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					VerifyEmployerEmailTx(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := newTestServer(t, store, nil, nil)
+			recorder := httptest.NewRecorder()
+
+			url := BaseUrl + "/employers/verify-email"
+
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			q := req.URL.Query()
+			q.Add("id", fmt.Sprintf("%d", tc.query.ID))
+			q.Add("code", tc.query.Code)
+			req.URL.RawQuery = q.Encode()
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
 // generateRandomEmployer create a random employer and company
 func generateRandomEmployerAndCompany(t *testing.T) (db.Employer, string, db.Company) {
 	password := utils.RandomString(6)

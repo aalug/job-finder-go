@@ -26,6 +26,12 @@ UPDATE employers
 SET hashed_password = $2
 WHERE id = $1;
 
+-- name: VerifyEmployerEmail :one
+UPDATE employers
+SET is_email_verified = TRUE
+WHERE email = $1
+RETURNING *;
+
 -- name: DeleteEmployer :exec
 DELETE
 FROM employers

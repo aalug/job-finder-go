@@ -391,6 +391,23 @@ definitions:
       skills_description:
         type: string
     type: object
+  api.verifyEmployerEmailRequest:
+    properties:
+      code:
+        minLength: 32
+        type: string
+      id:
+        minimum: 1
+        type: integer
+    required:
+    - code
+    - id
+    type: object
+  api.verifyEmployerEmailResponse:
+    properties:
+      message:
+        type: string
+    type: object
   api.verifyUserEmailResponse:
     properties:
       message:
@@ -806,6 +823,35 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get user as employer
+      tags:
+      - employers
+  /employers/verify-email:
+    get:
+      description: Verify employer email by providing verify email ID and secret code
+        that should be sent to the user in the verification email.
+      parameters:
+      - description: Verify email ID and secret code from the email.
+        in: body
+        name: VerifyEmployerEmailRequest
+        required: true
+        schema:
+          $ref: '#/definitions/api.verifyEmployerEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.verifyEmployerEmailResponse'
+        "400":
+          description: Invalid request body.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Verify employer email
       tags:
       - employers
   /job-applications:

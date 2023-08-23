@@ -581,7 +581,7 @@ func (server *Server) verifyUserEmail(ctx *gin.Context) {
 		return
 	}
 
-	txResult, err := server.store.VerifyEmailTx(ctx, db.VerifyEmailTxParams{
+	txResult, err := server.store.VerifyUserEmailTx(ctx, db.VerifyEmailTxParams{
 		ID:         request.ID,
 		SecretCode: request.SecretCode,
 	})

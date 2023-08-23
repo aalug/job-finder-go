@@ -1348,9 +1348,9 @@ func TestVerifyUserEmailAPI(t *testing.T) {
 				verifyEmail.IsUsed = true
 				user.IsEmailVerified = true
 				store.EXPECT().
-					VerifyEmailTx(gomock.Any(), gomock.Eq(params)).
+					VerifyUserEmailTx(gomock.Any(), gomock.Eq(params)).
 					Times(1).
-					Return(db.VerifyEmailTxResult{
+					Return(db.VerifyUserEmailResult{
 						User:        user,
 						VerifyEmail: verifyEmail,
 					}, nil)
@@ -1367,9 +1367,9 @@ func TestVerifyUserEmailAPI(t *testing.T) {
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
-					VerifyEmailTx(gomock.Any(), gomock.Any()).
+					VerifyUserEmailTx(gomock.Any(), gomock.Any()).
 					Times(1).
-					Return(db.VerifyEmailTxResult{}, sql.ErrConnDone)
+					Return(db.VerifyUserEmailResult{}, sql.ErrConnDone)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -1383,7 +1383,7 @@ func TestVerifyUserEmailAPI(t *testing.T) {
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
-					VerifyEmailTx(gomock.Any(), gomock.Any()).
+					VerifyUserEmailTx(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
@@ -1398,7 +1398,7 @@ func TestVerifyUserEmailAPI(t *testing.T) {
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
-					VerifyEmailTx(gomock.Any(), gomock.Any()).
+					VerifyUserEmailTx(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
