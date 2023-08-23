@@ -237,6 +237,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
+                    "403": {
+                        "description": "Email not verified",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
                     "404": {
                         "description": "Employer with given email or company with given id does not exist",
                         "schema": {
@@ -367,13 +373,18 @@ const docTemplate = `{
                 "summary": "Verify employer email",
                 "parameters": [
                     {
-                        "description": "Verify email ID and secret code from the email.",
-                        "name": "VerifyEmployerEmailRequest",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/api.verifyEmployerEmailRequest"
-                        }
+                        "minLength": 32,
+                        "type": "string",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -1755,6 +1766,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
+                    "403": {
+                        "description": "Email not verified",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
                     "404": {
                         "description": "User with given email does not exist",
                         "schema": {
@@ -1830,10 +1847,29 @@ const docTemplate = `{
         "/users/verify-email": {
             "get": {
                 "description": "Verify user email by providing verify email ID and secret code that should be sent to the user in the verification email.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "users"
                 ],
                 "summary": "Verify user email",
+                "parameters": [
+                    {
+                        "minLength": 32,
+                        "type": "string",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2439,23 +2475,6 @@ const docTemplate = `{
                 },
                 "skills_description": {
                     "type": "string"
-                }
-            }
-        },
-        "api.verifyEmployerEmailRequest": {
-            "type": "object",
-            "required": [
-                "code",
-                "id"
-            ],
-            "properties": {
-                "code": {
-                    "type": "string",
-                    "minLength": 32
-                },
-                "id": {
-                    "type": "integer",
-                    "minimum": 1
                 }
             }
         },

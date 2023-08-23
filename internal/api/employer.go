@@ -158,8 +158,9 @@ type loginEmployerResponse struct {
 // @param LoginEmployerRequest body loginEmployerRequest true "Employer credentials"
 // @Success 200 {object} loginEmployerResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body"
-// @Failure 404 {object} ErrorResponse "Employer with given email or company with given id does not exist"
 // @Failure 401 {object} ErrorResponse "Incorrect password"
+// @Failure 403 {object} ErrorResponse "Email not verified"
+// @Failure 404 {object} ErrorResponse "Employer with given email or company with given id does not exist"
 // @Failure 500 {object} ErrorResponse "Any other error"
 // @Router /employers/login [post]
 // loginEmployer handles login of an employer
@@ -179,6 +180,12 @@ func (server *Server) loginEmployer(ctx *gin.Context) {
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// check if the user has verified email
+	if !employer.IsEmailVerified {
+		ctx.JSON(http.StatusForbidden, errorResponse(emailNotVerifiedErr))
 		return
 	}
 
@@ -587,7 +594,7 @@ type verifyEmployerEmailResponse struct {
 // @Description Verify employer email by providing verify email ID and secret code that should be sent to the user in the verification email.
 // @Tags employers
 // @Produce json
-// @param VerifyEmployerEmailRequest body verifyEmployerEmailRequest true "Verify email ID and secret code from the email."
+// @param VerifyEmployerEmailRequest query verifyEmployerEmailRequest true "Verify email ID and secret code from the email."
 // @Success 200 {object} verifyEmployerEmailResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body."
 // @Failure 500 {object} ErrorResponse "Any other error."

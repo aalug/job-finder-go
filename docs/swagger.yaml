@@ -391,18 +391,6 @@ definitions:
       skills_description:
         type: string
     type: object
-  api.verifyEmployerEmailRequest:
-    properties:
-      code:
-        minLength: 32
-        type: string
-      id:
-        minimum: 1
-        type: integer
-    required:
-    - code
-    - id
-    type: object
   api.verifyEmployerEmailResponse:
     properties:
       message:
@@ -747,6 +735,10 @@ paths:
           description: Incorrect password
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Email not verified
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Employer with given email or company with given id does not
             exist
@@ -830,12 +822,16 @@ paths:
       description: Verify employer email by providing verify email ID and secret code
         that should be sent to the user in the verification email.
       parameters:
-      - description: Verify email ID and secret code from the email.
-        in: body
-        name: VerifyEmployerEmailRequest
+      - in: query
+        minLength: 32
+        name: code
         required: true
-        schema:
-          $ref: '#/definitions/api.verifyEmployerEmailRequest'
+        type: string
+      - in: query
+        minimum: 1
+        name: id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -1755,6 +1751,10 @@ paths:
           description: Incorrect password
           schema:
             $ref: '#/definitions/api.ErrorResponse'
+        "403":
+          description: Email not verified
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: User with given email does not exist
           schema:
@@ -1807,6 +1807,19 @@ paths:
     get:
       description: Verify user email by providing verify email ID and secret code
         that should be sent to the user in the verification email.
+      parameters:
+      - in: query
+        minLength: 32
+        name: code
+        required: true
+        type: string
+      - in: query
+        minimum: 1
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
           description: OK

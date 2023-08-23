@@ -249,6 +249,7 @@ func TestCreateEmployerAPI(t *testing.T) {
 
 func TestLoginEmployerAPI(t *testing.T) {
 	employer, password, company := generateRandomEmployerAndCompany(t)
+	employer.IsEmailVerified = true
 
 	testCases := []struct {
 		name          string
@@ -407,6 +408,26 @@ func TestLoginEmployerAPI(t *testing.T) {
 			},
 			checkResponse: func(recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name: "Email Not Verified",
+			body: gin.H{
+				"email":    employer.Email,
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				employer.IsEmailVerified = false
+				store.EXPECT().
+					GetEmployerByEmail(gomock.Any(), gomock.Eq(employer.Email)).
+					Times(1).
+					Return(employer, nil)
+				store.EXPECT().
+					GetCompanyByID(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusForbidden, recorder.Code)
 			},
 		},
 	}

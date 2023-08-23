@@ -17,6 +17,10 @@ import (
 	"time"
 )
 
+var (
+	emailNotVerifiedErr = errors.New("email not verified. Please verify your email before logging in")
+)
+
 type Skill struct {
 	ID                int32  `json:"id"`
 	SkillName         string `json:"skill"`
@@ -198,6 +202,7 @@ type loginUserResponse struct {
 // @Success 200 {object} loginUserResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body"
 // @Failure 401 {object} ErrorResponse "Incorrect password"
+// @Failure 403 {object} ErrorResponse "Email not verified"
 // @Failure 404 {object} ErrorResponse "User with given email does not exist"
 // @Failure 500 {object} ErrorResponse "Any other error"
 // @Router /users/login [post]
@@ -223,8 +228,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	// check if the user has verified email
 	if !user.IsEmailVerified {
-		err = fmt.Errorf("email not verified. Please verify your email before logging in")
-		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		ctx.JSON(http.StatusForbidden, errorResponse(emailNotVerifiedErr))
 		return
 	}
 
@@ -569,6 +573,8 @@ type verifyUserEmailResponse struct {
 // @Summary Verify user email
 // @Description Verify user email by providing verify email ID and secret code that should be sent to the user in the verification email.
 // @Tags users
+// @Param VerifyUserEmailRequest query verifyUserEmailRequest true "Verify user email request"
+// @Produce json
 // @Success 200 {object} verifyUserEmailResponse
 // @Failure 400 {object} ErrorResponse "Invalid request body."
 // @Failure 500 {object} ErrorResponse "Any other error."
