@@ -1,0 +1,1 @@
+ALTER TABLE "employers" DROP COLUMN "is_email_verified";

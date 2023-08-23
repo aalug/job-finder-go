@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
@@ -40,6 +41,7 @@ func (distributor *RedisTaskDistributor) DistributeTaskSendVerificationEmail(
 }
 
 // ProcessTaskSendVerificationEmail processes the task of sending a verification email.
+// It works for both employers and users.
 func (processor *RedisTaskProcessor) ProcessTaskSendVerificationEmail(ctx context.Context, task *asynq.Task) error {
 	var payload PayloadSendVerificationEmail
 	err := json.Unmarshal(task.Payload(), &payload)
@@ -47,14 +49,30 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerificationEmail(ctx contex
 		return fmt.Errorf("failed to unmarshal payload: %w", asynq.SkipRetry)
 	}
 
+	var email string
+	var fullName string
 	user, err := processor.store.GetUserByEmail(ctx, payload.Email)
 	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
+		if err == sql.ErrNoRows {
+			// it might be an employer
+			employer, err := processor.store.GetEmployerByEmail(ctx, payload.Email)
+			if err != nil {
+				return fmt.Errorf("failed to get user: %w", err)
+			}
+			email = employer.Email
+			fullName = employer.FullName
+		} else {
+			return fmt.Errorf("failed to get user: %w", err)
+		}
+
+	} else {
+		email = user.Email
+		fullName = user.FullName
 	}
 
 	// create verify email in the database
 	verifyEmail, err := processor.store.CreateVerifyEmail(ctx, db.CreateVerifyEmailParams{
-		Email:      user.Email,
+		Email:      email,
 		SecretCode: utils.RandomString(32),
 	})
 	if err != nil {
@@ -62,7 +80,7 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerificationEmail(ctx contex
 	}
 
 	// send email to user to verify email
-	verifyUrl := fmt.Sprintf("/%s%s/users/verify-email?id=%d&code=%s",
+	verifyUrl := fmt.Sprintf("/%s%s/employers/verify-email?id=%d&code=%s",
 		processor.config.ServerAddress, processor.config.BaseUrl, verifyEmail.ID, verifyEmail.SecretCode)
 	content := fmt.Sprintf(`
 		<h3>Hello %s</h3><br>
@@ -70,9 +88,9 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerificationEmail(ctx contex
 		Please click the link below to verify your email address:
 		</p>
 		<a class="button" href="%s">Verify Email</a>
-		`, user.FullName, verifyUrl)
+		`, fullName, verifyUrl)
 	err = processor.emailSender.SendEmail(mail.Data{
-		To:       []string{user.Email},
+		To:       []string{email},
 		Subject:  "Welcome to Go Job Search!",
 		Content:  content,
 		Template: "verification_email.html",

@@ -11,8 +11,9 @@ migrate_down:
 	migrate -path internal/db/migrations -database "postgresql://devuser:admin@localhost:5432/go_gin_job_search_db?sslmode=disable" -verbose down
 
 # generate db related go code with sqlc
+# for windows:	cmd.exe /c "docker run --rm -v ${PWD}:/src -w /src kjconroy/sqlc generate"
 sqlc:
-	cmd.exe /c "docker run --rm -v ${PWD}:/src -w /src kjconroy/sqlc generate"
+	sqlc generate
 
 # generate mock db for testing
 mock:

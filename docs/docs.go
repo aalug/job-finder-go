@@ -355,6 +355,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/employers/verify-email": {
+            "get": {
+                "description": "Verify employer email by providing verify email ID and secret code that should be sent to the user in the verification email.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employers"
+                ],
+                "summary": "Verify employer email",
+                "parameters": [
+                    {
+                        "description": "Verify email ID and secret code from the email.",
+                        "name": "VerifyEmployerEmailRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.verifyEmployerEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.verifyEmployerEmailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/job-applications": {
             "post": {
                 "security": [
@@ -2395,6 +2438,31 @@ const docTemplate = `{
                     }
                 },
                 "skills_description": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.verifyEmployerEmailRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "id"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "minLength": 32
+                },
+                "id": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
+        "api.verifyEmployerEmailResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
                     "type": "string"
                 }
             }

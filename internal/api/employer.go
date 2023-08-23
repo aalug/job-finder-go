@@ -572,3 +572,44 @@ func (server *Server) getEmployerAndCompanyDetails(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, details)
 }
+
+type verifyEmployerEmailRequest struct {
+	ID         int64  `form:"id" binding:"required,min=1"`
+	SecretCode string `form:"code" binding:"required,min=32"`
+}
+
+type verifyEmployerEmailResponse struct {
+	Message string `json:"message"`
+}
+
+// @Schemes
+// @Summary Verify employer email
+// @Description Verify employer email by providing verify email ID and secret code that should be sent to the user in the verification email.
+// @Tags employers
+// @Produce json
+// @param VerifyEmployerEmailRequest body verifyEmployerEmailRequest true "Verify email ID and secret code from the email."
+// @Success 200 {object} verifyEmployerEmailResponse
+// @Failure 400 {object} ErrorResponse "Invalid request body."
+// @Failure 500 {object} ErrorResponse "Any other error."
+// @Router /employers/verify-email [get]
+// verifyEmployerEmail handles employer email verification
+func (server *Server) verifyEmployerEmail(ctx *gin.Context) {
+	var request verifyEmployerEmailRequest
+	if err := ctx.ShouldBindQuery(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	txResult, err := server.store.VerifyEmployerEmailTx(ctx, db.VerifyEmailTxParams{
+		ID:         request.ID,
+		SecretCode: request.SecretCode,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if txResult.Employer.IsEmailVerified {
+		ctx.JSON(http.StatusOK, verifyEmployerEmailResponse{Message: "Successfully verified email"})
+	}
+}
