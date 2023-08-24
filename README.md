@@ -49,6 +49,14 @@ Search functionality is implemented both with Postgres and Elasticsearch (depend
     - use standard `go test` commands (e.g. `go test -v ./internal/api`)
 <hr>
 
+## Database
+The database's schema and intricate details can be found on dedicated webpage, which provides a comprehensive 
+overview of the data structure, tables, relationships, and other essential information. To explore the database 
+further, please visit this [dbdocs.io webpage](https://dbdocs.io/aalug/go_job_search) Password: `jobsearchsecret`
+
+
+<hr>
+
 ## API endpoints
 This API provides a set of endpoints for managing:
 - users
@@ -56,7 +64,7 @@ This API provides a set of endpoints for managing:
 - jobs
 - job applications
 
-(and indirectly: user skills, job skills and verify emails table)
+(and indirectly: user skills, job skills and verify emails tables)
 
 
 After running the server, the Swagger documentation is available at http://localhost:8080/swagger/index.html. 
