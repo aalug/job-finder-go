@@ -1,0 +1,111 @@
+Enum "application_status" {
+  "Applied"
+  "Seen"
+  "Interviewing"
+  "Offered"
+  "Rejected"
+}
+
+Table "companies" {
+  "id" SERIAL [pk, increment]
+  "name" TEXT [not null]
+  "industry" TEXT [not null]
+  "location" TEXT [not null]
+
+Indexes {
+  name [name: "idx_companies_name"]
+}
+}
+
+Table "jobs" {
+  "id" SERIAL [pk, increment]
+  "title" TEXT [not null]
+  "industry" TEXT [not null]
+  "company_id" INTEGER [not null]
+  "description" TEXT [not null]
+  "location" TEXT [not null]
+  "salary_min" INTEGER [not null]
+  "salary_max" INTEGER [not null]
+  "requirements" TEXT [not null]
+  "created_at" timestamptz [not null, default: `NOW()`]
+
+Indexes {
+  title [name: "idx_jobs_title"]
+  location [name: "idx_jobs_location"]
+  industry [name: "idx_jobs_industry"]
+  (salary_min, salary_max) [name: "idx_jobs_salary_range"]
+  created_at [name: "idx_jobs_created_at"]
+}
+}
+
+Table "users" {
+  "id" SERIAL [pk, increment]
+  "full_name" TEXT [not null]
+  "email" TEXT [not null]
+  "hashed_password" TEXT [not null]
+  "location" TEXT [not null]
+  "desired_job_title" TEXT [not null]
+  "desired_industry" TEXT [not null]
+  "desired_salary_min" INTEGER [not null]
+  "desired_salary_max" INTEGER [not null]
+  "skills" TEXT [not null]
+  "experience" TEXT [not null]
+  "created_at" timestamptz [not null, default: `NOW()`]
+
+Indexes {
+  email [name: "idx_users_email"]
+}
+}
+
+Table "job_skills" {
+  "id" SERIAL [pk, increment]
+  "job_id" INTEGER [not null]
+  "skill" TEXT [not null]
+}
+
+Table "user_skills" {
+  "id" SERIAL [pk, increment]
+  "user_id" INTEGER [not null]
+  "skill" TEXT [not null]
+  "experience" INTEGER [not null]
+}
+
+Table "employers" {
+  "id" SERIAL [pk, increment]
+  "company_id" INTEGER [not null]
+  "full_name" TEXT [not null]
+  "email" TEXT [unique, not null]
+  "hashed_password" TEXT [not null]
+  "created_at" timestamptz [not null, default: `NOW()`]
+
+Indexes {
+  email [name: "employers_email_idx"]
+}
+}
+
+Table "job_applications" {
+  "id" SERIAL [pk, increment]
+  "user_id" INTEGER [unique, not null]
+  "job_id" INTEGER [unique, not null]
+  "message" TEXT
+  "cv" BYTEA [not null]
+  "status" application_status [not null, default: "Applied"]
+  "applied_at" timestamptz [not null, default: `NOW()`]
+
+Indexes {
+  user_id [name: "idx_job_applications_user_id"]
+  job_id [name: "idx_job_applications_job_id"]
+}
+}
+
+Ref:"companies"."id" < "jobs"."company_id"
+
+Ref:"jobs"."id" < "job_skills"."job_id"
+
+Ref:"users"."id" < "user_skills"."user_id"
+
+Ref:"companies"."id" < "employers"."company_id"
+
+Ref:"users"."id" < "job_applications"."user_id"
+
+Ref:"jobs"."id" < "job_applications"."job_id"
