@@ -451,3 +451,12 @@ func TestQueries_ListJobsForEmployer(t *testing.T) {
 		require.True(t, jobs[i].CreatedAt.After(jobs[i-1].CreatedAt) || jobs[i].CreatedAt.Equal(jobs[i-1].CreatedAt))
 	}
 }
+
+func TestQueries_GetJobBasicInfo(t *testing.T) {
+	company := createRandomCompany(t, "")
+	job := createRandomJob(t, &company, jobDetails{})
+	jobBasicInfo, err := testQueries.GetJobBasicInfo(context.Background(), job.ID)
+	require.NoError(t, err)
+	require.Equal(t, job.Title, jobBasicInfo.JobTitle)
+	require.Equal(t, company.Name, jobBasicInfo.CompanyName)
+}

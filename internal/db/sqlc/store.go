@@ -19,6 +19,7 @@ type Store interface {
 	ExecTx(ctx context.Context, fn func(*Queries) error) error
 	VerifyUserEmailTx(ctx context.Context, arg VerifyEmailTxParams) (VerifyUserEmailResult, error)
 	VerifyEmployerEmailTx(ctx context.Context, arg VerifyEmailTxParams) (VerifyEmployerEmailResult, error)
+	CreateJobApplicationTx(ctx context.Context, arg CreateJobApplicationTxParams) (CreateJobApplicationTxResult, error)
 }
 
 // SQLStore provides all functions to execute db queries and transactions

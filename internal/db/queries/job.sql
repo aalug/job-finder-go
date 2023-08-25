@@ -140,3 +140,11 @@ ORDER BY CASE WHEN @created_at_asc::bool THEN created_at END ASC,
          CASE WHEN @created_at_desc::bool THEN created_at END DESC,
          created_at DESC
 LIMIT $2 OFFSET $3;
+
+-- name: GetJobBasicInfo :one
+SELECT
+    j.title AS job_title,
+    c.name AS company_name
+FROM jobs j
+         JOIN companies c ON j.company_id = c.id
+WHERE j.id = $1;

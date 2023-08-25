@@ -51,6 +51,7 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerificationEmail(ctx contex
 
 	var email string
 	var fullName string
+	var accountType string
 	user, err := processor.store.GetUserByEmail(ctx, payload.Email)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -61,6 +62,7 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerificationEmail(ctx contex
 			}
 			email = employer.Email
 			fullName = employer.FullName
+			accountType = "employers"
 		} else {
 			return fmt.Errorf("failed to get user: %w", err)
 		}
@@ -68,6 +70,7 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerificationEmail(ctx contex
 	} else {
 		email = user.Email
 		fullName = user.FullName
+		accountType = "users"
 	}
 
 	// create verify email in the database
@@ -80,8 +83,8 @@ func (processor *RedisTaskProcessor) ProcessTaskSendVerificationEmail(ctx contex
 	}
 
 	// send email to user to verify email
-	verifyUrl := fmt.Sprintf("/%s%s/employers/verify-email?id=%d&code=%s",
-		processor.config.ServerAddress, processor.config.BaseUrl, verifyEmail.ID, verifyEmail.SecretCode)
+	verifyUrl := fmt.Sprintf("/%s%s/%s/verify-email?id=%d&code=%s",
+		processor.config.ServerAddress, processor.config.BaseUrl, accountType, verifyEmail.ID, verifyEmail.SecretCode)
 	content := fmt.Sprintf(`
 		<h3>Hello %s</h3><br>
 		<p class="message">
