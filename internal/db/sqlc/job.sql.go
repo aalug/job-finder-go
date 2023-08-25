@@ -109,6 +109,27 @@ func (q *Queries) GetJob(ctx context.Context, id int32) (Job, error) {
 	return i, err
 }
 
+const getJobBasicInfo = `-- name: GetJobBasicInfo :one
+SELECT
+    j.title AS job_title,
+    c.name AS company_name
+FROM jobs j
+         JOIN companies c ON j.company_id = c.id
+WHERE j.id = $1
+`
+
+type GetJobBasicInfoRow struct {
+	JobTitle    string `json:"job_title"`
+	CompanyName string `json:"company_name"`
+}
+
+func (q *Queries) GetJobBasicInfo(ctx context.Context, id int32) (GetJobBasicInfoRow, error) {
+	row := q.db.QueryRowContext(ctx, getJobBasicInfo, id)
+	var i GetJobBasicInfoRow
+	err := row.Scan(&i.JobTitle, &i.CompanyName)
+	return i, err
+}
+
 const getJobDetails = `-- name: GetJobDetails :one
 SELECT j.id, j.title, j.industry, j.company_id, j.description, j.location, j.salary_min, j.salary_max, j.requirements, j.created_at,
        c.name      AS company_name,

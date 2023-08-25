@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	"github.com/aalug/go-gin-job-search/internal/worker"
 	"github.com/aalug/go-gin-job-search/pkg/token"
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"github.com/lib/pq"
 	"io"
 	"net/http"
@@ -107,17 +109,40 @@ func (server *Server) createJobApplication(ctx *gin.Context) {
 	}
 
 	// create job application in the database
-	params := db.CreateJobApplicationParams{
-		UserID: authUser.ID,
-		JobID:  int32(jobID),
-		Message: sql.NullString{
-			String: message,
-			Valid:  len(message) > 0,
+	params := db.CreateJobApplicationTxParams{
+		CreateJobApplicationParams: db.CreateJobApplicationParams{
+			UserID: authUser.ID,
+			JobID:  int32(jobID),
+			Message: sql.NullString{
+				String: message,
+				Valid:  len(message) > 0,
+			},
+			Cv: cvData,
 		},
-		Cv: cvData,
+		AfterCreate: func(jobApplication db.JobApplication) error {
+			// get job details to send in the confirmation email
+			jobInfo, err := server.store.GetJobBasicInfo(ctx, int32(jobID))
+			if err != nil {
+				return err
+			}
+			taskPayload := &worker.PayloadSendConfirmationEmail{
+				Email:       authUser.Email,
+				FullName:    authUser.FullName,
+				Position:    jobInfo.JobTitle,
+				CompanyName: jobInfo.CompanyName,
+			}
+
+			opts := []asynq.Option{
+				asynq.MaxRetry(10),
+				asynq.ProcessIn(10 * time.Second),
+				asynq.Queue(worker.QueueCritical),
+			}
+
+			return server.taskDistributor.DistributeTaskSendConfirmationEmail(ctx, taskPayload, opts...)
+		},
 	}
 
-	jobApplication, err := server.store.CreateJobApplication(ctx, params)
+	txResult, err := server.store.CreateJobApplicationTx(ctx, params)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code.Name() {
@@ -127,11 +152,12 @@ func (server *Server) createJobApplication(ctx *gin.Context) {
 				return
 			}
 		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, newJobApplicationResponse(jobApplication))
+	ctx.JSON(http.StatusCreated, newJobApplicationResponse(txResult.JobApplication))
 }
 
 type getJobApplicationForUserRequest struct {

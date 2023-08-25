@@ -110,6 +110,21 @@ func (mr *MockStoreMockRecorder) CreateJobApplication(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJobApplication", reflect.TypeOf((*MockStore)(nil).CreateJobApplication), arg0, arg1)
 }
 
+// CreateJobApplicationTx mocks base method.
+func (m *MockStore) CreateJobApplicationTx(arg0 context.Context, arg1 db.CreateJobApplicationTxParams) (db.CreateJobApplicationTxResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateJobApplicationTx", arg0, arg1)
+	ret0, _ := ret[0].(db.CreateJobApplicationTxResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateJobApplicationTx indicates an expected call of CreateJobApplicationTx.
+func (mr *MockStoreMockRecorder) CreateJobApplicationTx(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateJobApplicationTx", reflect.TypeOf((*MockStore)(nil).CreateJobApplicationTx), arg0, arg1)
+}
+
 // CreateJobSkill mocks base method.
 func (m *MockStore) CreateJobSkill(arg0 context.Context, arg1 db.CreateJobSkillParams) (db.JobSkill, error) {
 	m.ctrl.T.Helper()
@@ -574,6 +589,21 @@ func (m *MockStore) GetJobApplicationUserIDAndStatus(arg0 context.Context, arg1 
 func (mr *MockStoreMockRecorder) GetJobApplicationUserIDAndStatus(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJobApplicationUserIDAndStatus", reflect.TypeOf((*MockStore)(nil).GetJobApplicationUserIDAndStatus), arg0, arg1)
+}
+
+// GetJobBasicInfo mocks base method.
+func (m *MockStore) GetJobBasicInfo(arg0 context.Context, arg1 int32) (db.GetJobBasicInfoRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetJobBasicInfo", arg0, arg1)
+	ret0, _ := ret[0].(db.GetJobBasicInfoRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetJobBasicInfo indicates an expected call of GetJobBasicInfo.
+func (mr *MockStoreMockRecorder) GetJobBasicInfo(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJobBasicInfo", reflect.TypeOf((*MockStore)(nil).GetJobBasicInfo), arg0, arg1)
 }
 
 // GetJobDetails mocks base method.
