@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/aalug/go-gin-job-search/internal/db/mock"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
@@ -1376,6 +1377,22 @@ func TestVerifyUserEmailAPI(t *testing.T) {
 			},
 		},
 		{
+			name: "Verify Email Not Found",
+			query: Query{
+				ID:   verifyEmail.ID,
+				Code: verifyEmail.SecretCode,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					VerifyUserEmailTx(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.VerifyUserEmailResult{}, sql.ErrNoRows)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
 			name: "Invalid Code Length",
 			query: Query{
 				ID:   verifyEmail.ID,
@@ -1427,6 +1444,190 @@ func TestVerifyUserEmailAPI(t *testing.T) {
 			q := req.URL.Query()
 			q.Add("id", fmt.Sprintf("%d", tc.query.ID))
 			q.Add("code", tc.query.Code)
+			req.URL.RawQuery = q.Encode()
+
+			server.router.ServeHTTP(recorder, req)
+
+			tc.checkResponse(recorder)
+		})
+	}
+}
+
+func TestSendVerificationEmailToUserAPI(t *testing.T) {
+	user, _ := generateRandomUser(t)
+	testCases := []struct {
+		name          string
+		email         string
+		buildStubs    func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor)
+		checkResponse func(recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:  "OK",
+			email: user.Email,
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					DeleteVerifyEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(nil)
+				taskPayload := &worker.PayloadSendVerificationEmail{
+					Email: user.Email,
+				}
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Eq(taskPayload), gomock.Any()).
+					Times(1).
+					Return(nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name:  "Invalid Email",
+			email: "invalid",
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				store.EXPECT().
+					DeleteVerifyEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:  "User Not Found",
+			email: user.Email,
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrNoRows)
+				store.EXPECT().
+					DeleteVerifyEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name:  "Internal Server Error GetUserByEmail",
+			email: user.Email,
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(db.User{}, sql.ErrConnDone)
+				store.EXPECT().
+					DeleteVerifyEmail(gomock.Any(), gomock.Any()).
+					Times(0)
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:  "DeleteVerifyEmail ErrNoRows Do Nothing",
+			email: user.Email,
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					DeleteVerifyEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(sql.ErrNoRows)
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(nil)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name:  "Internal Server Error DeleteVerifyEmail",
+			email: user.Email,
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					DeleteVerifyEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(sql.ErrConnDone)
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name:  "Internal Server Error DistributeTaskSendVerificationEmail",
+			email: user.Email,
+			buildStubs: func(store *mockdb.MockStore, distributor *mockworker.MockTaskDistributor) {
+				store.EXPECT().
+					GetUserByEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(user, nil)
+				store.EXPECT().
+					DeleteVerifyEmail(gomock.Any(), gomock.Eq(user.Email)).
+					Times(1).
+					Return(nil)
+				distributor.EXPECT().
+					DistributeTaskSendVerificationEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(errors.New("some error"))
+			},
+			checkResponse: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			store := mockdb.NewMockStore(ctrl)
+
+			taskCtrl := gomock.NewController(t)
+			defer taskCtrl.Finish()
+			taskDistributor := mockworker.NewMockTaskDistributor(taskCtrl)
+
+			tc.buildStubs(store, taskDistributor)
+
+			server := newTestServer(t, store, nil, taskDistributor)
+			recorder := httptest.NewRecorder()
+
+			url := BaseUrl + "/users/send-verification-email"
+
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			q := req.URL.Query()
+			q.Add("email", tc.email)
 			req.URL.RawQuery = q.Encode()
 
 			server.router.ServeHTTP(recorder, req)

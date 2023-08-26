@@ -1832,6 +1832,52 @@
                 }
             }
         },
+        "/users/send-verification-email": {
+            "get": {
+                "description": "Send to the user an email with a link that should be used to verify their email address.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Send user verification email",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "email",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.sendVerificationEmailToUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid Email.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "No user found with the provided email.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users/verify-email": {
             "get": {
                 "description": "Verify user email by providing verify email ID and secret code that should be sent to the user in the verification email.",
@@ -2270,6 +2316,14 @@
                 },
                 "user": {
                     "$ref": "#/definitions/api.userResponse"
+                }
+            }
+        },
+        "api.sendVerificationEmailToUserResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
                 }
             }
         },

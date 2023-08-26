@@ -35,6 +35,17 @@ func (q *Queries) CreateVerifyEmail(ctx context.Context, arg CreateVerifyEmailPa
 	return i, err
 }
 
+const deleteVerifyEmail = `-- name: DeleteVerifyEmail :exec
+DELETE 
+FROM verify_emails
+WHERE email = $1
+`
+
+func (q *Queries) DeleteVerifyEmail(ctx context.Context, email string) error {
+	_, err := q.db.ExecContext(ctx, deleteVerifyEmail, email)
+	return err
+}
+
 const updateVerifyEmail = `-- name: UpdateVerifyEmail :one
 UPDATE verify_emails
 SET is_used = TRUE
