@@ -28,6 +28,7 @@ type Querier interface {
 	DeleteMultipleUserSkills(ctx context.Context, ids []int32) error
 	DeleteUser(ctx context.Context, id int32) error
 	DeleteUserSkill(ctx context.Context, id int32) error
+	DeleteVerifyEmail(ctx context.Context, email string) error
 	GetCompanyByID(ctx context.Context, id int32) (Company, error)
 	GetCompanyByName(ctx context.Context, name string) (Company, error)
 	GetCompanyIDOfJob(ctx context.Context, id int32) (int32, error)

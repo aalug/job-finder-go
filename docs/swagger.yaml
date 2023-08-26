@@ -263,6 +263,11 @@ definitions:
       user:
         $ref: '#/definitions/api.userResponse'
     type: object
+  api.sendVerificationEmailToUserResponse:
+    properties:
+      message:
+        type: string
+    type: object
   api.updateEmployerPasswordRequest:
     properties:
       new_password:
@@ -1801,6 +1806,37 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Update user password
+      tags:
+      - users
+  /users/send-verification-email:
+    get:
+      description: Send to the user an email with a link that should be used to verify
+        their email address.
+      parameters:
+      - in: query
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.sendVerificationEmailToUserResponse'
+        "400":
+          description: Invalid Email.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: No user found with the provided email.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Any other error.
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Send user verification email
       tags:
       - users
   /users/verify-email:

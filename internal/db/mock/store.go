@@ -397,6 +397,20 @@ func (mr *MockStoreMockRecorder) DeleteUserSkill(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserSkill", reflect.TypeOf((*MockStore)(nil).DeleteUserSkill), arg0, arg1)
 }
 
+// DeleteVerifyEmail mocks base method.
+func (m *MockStore) DeleteVerifyEmail(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteVerifyEmail", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteVerifyEmail indicates an expected call of DeleteVerifyEmail.
+func (mr *MockStoreMockRecorder) DeleteVerifyEmail(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteVerifyEmail", reflect.TypeOf((*MockStore)(nil).DeleteVerifyEmail), arg0, arg1)
+}
+
 // ExecTx mocks base method.
 func (m *MockStore) ExecTx(arg0 context.Context, arg1 func(*db.Queries) error) error {
 	m.ctrl.T.Helper()

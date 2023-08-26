@@ -80,6 +80,7 @@ func (server *Server) setupRouter() {
 	routerV1.POST("/users", server.createUser)
 	routerV1.POST("/users/login", server.loginUser)
 	routerV1.GET("/users/verify-email", server.verifyUserEmail)
+	routerV1.GET("/users/send-verification-email", server.sendVerificationEmailToUser)
 
 	// === employers ===
 	routerV1.POST("/employers", server.createEmployer)

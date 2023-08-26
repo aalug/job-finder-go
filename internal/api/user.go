@@ -592,6 +592,12 @@ func (server *Server) verifyUserEmail(ctx *gin.Context) {
 		SecretCode: request.SecretCode,
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = fmt.Errorf("no veirdy email found with the provided details. The verify email may have expired or been used already")
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -599,4 +605,71 @@ func (server *Server) verifyUserEmail(ctx *gin.Context) {
 	if txResult.User.IsEmailVerified {
 		ctx.JSON(http.StatusOK, verifyUserEmailResponse{Message: "Successfully verified email"})
 	}
+}
+
+type sendVerificationEmailToUserRequest struct {
+	Email string `form:"email" binding:"required,email"`
+}
+
+type sendVerificationEmailToUserResponse struct {
+	Message string `json:"message"`
+}
+
+// @Schemes
+// @Summary Send user verification email
+// @Description Send to the user an email with a link that should be used to verify their email address.
+// @Tags users
+// @Param SendVerificationEmailToUserRequest query sendVerificationEmailToUserRequest true "Email address to send verification email to"
+// @Produce json
+// @Success 200 {object} sendVerificationEmailToUserResponse
+// @Failure 400 {object} ErrorResponse "Invalid Email."
+// @Failure 404 {object} ErrorResponse "No user found with the provided email."
+// @Failure 500 {object} ErrorResponse "Any other error."
+// @Router /users/send-verification-email [get]
+// sendVerificationEmailToUser sends verification email to the user.
+// it supposed to help users that for some reason could not verify
+// their email address with link provided in the first verification email.
+func (server *Server) sendVerificationEmailToUser(ctx *gin.Context) {
+	var request sendVerificationEmailToUserRequest
+	if err := ctx.ShouldBindQuery(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	user, err := server.store.GetUserByEmail(ctx, request.Email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = fmt.Errorf("user with email %s does not exist", request.Email)
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// delete previous verify email from the database
+	err = server.store.DeleteVerifyEmail(ctx, user.Email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	// if no verify emails found, do nothing
+
+	taskPayload := &worker.PayloadSendVerificationEmail{
+		Email: user.Email,
+	}
+
+	opts := []asynq.Option{
+		asynq.MaxRetry(10),
+		asynq.ProcessIn(10 * time.Second),
+		asynq.Queue(worker.QueueCritical),
+	}
+
+	err = server.taskDistributor.DistributeTaskSendVerificationEmail(ctx, taskPayload, opts...)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, sendVerificationEmailToUserResponse{Message: "verification email sent"})
 }
