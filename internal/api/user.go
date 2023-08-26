@@ -635,6 +635,7 @@ func (server *Server) sendVerificationEmailToUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
+
 	user, err := server.store.GetUserByEmail(ctx, request.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
