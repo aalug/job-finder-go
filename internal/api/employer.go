@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
 	"github.com/aalug/go-gin-job-search/internal/worker"
@@ -612,6 +613,12 @@ func (server *Server) verifyEmployerEmail(ctx *gin.Context) {
 		SecretCode: request.SecretCode,
 	})
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = fmt.Errorf("no veirdy email found with the provided details. The verify email may have expired or been used already")
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -619,4 +626,72 @@ func (server *Server) verifyEmployerEmail(ctx *gin.Context) {
 	if txResult.Employer.IsEmailVerified {
 		ctx.JSON(http.StatusOK, verifyEmployerEmailResponse{Message: "Successfully verified email"})
 	}
+}
+
+type sendVerificationEmailToEmployerRequest struct {
+	Email string `form:"email" binding:"required,email"`
+}
+
+type sendVerificationEmailToEmployerResponse struct {
+	Message string `json:"message"`
+}
+
+// @Schemes
+// @Summary Send employer verification email
+// @Description Send to the employer an email with a link that should be used to verify their email address.
+// @Tags employers
+// @Param SendVerificationEmailToEmployerRequest query sendVerificationEmailToEmployerRequest true "Email address to send verification email to"
+// @Produce json
+// @Success 200 {object} sendVerificationEmailToEmployerResponse
+// @Failure 400 {object} ErrorResponse "Invalid Email."
+// @Failure 404 {object} ErrorResponse "No employer found with the provided email."
+// @Failure 500 {object} ErrorResponse "Any other error."
+// @Router /employers/send-verification-email [get]
+// sendVerificationEmailToEmployer sends verification email to the employer.
+// it supposed to help employers that for some reason could not verify
+// their email address with link provided in the first verification email.
+func (server *Server) sendVerificationEmailToEmployer(ctx *gin.Context) {
+	var request sendVerificationEmailToEmployerRequest
+	if err := ctx.ShouldBindQuery(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	employer, err := server.store.GetEmployerByEmail(ctx, request.Email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = fmt.Errorf("employer with email %s does not exist", request.Email)
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// delete previous verify email from the database
+	err = server.store.DeleteVerifyEmail(ctx, employer.Email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	// if no verify emails found, do nothing
+
+	taskPayload := &worker.PayloadSendVerificationEmail{
+		Email: employer.Email,
+	}
+
+	opts := []asynq.Option{
+		asynq.MaxRetry(10),
+		asynq.ProcessIn(10 * time.Second),
+		asynq.Queue(worker.QueueCritical),
+	}
+
+	err = server.taskDistributor.DistributeTaskSendVerificationEmail(ctx, taskPayload, opts...)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, sendVerificationEmailToEmployerResponse{Message: "verification email sent"})
 }

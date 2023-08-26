@@ -86,6 +86,7 @@ func (server *Server) setupRouter() {
 	routerV1.POST("/employers", server.createEmployer)
 	routerV1.POST("/employers/login", server.loginEmployer)
 	routerV1.GET("/employers/verify-email", server.verifyEmployerEmail)
+	routerV1.GET("/employers/send-verification-email", server.sendVerificationEmailToEmployer)
 
 	routerV1.GET("/employers/employer-company-details/:email", server.getEmployerAndCompanyDetails)
 

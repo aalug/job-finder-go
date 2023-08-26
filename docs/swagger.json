@@ -303,6 +303,52 @@
                 }
             }
         },
+        "/employers/send-verification-email": {
+            "get": {
+                "description": "Send to the employer an email with a link that should be used to verify their email address.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employers"
+                ],
+                "summary": "Send employer verification email",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "email",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.sendVerificationEmailToEmployerResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid Email.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "No employer found with the provided email.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Any other error.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/employers/user-details/{email}": {
             "get": {
                 "security": [
@@ -2316,6 +2362,14 @@
                 },
                 "user": {
                     "$ref": "#/definitions/api.userResponse"
+                }
+            }
+        },
+        "api.sendVerificationEmailToEmployerResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
                 }
             }
         },
