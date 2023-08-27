@@ -966,6 +966,18 @@ func (mr *MockStoreMockRecorder) ListUsersBySkill(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUsersBySkill", reflect.TypeOf((*MockStore)(nil).ListUsersBySkill), arg0, arg1)
 }
 
+// LoadTestData mocks base method.
+func (m *MockStore) LoadTestData(arg0 context.Context) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "LoadTestData", arg0)
+}
+
+// LoadTestData indicates an expected call of LoadTestData.
+func (mr *MockStoreMockRecorder) LoadTestData(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadTestData", reflect.TypeOf((*MockStore)(nil).LoadTestData), arg0)
+}
+
 // UpdateCompany mocks base method.
 func (m *MockStore) UpdateCompany(arg0 context.Context, arg1 db.UpdateCompanyParams) (db.Company, error) {
 	m.ctrl.T.Helper()

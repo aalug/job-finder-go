@@ -6,14 +6,15 @@ account types have access to different endpoints and are allowed to perform
 different actions (e.g. only employers can create job offers, and only users
 can create job applications).
 Search functionality is implemented both with Postgres and Elasticsearch (depending on search complexity).
+Redis is used to perform tasks in the background such as sending verification or confirmation emails.
 <hr>
 
 ### Built in Go 1.20
 
 ### The app uses:
 - Postgres
+- Redis 
 - Docker
-- Redis
 - [Elasticsearch](https://github.com/elastic/go-elasticsearch)
 - [Gin](https://github.com/gin-gonic/gin)
 - [golang-migrate](https://github.com/golang-migrate/migrate)
@@ -30,11 +31,13 @@ Search functionality is implemented both with Postgres and Elasticsearch (depend
 1. Clone the repository
 2. Go to the project's root directory
 3. Rename `app.env.example` to `app.env` and replace the values
-4. Run in your terminal:
-     - `docker-compose up` to run the database container
+4. Install [golang-migrate](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
+5. Run in your terminal:
+     - `docker-compose up` - to run the containers
      - `make migrate_up` - to run migrations
-     - `make runserver` - to run HTTP server
-5. Now everything should be ready and server running on `SERVER_ADDRESS` specified in `app.env`
+     - `make runserver load_data=true` - to run HTTP server with loaded (into the postgres and elasticsearch) 
+sample jobs, employers and companies (set `load_data` to `false` if you do not want test data to load)
+6. Now everything should be ready and server running on `SERVER_ADDRESS` specified in `app.env`
 <hr>
 
 ## Testing
@@ -87,6 +90,12 @@ user in JSON format. If the request body is invalid, a `400 Bad Request` status 
 If a user with the given email already exists, a `403 Forbidden` status code is returned. In case 
 of any other error, a `500 Internal Server Error` status code is returned.
 After registering, a verification email is sent to the provided email address.
+
++ `GET /users/send-verification-email`: This endpoint sends an email to the user with a link that should be used 
+to verify their email address. The request must contain the user’s email as a query parameter. On success, the response 
+has a `200 OK` status code and returns the result in JSON format. If the email is invalid, a `400 Bad Request` status code 
+is returned. If no user is found with the provided email, a `404 Not Found` status code is returned. In case of any 
+other error, a `500 Internal Server Error` status code is returned.
 
 + `GET /users/verify-email`: This endpoint verifies a user’s email by providing a verify email ID and 
 secret code that should be sent to the user in the verification email. The request body must contain the verify 
@@ -143,6 +152,12 @@ a `400` status code is returned. If a company with the given name or an
 employer with the given email already exists, a `403 Forbidden` status 
 code is returned. In case of any other error, a 500 Internal Error status code is returned.
 After registering, a verification email is sent to the provided email address.
+
++ `GET /employers/send-verification-email`: This endpoint sends an email to the employer with a link that should be used 
+to verify their email address. The request must contain the employer’s email as a query parameter. On success, the response 
+has a `200 OK` status code and returns the result in JSON format. If the email is invalid, a `400 Bad Request` status code 
+is returned. If no employer is found with the provided email, a `404 Not Found` status code is returned. In case of any 
+other error, a `500 Internal Server Error` status code is returned.
 
 + `GET /employers/verify-email`: This endpoint verifies an employer’s email by providing a verify email ID and 
 secret code that should be sent to the user in the verification email. The request body must contain the verify 
