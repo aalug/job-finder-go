@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"github.com/aalug/go-gin-job-search/internal/api"
 	"github.com/aalug/go-gin-job-search/internal/config"
 	"github.com/aalug/go-gin-job-search/internal/db/sqlc"
@@ -34,6 +35,15 @@ func main() {
 	}
 
 	taskDistributor := worker.NewRedisTaskDistributor(redisOpt)
+
+	// === loading test data ===
+	loadDataFlag := flag.Bool("load_test_data", false, "If set, the application will load test data into db")
+	flag.Parse()
+
+	if *loadDataFlag != false {
+		// load the test data into the db
+		store.LoadTestData(context.Background())
+	}
 
 	// === Elasticsearch ===
 	ctx := context.Background()

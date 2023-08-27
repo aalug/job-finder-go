@@ -35,19 +35,16 @@ test:
 test_coverage:
 	go test $(p) -coverprofile=coverage.out && go tool cover -html=coverage.out
 
+# run main function -> start the server.
+# $(load_data): boolean - set true if you want to load test/ sample data into the postgres and elasticsearch
 runserver:
-	go run cmd/main.go
+	go run cmd/main.go -load_test_data=$(load_data)
 
-# flush db and restart it
-flush_db:
+# flush containers and restart it
+flush:
 	docker-compose down
 	docker volume ls -qf dangling=true | xargs docker volume rm
 	docker-compose up -d
-
-flush_es:
-	docker-compose stop elasticsearch
-	docker-compose rm -f elasticsearch
-	docker-compose up -d elasticsearch
 
 # generate swag documentation files
 swag:

@@ -20,6 +20,7 @@ type Store interface {
 	VerifyUserEmailTx(ctx context.Context, arg VerifyEmailTxParams) (VerifyUserEmailResult, error)
 	VerifyEmployerEmailTx(ctx context.Context, arg VerifyEmailTxParams) (VerifyEmployerEmailResult, error)
 	CreateJobApplicationTx(ctx context.Context, arg CreateJobApplicationTxParams) (CreateJobApplicationTxResult, error)
+	LoadTestData(ctx context.Context)
 }
 
 // SQLStore provides all functions to execute db queries and transactions
