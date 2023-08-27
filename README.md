@@ -33,10 +33,9 @@ Redis is used to perform tasks in the background such as sending verification or
 3. Rename `app.env.example` to `app.env` and replace the values
 4. Install [golang-migrate](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate)
 5. Run in your terminal:
-     - `docker-compose up` - to run the containers
-     - `make migrate_up` - to run migrations
-     - `make runserver load_data=true` - to run HTTP server with loaded (into the postgres and elasticsearch) 
-sample jobs, employers and companies (set `load_data` to `false` if you do not want test data to load)
+     - `docker-compose up` to run the containers
+     - `make migrate_up` to run migrations
+     - `make runserver load_data=true` to run the HTTP server with sample jobs, employers, and companies loaded into both PostgreSQL and Elasticsearch. Set `load_data` to `false` if you do not want test data to be loaded.
 6. Now everything should be ready and server running on `SERVER_ADDRESS` specified in `app.env`
 <hr>
 
