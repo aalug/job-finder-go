@@ -41,7 +41,7 @@ sample jobs, employers and companies (set `load_data` to `false` if you do not w
 <hr>
 
 ## Testing
-1. Run the postgres container (`docker-compose up`)
+1. Run the containers (`docker-compose up`)
 2. Run in your terminal:
     - `make test` to run all tests
 
