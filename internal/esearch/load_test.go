@@ -2,9 +2,9 @@ package esearch
 
 import (
 	"context"
-	"github.com/aalug/go-gin-job-search/internal/db/mock"
-	"github.com/aalug/go-gin-job-search/internal/db/sqlc"
-	"github.com/aalug/go-gin-job-search/pkg/utils"
+	"github.com/aalug/job-finder-go/internal/db/mock"
+	"github.com/aalug/job-finder-go/internal/db/sqlc"
+	"github.com/aalug/job-finder-go/pkg/utils"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 	"testing"

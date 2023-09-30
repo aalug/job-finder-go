@@ -3,9 +3,9 @@ package api
 import (
 	"database/sql"
 	"fmt"
-	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
-	"github.com/aalug/go-gin-job-search/internal/worker"
-	"github.com/aalug/go-gin-job-search/pkg/token"
+	db "github.com/aalug/job-finder-go/internal/db/sqlc"
+	"github.com/aalug/job-finder-go/internal/worker"
+	"github.com/aalug/job-finder-go/pkg/token"
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
 	"github.com/lib/pq"

@@ -16,7 +16,7 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_DB: go_gin_job_search_db
+          POSTGRES_DB: job_finder_db
           POSTGRES_USER: devuser
           POSTGRES_PASSWORD: admin
         ports:

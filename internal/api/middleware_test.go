@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"github.com/aalug/go-gin-job-search/pkg/token"
+	"github.com/aalug/job-finder-go/pkg/token"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"net/http"

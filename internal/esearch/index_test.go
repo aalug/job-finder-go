@@ -3,7 +3,7 @@ package esearch
 import (
 	"bytes"
 	"context"
-	"github.com/aalug/go-gin-job-search/pkg/utils"
+	"github.com/aalug/job-finder-go/pkg/utils"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/esutil"
 	"github.com/stretchr/testify/require"

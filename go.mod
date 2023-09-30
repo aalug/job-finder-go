@@ -1,4 +1,4 @@
-module github.com/aalug/go-gin-job-search
+module github.com/aalug/job-finder-go
 
 go 1.20
 

@@ -1,4 +1,4 @@
-# Go job search
+# Go job finder
 <hr>
 
 A **REST API** that allows registering as users and employers, where both

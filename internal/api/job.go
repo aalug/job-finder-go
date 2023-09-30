@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
-	"github.com/aalug/go-gin-job-search/internal/esearch"
-	"github.com/aalug/go-gin-job-search/pkg/token"
+	db "github.com/aalug/job-finder-go/internal/db/sqlc"
+	"github.com/aalug/job-finder-go/internal/esearch"
+	"github.com/aalug/job-finder-go/pkg/token"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

@@ -1,11 +1,11 @@
 package api
 
 import (
-	"github.com/aalug/go-gin-job-search/internal/config"
-	"github.com/aalug/go-gin-job-search/internal/db/sqlc"
-	"github.com/aalug/go-gin-job-search/internal/esearch"
-	"github.com/aalug/go-gin-job-search/internal/worker"
-	"github.com/aalug/go-gin-job-search/pkg/utils"
+	"github.com/aalug/job-finder-go/internal/config"
+	"github.com/aalug/job-finder-go/internal/db/sqlc"
+	"github.com/aalug/job-finder-go/internal/esearch"
+	"github.com/aalug/job-finder-go/internal/worker"
+	"github.com/aalug/job-finder-go/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"os"
