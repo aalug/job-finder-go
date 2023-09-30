@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
-	"github.com/aalug/go-gin-job-search/pkg/utils"
+	"github.com/aalug/job-finder-go/pkg/utils"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"

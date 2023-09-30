@@ -3,7 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
-	"github.com/aalug/go-gin-job-search/pkg/token"
+	"github.com/aalug/job-finder-go/pkg/token"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"

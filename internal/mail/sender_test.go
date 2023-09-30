@@ -1,7 +1,7 @@
 package mail
 
 import (
-	"github.com/aalug/go-gin-job-search/internal/config"
+	"github.com/aalug/job-finder-go/internal/config"
 	"testing"
 
 	"github.com/stretchr/testify/require"

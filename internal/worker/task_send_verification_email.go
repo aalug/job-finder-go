@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
-	"github.com/aalug/go-gin-job-search/internal/mail"
-	"github.com/aalug/go-gin-job-search/pkg/utils"
+	db "github.com/aalug/job-finder-go/internal/db/sqlc"
+	"github.com/aalug/job-finder-go/internal/mail"
+	"github.com/aalug/job-finder-go/pkg/utils"
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
 )

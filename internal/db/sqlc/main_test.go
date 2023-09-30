@@ -2,7 +2,7 @@ package db
 
 import (
 	"database/sql"
-	"github.com/aalug/go-gin-job-search/internal/config"
+	"github.com/aalug/job-finder-go/internal/config"
 	"log"
 	"os"
 	"testing"

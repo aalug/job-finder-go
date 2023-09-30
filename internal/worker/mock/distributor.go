@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	worker "github.com/aalug/go-gin-job-search/internal/worker"
+	worker "github.com/aalug/job-finder-go/internal/worker"
 	gomock "github.com/golang/mock/gomock"
 	asynq "github.com/hibiken/asynq"
 )

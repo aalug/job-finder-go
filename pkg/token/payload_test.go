@@ -1,7 +1,7 @@
 package token
 
 import (
-	"github.com/aalug/go-gin-job-search/pkg/utils"
+	"github.com/aalug/job-finder-go/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"testing"

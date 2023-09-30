@@ -5,16 +5,16 @@ services:
     image: postgres:15-alpine
     volumes:
       - dev-db-data:/var/lib/postgresql/data
-    container_name: go_gin_job_search_db
+    container_name: job_finder_db
     environment:
-      - POSTGRES_DB=go_gin_job_search_db
+      - POSTGRES_DB=job_finder_db
       - POSTGRES_USER=devuser
       - POSTGRES_PASSWORD=admin
     ports:
       - "5432:5432"
 
   elasticsearch:
-    container_name: go_gin_job_search_es
+    container_name: job_finder_es
     image: elasticsearch:7.17.9
     environment:
       - bootstrap.memory_lock=true
@@ -29,7 +29,7 @@ services:
     ports:
       - "9200:9200"
     networks:
-      - es-job-search
+      - es-job-finder
     healthcheck:
       interval: 10s
       retries: 20
@@ -39,7 +39,7 @@ services:
 
   kibana:
     image: kibana:7.17.10
-    container_name: go_gin_job_search_kibana
+    container_name: job_finder_kibana
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -49,7 +49,7 @@ services:
     ports:
       - "5601:5601"
     networks:
-      - es-job-search
+      - es-job-finder
     healthcheck:
       interval: 10s
       retries: 20
@@ -57,13 +57,13 @@ services:
 
   redis:
     image: redis:7.0
-    container_name: go_gin_job_search_redis
+    container_name: job_finder_redis
     ports:
       - "6379:6379"
 
   mailhog:
     image: mailhog/mailhog
-    container_name: go_gin_job_search_mailhog
+    container_name: job_finder_mailhog
     logging:
       driver: 'none'
     ports:
@@ -71,7 +71,7 @@ services:
       - "8025:8025" # web ui
 
 networks:
-  es-job-search:
+  es-job-finder:
     driver: bridge
 
 volumes:

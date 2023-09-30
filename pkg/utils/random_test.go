@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/aalug/go-gin-job-search/pkg/validation"
+	"github.com/aalug/job-finder-go/pkg/validation"
 	"github.com/stretchr/testify/require"
 	"math/rand"
 	"strings"

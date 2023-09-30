@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	db "github.com/aalug/go-gin-job-search/internal/db/sqlc"
+	db "github.com/aalug/job-finder-go/internal/db/sqlc"
 	gomock "github.com/golang/mock/gomock"
 )
 

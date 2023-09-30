@@ -2,12 +2,12 @@ package api
 
 import (
 	"fmt"
-	"github.com/aalug/go-gin-job-search/docs"
-	"github.com/aalug/go-gin-job-search/internal/config"
-	"github.com/aalug/go-gin-job-search/internal/db/sqlc"
-	"github.com/aalug/go-gin-job-search/internal/esearch"
-	"github.com/aalug/go-gin-job-search/internal/worker"
-	"github.com/aalug/go-gin-job-search/pkg/token"
+	"github.com/aalug/job-finder-go/docs"
+	"github.com/aalug/job-finder-go/internal/config"
+	"github.com/aalug/job-finder-go/internal/db/sqlc"
+	"github.com/aalug/job-finder-go/internal/esearch"
+	"github.com/aalug/job-finder-go/internal/worker"
+	"github.com/aalug/job-finder-go/pkg/token"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"

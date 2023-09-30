@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/aalug/go-gin-job-search/internal/mail"
+	"github.com/aalug/job-finder-go/internal/mail"
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
 )

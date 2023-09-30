@@ -4,11 +4,11 @@ generate_migrations:
 
 # run up migrations, user details based on docker-compose.yml
 migrate_up:
-	migrate -path internal/db/migrations -database "postgresql://devuser:admin@localhost:5432/go_gin_job_search_db?sslmode=disable" -verbose up
+	migrate -path internal/db/migrations -database "postgresql://devuser:admin@localhost:5432/job_finder_db?sslmode=disable" -verbose up
 
 # run down migrations, user details based on docker-compose.yml
 migrate_down:
-	migrate -path internal/db/migrations -database "postgresql://devuser:admin@localhost:5432/go_gin_job_search_db?sslmode=disable" -verbose down
+	migrate -path internal/db/migrations -database "postgresql://devuser:admin@localhost:5432/job_finder_db?sslmode=disable" -verbose down
 
 # generate db related go code with sqlc
 # for windows:	cmd.exe /c "docker run --rm -v ${PWD}:/src -w /src kjconroy/sqlc generate"
@@ -17,15 +17,15 @@ sqlc:
 
 # generate mock db for testing
 mock:
-	mockgen -package mockdb -destination internal/db/mock/store.go github.com/aalug/go-gin-job-search/internal/db/sqlc Store
+	mockgen -package mockdb -destination internal/db/mock/store.go github.com/aalug/job-finder-go/internal/db/sqlc Store
 
 # generate mock TaskDistributor
 mock_td:
-	mockgen -package mockworker -destination internal/worker/mock/distributor.go github.com/aalug/go-gin-job-search/internal/worker TaskDistributor
+	mockgen -package mockworker -destination internal/worker/mock/distributor.go github.com/aalug/job-finder-go/internal/worker TaskDistributor
 
 # generate mock functions for elasticsearch based functions
 mock_es:
-	mockgen -package mockesearch -destination internal/esearch/mock/search.go github.com/aalug/go-gin-job-search/internal/esearch ESearchClient
+	mockgen -package mockesearch -destination internal/esearch/mock/search.go github.com/aalug/job-finder-go/internal/esearch ESearchClient
 
 # run all tests
 test:

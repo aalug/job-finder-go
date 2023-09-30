@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"github.com/aalug/go-gin-job-search/pkg/utils"
+	"github.com/aalug/job-finder-go/pkg/utils"
 	"github.com/bxcodec/faker/v3"
 	"log"
 	"sync"
