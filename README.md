@@ -45,7 +45,7 @@ Redis is used to perform tasks in the background such as sending verification or
     - `make test` to run all tests
 
    or
-    - `make test_coverage p={PATH}` - to get the coverage in the HTML format - where `{PATH}` is the path to the target directory for which you want to generate test coverage. The `{PATH}` should be replaced with the actual path you want to use. For example `./api`
+    - `make test_coverage p={PATH}` - to get the coverage in the HTML format - where `{PATH}` is the path to the target directory for which you want to generate test coverage. The `{PATH}` should be replaced with the actual path you want to use. For example `./internal/api`
 
    or
     - use standard `go test` commands (e.g. `go test -v ./internal/api`)
